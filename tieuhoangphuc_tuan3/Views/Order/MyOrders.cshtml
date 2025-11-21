@@ -1,0 +1,72 @@
+﻿@model List<WebBanDienThoai.Models.Order>
+@using WebBanDienThoai.Extensions
+
+@{
+    ViewData["Title"] = "Đơn hàng của tôi";
+    Func<WebBanDienThoai.Models.OrderStatus, string> statusClass = s =>
+    {
+        switch (s)
+        {
+            case WebBanDienThoai.Models.OrderStatus.ChoXacNhan: return "badge bg-secondary";
+            case WebBanDienThoai.Models.OrderStatus.DangXuLy: return "badge bg-warning text-dark";
+            case WebBanDienThoai.Models.OrderStatus.DangGiao: return "badge bg-info text-dark";
+            case WebBanDienThoai.Models.OrderStatus.DaGiao: return "badge bg-success";
+            case WebBanDienThoai.Models.OrderStatus.HoanTat: return "badge bg-primary";
+            case WebBanDienThoai.Models.OrderStatus.DaHuy: return "badge bg-danger";
+            case WebBanDienThoai.Models.OrderStatus.TraHang: return "badge bg-dark";
+            default: return "badge bg-light text-dark";
+        }
+    };
+}
+
+<div class="container mt-4">
+    <div class="card shadow rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom-0 pb-0">
+            <h2 class="fw-bold mb-0">Đơn hàng của tôi</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center">Mã đơn</th>
+                            <th>Ngày đặt</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in Model)
+                        {
+                            <tr>
+                                <td class="text-center fw-bold">#@order.Id</td>
+                                <td>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="fw-semibold">@order.TotalPrice.ToString("N0") VNĐ</td>
+                                <td>
+                                    <span class="@statusClass(order.Status) px-3 py-2">
+                                        @order.Status.ToVietnameseStatus()
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="@Url.Action("Details", "Order", new { id = order.Id })" class="btn btn-info btn-sm px-3 rounded-pill shadow me-1">
+                                        <i class="bi bi-eye"></i> Chi tiết
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = function() {
+            var adBanner = document.querySelector('.carousel');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+            }
+        };
+</script>

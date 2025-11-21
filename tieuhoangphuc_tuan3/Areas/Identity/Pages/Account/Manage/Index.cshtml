@@ -1,0 +1,53 @@
+﻿@page
+@model IndexModel
+@{
+    Layout = "_ManageLayout";
+    ViewData["Title"] = "Quản lý tài khoản";
+    ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-primary text-white text-center rounded-top-4">
+        <h4 class="mb-0">
+            <i class="bi bi-person-circle me-2"></i>
+            Thông tin tài khoản
+        </h4>
+    </div>
+    <div class="card-body p-4">
+        <partial name="_StatusMessage" for="StatusMessage" />
+        <form id="profile-form" method="post" autocomplete="off">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label fw-semibold"><i class="bi bi-envelope-at"></i> Tên người dùng</label>
+                <input asp-for="Username" class="form-control" disabled />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.PhoneNumber" class="form-label fw-semibold"><i class="bi bi-telephone"></i> Số điện thoại</label>
+                <input asp-for="Input.PhoneNumber" class="form-control" placeholder="Số điện thoại" />
+                <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+            </div>
+            <div class="mb-4">
+                <label asp-for="Input.Address" class="form-label fw-semibold"><i class="bi bi-geo-alt"></i> Địa chỉ</label>
+                <input asp-for="Input.Address" class="form-control" placeholder="Nhập địa chỉ nhận hàng" />
+                <span asp-validation-for="Input.Address" class="text-danger"></span>
+            </div>
+            <div class="d-grid">
+                <button id="update-profile-button" type="submit" class="btn btn-primary fw-bold py-2">
+                    <i class="bi bi-save"></i> Cập nhật
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+<script>
+    window.onload = function() {
+            var adBanner = document.querySelector('.carousel');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+            }
+        };
+</script>

@@ -1,0 +1,35 @@
+﻿@page
+@model ResetAuthenticatorModel
+@{
+    Layout = "_ManageLayout";
+    ViewData["Title"] = "Đặt lại ứng dụng xác thực";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<h3 class="fw-bold mb-3">@ViewData["Title"]</h3>
+
+<div class="alert alert-danger" role="alert">
+    <p>
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>Việc đặt lại sẽ làm ứng dụng xác thực hiện tại không còn hiệu lực.</strong>
+    </p>
+    <p>
+        Sau khi đặt lại, bạn cần quét mã QR mới để thiết lập lại ứng dụng xác thực.<br />
+        Nếu không hoàn tất bước này, bạn có thể bị khóa tài khoản.
+    </p>
+</div>
+
+<form id="reset-authenticator-form" method="post">
+    <button id="reset-authenticator-button" class="btn btn-danger">Đặt lại xác thực</button>
+</form>
+
+<script>
+    window.onload = function() {
+            var adBanner = document.querySelector('.carousel');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+            }
+        };
+</script>

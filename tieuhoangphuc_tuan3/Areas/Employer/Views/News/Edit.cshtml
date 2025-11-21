@@ -1,0 +1,39 @@
+﻿@model WebBanDienThoai.Models.News
+@{
+    ViewData["Title"] = "Sửa tin tức";
+    Layout = "~/Areas/Employer/Views/Shared/_EmployerLayout.cshtml";
+}
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="@(ViewContext.RouteData.Values["action"].ToString())" method="post">
+    @if (Model.Id > 0)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label">Tên đề tài tin tức</label>
+        <input asp-for="Title" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Summary" class="form-label">Mô tả ngắn</label>
+        <input asp-for="Summary" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="ImageUrl" class="form-label">Ảnh link URL</label>
+        <input asp-for="ImageUrl" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Content" class="form-label">Nội dung tin tức</label>
+        <textarea asp-for="Content" class="form-control" id="editor" rows="10"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Lưu</button>
+    <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+</form>
+
+<!-- CKEditor 5 CDN -->
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.0/classic/ckeditor.js"></script>
+<script>
+    ClassicEditor
+        .create(document.querySelector('#editor'))
+        .catch(error => { console.error(error); });
+</script>

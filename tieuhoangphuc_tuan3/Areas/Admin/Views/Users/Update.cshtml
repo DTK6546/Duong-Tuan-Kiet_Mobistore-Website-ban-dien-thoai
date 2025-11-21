@@ -1,0 +1,70 @@
+﻿@model WebBanDienThoai.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "Cập nhật người dùng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4 text-warning"><i class="fas fa-user-edit"></i> Cập nhật thông tin người dùng</h2>
+
+<form id="updateForm" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group mb-3">
+        <label asp-for="FullName">Họ và tên</label>
+        <input asp-for="FullName" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Email">Email</label>
+        <input asp-for="Email" class="form-control" type="email" required />
+    </div>
+
+    <div class="form-group mb-3">
+        <label>Vai trò</label>
+        <select name="selectedRole" class="form-select" required>
+            @foreach (var role in ViewBag.Roles as List<string>)
+            {
+                <option value="@role" selected="@(role == ViewBag.CurrentRole ? "selected" : null)">
+                    @role
+                </option>
+            }
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">💾 Lưu thay đổi</button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">⬅️ Quay lại</a>
+</form>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <script>
+               $(document).ready(function () {
+            $('#updateForm').submit(function (e) {
+                e.preventDefault(); // Ngừng gửi form theo cách thông thường
+
+                var formData = $(this).serialize(); // Lấy dữ liệu từ form
+
+                $.ajax({
+                    url: '@Url.Action("Update", "Users")', // Gửi request tới action Update của controller Users
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            alert(response.message);
+                            window.location.href = '@Url.Action("Index", "Users")'; // Quay lại danh sách người dùng
+                        } else {
+                            alert("Có lỗi xảy ra: " + response.error);
+                        }
+                    },
+                    error: function (error) {
+                        alert("Có lỗi xảy ra khi cập nhật.");
+                    }
+                });
+            });
+        });
+
+    </script>
+}
+

@@ -1,0 +1,32 @@
+﻿@model WebBanDienThoai.Models.News
+@{
+    ViewData["Title"] = "Xóa tin tức";
+    Layout = "~/Areas/Employer/Views/Shared/_EmployerLayout.cshtml";
+}
+<div class="container mt-4">
+    <h2>Xác nhận xóa tin tức</h2>
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div class="mb-3">
+            <label class="form-label">Tiêu đề:</label>
+            <input asp-for="Title" class="form-control" readonly />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Mô tả ngắn:</label>
+            <input asp-for="Summary" class="form-control" readonly />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Ảnh:</label><br />
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" width="120" height="80" style="object-fit:cover" />
+            }
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Nội dung:</label>
+            <textarea class="form-control" rows="6" readonly>@Model.Content</textarea>
+        </div>
+        <button type="submit" class="btn btn-danger">Xóa</button>
+        <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+    </form>
+</div>

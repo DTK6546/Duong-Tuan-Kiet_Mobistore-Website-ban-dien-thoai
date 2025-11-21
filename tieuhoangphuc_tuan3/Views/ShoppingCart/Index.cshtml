@@ -1,0 +1,186 @@
+﻿@model WebBanDienThoai.Models.ShoppingCart
+@if (TempData["PaymentError"] != null)
+{
+    <div class="alert alert-danger" id="paymentError">
+        @TempData["PaymentError"]
+    </div>
+
+    <script>
+        setTimeout(function() {
+            var errorMessage = document.getElementById("paymentError");
+            if (errorMessage) {
+                errorMessage.style.display = "none";
+            }
+        }, 3000);
+    </script>
+}
+@{
+    ViewData["Title"] = "Giỏ hàng của bạn";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">🛒 Giỏ hàng của bạn</h2>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="text-center text-muted">Giỏ hàng của bạn đang trống! 🛍️</p>
+    }
+    else
+    {
+        <div class="row">
+            <!-- Danh sách sản phẩm trong giỏ hàng -->
+            <div class="col-md-8">
+                <table class="table table-bordered align-middle text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Hình ảnh</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Giá</th>
+                            <th>Số lượng</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td class="align-middle">
+                                    <img src="@item.ImageUrl" alt="@item.Name" class="cart-image img-fluid" style="width: 80px; height: 80px; object-fit: contain;">
+                                </td>
+                                <td class="align-middle">
+                                    <strong>@item.Name</strong>
+                                    <p class="text-muted m-0">Mã SP: @item.ProductId</p>
+                                </td>
+                                <td class="align-middle">@item.Price.ToString("N0") VNĐ</td>
+                                <td class="align-middle">
+                                    <div class="input-group input-group-sm">
+                                        <button class="btn btn-outline-secondary btn-sm quantity-btn" type="button">-</button>
+                                        <input type="text" class="form-control text-center quantity-input" value="@item.Quantity"
+                                               data-unit-price="@item.Price" style="max-width: 50px;">
+                                        <button class="btn btn-outline-secondary btn-sm quantity-btn" type="button">+</button>
+                                    </div>
+                                </td>
+                                <td class="align-middle">
+                                    <a asp-action="RemoveFromCart" asp-route-productId="@item.ProductId" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Phần tóm tắt đơn hàng -->
+            <div class="col-md-4">
+                <div class="p-3 border rounded shadow-sm bg-light">
+                    <h4 class="text-center">Tóm tắt đơn hàng</h4>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>Tổng tiền hàng</span>
+                        <strong class="total-price">@Model.Items.Sum(i => i.Price * i.Quantity).ToString("N0") VNĐ</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Phí vận chuyển</span>
+                        <strong>Miễn phí</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span><strong>Tổng cộng</strong></span>
+                        <strong class="total-price">@Model.Items.Sum(i => i.Price * i.Quantity).ToString("N0") VNĐ</strong>
+                    </div>
+
+                    <!-- MoMo Payment Form -->
+                    <form method="POST" asp-action="CreatePaymentMomo" asp-controller="Payment">
+                        <input type="hidden" name="Amount" value="@Model.Items.Sum(i => i.Price * i.Quantity)" />
+                        <input type="hidden" name="OrderId" value="@Guid.NewGuid().ToString()" />
+                        <input type="hidden" name="OrderInformation" value="Thanh toán Momo cho đơn hàng tại WebBanDienThoai" />
+                        <input type="hidden" name="FullName" value="@User.Identity.Name" />
+
+                        <button class="btn btn-danger w-100 mt-3" type="submit">🚀 Tiến hành thanh toán Momo</button>
+                    </form>
+                    <form method="POST" asp-action="PaymentVNPay" asp-controller="Payment">
+    <input type="hidden" name="Amount" value="@Model.Items.Sum(i => i.Price * i.Quantity)" />
+    <button class="btn btn-primary w-100 mt-2" type="submit">
+        🏦 Thanh toán bằng VNPay
+    </button>
+</form>
+                    <a href="@Url.Action("Paypal", "Payment")" class="btn btn-warning w-100 mt-2">
+                        💰 Thanh toán bằng PayPal
+                    </a>
+
+                </div>
+            </div>
+        </div>
+    }
+
+    <div style="height: 32px;"></div>
+    <!-- Phần gợi ý sản phẩm -->
+    <div class="mt-5">
+        <h4 class="fw-semibold mb-3"><i class="bi bi-star-half text-warning"></i> Có thể bạn cũng thích</h4>
+        <div class="row flex-nowrap overflow-auto pb-2" style="gap:24px;">
+            @foreach (var p in ViewBag.SuggestedProducts as List<Product>)
+            {
+                <div class="col-auto" style="min-width: 210px;">
+                    <div class="card border-0 shadow-sm h-100">
+                        <a href="@Url.Action("Display", "Product", new { id = p.Id })">
+                            <img src="@p.ImageUrl" class="card-img-top" style="height:120px;object-fit:contain">
+                        </a>
+                        <div class="card-body p-2 text-center">
+                            <div class="fw-semibold small mb-1" style="min-height:38px;">@p.Name</div>
+                            <div class="text-danger fw-bold mb-2">@p.Price.ToString("N0") đ</div>
+                            <a href="@Url.Action("Display", "Product", new { id = p.Id })" class="btn btn-sm btn-outline-danger rounded-pill">Xem chi tiết</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="col-auto d-flex align-items-center">
+                <a href="/Product" class="btn btn-warning rounded-pill ms-2">Xem tất cả &gt;</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".quantity-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    let input = this.parentElement.querySelector(".quantity-input");
+                    let value = parseInt(input.value, 10);
+
+                    if (this.innerText === "+" && value < 10) {
+                        input.value = value + 1;
+                    } else if (this.innerText === "-" && value > 1) {
+                        input.value = value - 1;
+                    }
+
+                    updateTotal();
+                });
+            });
+
+            function updateTotal() {
+                let total = 0;
+                document.querySelectorAll(".quantity-input").forEach(input => {
+                    const quantity = parseInt(input.value, 10);
+                    const unitPrice = parseFloat(input.getAttribute("data-unit-price"));
+                    total += quantity * unitPrice;
+                });
+
+                document.querySelectorAll(".total-price").forEach(element => {
+                    element.textContent = total.toLocaleString('vi-VN') + ' VNĐ';
+                });
+            }
+
+            // Tính tổng ngay khi load trang
+            updateTotal();
+        });
+
+        window.onload = function() {
+            var adBanner = document.querySelector('.carousel');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+            }
+        };
+    </script>
+}

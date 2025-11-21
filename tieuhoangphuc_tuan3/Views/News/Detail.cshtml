@@ -1,0 +1,121 @@
+﻿@model WebBanDienThoai.Models.News
+@{
+    ViewData["Title"] = Model.Title;
+}
+<div class="container mt-4 mb-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small bg-light rounded px-3 py-2 mb-3">
+            <li class="breadcrumb-item">
+                <a href="/" class="text-primary text-decoration-none"><i class="bi bi-house"></i> Trang chủ</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="/News" class="text-info text-decoration-none">Tin tức</a>
+            </li>
+            <li class="breadcrumb-item active text-secondary" aria-current="page">@Model.Title</li>
+        </ol>
+    </nav>
+    <div class="news-detail-box p-4 bg-white rounded-4 shadow-sm">
+        <h1 class="fw-bold mb-3 news-title text-primary">@Model.Title</h1>
+        <div class="d-flex align-items-center text-muted mb-3" style="gap:20px;">
+            <span><i class="bi bi-clock"></i> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <div class="text-center mb-4">
+                <img src="@Model.ImageUrl"
+                     alt="@Model.Title"
+                     class="img-fluid rounded-4 border news-detail-img shadow"
+                     style="max-height:380px; object-fit:cover;" />
+            </div>
+        }
+        <h5 class="mb-3 text-secondary news-summary">@Model.Summary</h5>
+        <article class="news-content mb-4">
+            @Html.Raw(Model.Content)
+        </article>
+        <a href="/News" class="btn btn-outline-primary px-4 mt-2"><i class="bi bi-arrow-left"></i> Quay lại</a>
+    </div>
+</div>
+
+<style>
+    .news-detail-box {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 24px;
+        box-shadow: 0 4px 28px rgba(44,62,80,0.12);
+        padding: 32px 28px 32px 28px;
+    }
+
+    .news-title {
+        font-size: 2rem;
+        color: #1d3557;
+        word-break: break-word;
+    }
+
+    .news-detail-img {
+        box-shadow: 0 8px 40px rgba(44,62,80,0.09);
+        border: 2px solid #f3f5fa;
+        border-radius: 18px;
+        max-width: 100%;
+    }
+
+    .news-summary {
+        font-size: 1.12rem;
+        color: #535f6b;
+        background: #f9fafb;
+        padding: 14px 18px;
+        border-radius: 10px;
+        font-style: italic;
+        margin-bottom: 18px;
+    }
+
+    .news-content {
+        font-size: 1.15rem;
+        line-height: 1.9;
+        color: #27282d;
+        word-break: break-word;
+    }
+
+        .news-content h2, .news-content h3, .news-content h4 {
+            color: #1976d2;
+            font-weight: 700;
+            margin-top: 1.8em;
+            margin-bottom: .7em;
+        }
+
+        .news-content ul, .news-content ol {
+            margin-bottom: 1.2em;
+            padding-left: 2em;
+        }
+
+        .news-content img {
+            max-width: 98%;
+            border-radius: 8px;
+            margin: 12px 0;
+            box-shadow: 0 2px 10px #0002;
+        }
+
+        .news-content p {
+            margin-bottom: 1.1em;
+        }
+    media (max-width: 900px) {
+        .news-detail-box
+
+    {
+        padding: 20px 6px;
+    }
+
+    }
+    media (max-width: 600px) {
+        .news-title
+
+    {
+        font-size: 1.24rem;
+    }
+
+    .news-detail-box {
+        padding: 10px 0;
+    }
+
+    }
+</style>

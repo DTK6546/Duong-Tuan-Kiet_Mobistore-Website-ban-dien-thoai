@@ -1,0 +1,375 @@
+﻿@model IEnumerable<ProductWithSoldCount>
+
+@{
+    ViewData["Title"] = "Sản Phẩm";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Sản Phẩm</h2>
+    <div class="row">
+        <!-- Bộ lọc sidebar -->
+        <div class="filter-sidebar p-4 shadow rounded-4 mb-4">
+            <form asp-action="Index" method="get" id="filterForm">
+                <!-- Danh mục -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-list-ul fs-5 text-primary me-2"></i>
+                        <span class="fw-semibold fs-6">Danh mục</span>
+                    </div>
+                    <div class="filter-options">
+                        <button type="button" class="filter-btn @(string.IsNullOrEmpty(ViewBag.CategoryId?.ToString()) ? "active" : "")"
+                                onclick="selectFilter('categoryId','')">Tất cả</button>
+                        @foreach (var category in ViewBag.Categories)
+                        {
+                            <button type="button" class="filter-btn @(ViewBag.CategoryId == category.Id ? "active" : "")"
+                                    onclick="selectFilter('categoryId','@category.Id')">@category.Name</button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Hãng (Subcategory) -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-phone fs-5 text-success me-2"></i>
+                        <span class="fw-semibold fs-6">Hãng</span>
+                    </div>
+                    <div class="filter-options">
+                        <button type="button" class="filter-btn @(ViewBag.SubCategoryId == 0 ? "active" : "")"
+                                onclick="selectFilter('subCategoryId','')">Tất cả</button>
+                        @foreach (var sub in ViewBag.SubCategories)
+                        {
+                            <button type="button" class="filter-btn @(ViewBag.SubCategoryId == sub.Id ? "active" : "")"
+                                    onclick="selectFilter('subCategoryId','@sub.Id')">@sub.Name</button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Giá -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-cash-stack fs-5 text-warning me-2"></i>
+                        <span class="fw-semibold fs-6">Khoảng giá (VNĐ)</span>
+                    </div>
+                    <div class="row gx-2">
+                        <div class="col-6">
+                            <input type="number" name="minPrice" value="@ViewBag.MinPrice" class="form-control form-control-sm" placeholder="Từ">
+                        </div>
+                        <div class="col-6">
+                            <input type="number" name="maxPrice" value="@ViewBag.MaxPrice" class="form-control form-control-sm" placeholder="Đến">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between gap-2">
+                    <button type="submit" class="btn btn-danger flex-grow-1">
+                        <i class="bi bi-funnel-fill me-1"></i> Lọc
+                    </button>
+                    <a href="@Url.Action("Index", "Product")" class="btn btn-outline-secondary flex-shrink-1">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                </div>
+
+                <input type="hidden" name="categoryId" id="categoryId" value="@ViewBag.CategoryId" />
+                <input type="hidden" name="subCategoryId" id="subCategoryId" value="@ViewBag.SubCategoryId" />
+
+                <div style="height: 32px;"></div>
+
+                <!-- Sắp xếp theo -->
+                @{
+                    var sortBy = ViewBag.SortBy as string;
+                    var options = new[] {
+                        new { Value = "", Text = "Nổi bật" },
+                        new { Value = "banchay", Text = "Bán chạy" },
+                        new { Value = "giamgia", Text = "Giảm giá" },
+                        new { Value = "moi", Text = "Mới nhất" },
+                        new { Value = "giathapcao", Text = "Giá thấp - cao" },
+                        new { Value = "giacaothap", Text = "Giá cao - thấp" }
+                    };
+                }
+                <div class="d-flex flex-wrap gap-3 align-items-center mb-3 mt-2">
+                    <label class="fw-semibold text-secondary mb-0">Sắp xếp theo:</label>
+                    <select class="form-select form-select-sm w-auto" name="sortBy" onchange="this.form.submit()">
+                        @foreach (var item in options)
+                        {
+                            if (sortBy == item.Value)
+                            {
+                                <option value="@item.Value" selected>@item.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <!-- Hiển thị các sản phẩm -->
+            <div class="row g-4">
+                @foreach (var product in Model)
+                {
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="product-card shadow-sm">
+                            <div class="position-relative">
+                                <a href="@Url.Action("Display", "Product", new { id = product.Id })">
+                                    <img src="@product.ImageUrl" class="product-image w-100" alt="@product.Name">
+                                </a>
+                                @if (product.DiscountPercent > 0)
+                                {
+                                    <span class="discount-badge">-@product.DiscountPercent%</span>
+                                }
+                            </div>
+                            <div class="card-body text-center">
+                                <h5 class="card-title fw-bold">@product.Name</h5>
+                                <div class="d-flex justify-content-center gap-2 mt-2 mb-2">
+                                <span class="category-badge">@product.Category.Name</span>
+                                @if (product.SubCategory != null)
+                                {
+                                    <span class="category-badge">@product.SubCategory.Name</span>
+                                }
+                            </div>
+                            <div class="sold-count text-muted small mb-2">
+                                <i class="bi bi-bag-check-fill text-danger me-1"></i>
+                                Đã bán @product.SoldCount
+                            </div>
+                                <div class="rating-stars mb-2">
+                                    @{
+                                        double avg = product.Rating;
+                                        int fullStars = (int)Math.Floor(avg);
+                                        bool hasHalf = avg - fullStars >= 0.5;
+                                    }
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        if (i <= fullStars)
+                                        {
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                        }
+                                        else if (i == fullStars + 1 && hasHalf)
+                                        {
+                                            <i class="bi bi-star-half text-warning"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-star text-warning"></i>
+                                        }
+                                    }
+                                    <span class="text-muted ms-2">(@avg.ToString("0.0"))</span>
+                                </div>
+
+
+                                <!-- Hiển thị giá -->
+                                <div class="product-price">
+                                    @if (product.DiscountPercent > 0)
+                                    {
+                                        <del>@product.Price.ToString("N0") VNĐ</del> <!-- Giá gốc bị gạch ngang -->
+                                        <h6 class="text-danger fw-bold">@product.DiscountedPrice.ToString("N0") VNĐ</h6> <!-- Giá sau giảm -->
+                                    }
+                                    else
+                                    {
+                                        <h6 class="text-danger fw-bold">@product.Price.ToString("N0") VNĐ</h6> <!-- Giá không giảm -->
+                                    }
+                                </div>
+
+                                <!-- Nút Mua -->
+                                <div class="d-flex justify-content-center gap-2 mt-3">
+                                    @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin") && !User.IsInRole("Employer"))
+                                    {
+                                        <a href="@Url.Action("Buy", "Product", new { id = product.Id })" class="btn btn-danger btn-sm">Mua</a>
+                                    }
+                                    else if (User.IsInRole("Admin") || User.IsInRole("Employer"))
+                                    {
+                                        <button class="btn btn-secondary btn-sm" disabled>Mua</button>
+                                    }
+                                    else
+                                    {
+                                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-secondary btn-sm">
+                                            <i class="bi bi-cart-fill me-2"></i> Mua
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+            </div>
+
+            <!-- Phân trang -->
+            <div class="d-flex justify-content-center mt-4">
+                <ul class="pagination">
+                    <!-- Trang trước -->
+                    @if (ViewBag.PageNumber > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("Index", "Product", new {
+                    pageNumber = ViewBag.PageNumber - 1,
+                    categoryId = ViewBag.CategoryId,
+                    minPrice = ViewBag.MinPrice,
+                    maxPrice = ViewBag.MaxPrice
+                })">«</a>
+                        </li>
+                    }
+
+                    <!-- Các số trang -->
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.PageNumber ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Index", "Product", new {
+                    pageNumber = i,
+                    categoryId = ViewBag.CategoryId,
+                    minPrice = ViewBag.MinPrice,
+                    maxPrice = ViewBag.MaxPrice
+                })">@i</a>
+                        </li>
+                    }
+
+                    <!-- Trang sau -->
+                    @if (ViewBag.PageNumber < ViewBag.TotalPages)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("Index", "Product", new {
+                    pageNumber = ViewBag.PageNumber + 1,
+                    categoryId = ViewBag.CategoryId,
+                    minPrice = ViewBag.MinPrice,
+                    maxPrice = ViewBag.MaxPrice
+                })">»</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+<style>
+    .filter-sidebar {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 10px #0001;
+    }
+    .filter-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    .filter-btn {
+        border: 1px solid #e5e7eb;
+        background: #f6f6f6;
+        color: #444;
+        border-radius: 24px;
+        padding: 5px 16px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: all 0.15s;
+        outline: none;
+    }
+    .filter-btn.active, .filter-btn:hover {
+        background: #d32f2f;
+        color: #fff;
+        border-color: #d32f2f;
+        box-shadow: 0 2px 6px #f4433644;
+        font-weight: 600;
+    }
+    /* Giá trị input focus */
+    .form-control-sm:focus { border-color: #d32f2f; box-shadow: 0 0 0 2px #d32f2f22; }
+
+    .form-check-input:checked {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        margin-bottom: 20px;
+        padding: 10px;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .product-image {
+        height: 200px;
+        object-fit: contain;
+        border-radius: 12px 12px 0 0;
+        width: 100%;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .card-body {
+        padding: 10px;
+        flex-grow: 1;
+    }
+
+    .card-title {
+        min-height: 50px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    h6.text-danger {
+        min-height: 40px;
+        line-height: 1.5;
+    }
+
+    .category-badge {
+        background: #e5e7eb;
+        color: #4b5563;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+
+    .rating-stars i {
+        color: #fbbf24;
+    }
+
+    .discount-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #dc2626;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.875rem;
+    }
+
+    .subcat-badge {
+    background: #d1fae5;
+    color: #059669;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 4px;
+    }
+    .category-badge {
+        background: #e5e7eb;
+        color: #4b5563;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+</style>
+
+<script>
+    function selectFilter(name, value) {
+        document.getElementById(name).value = value;
+        document.getElementById('filterForm').submit();
+    }
+</script>

@@ -1,0 +1,43 @@
+﻿@model WebBanDienThoai.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "Cập nhật nhân viên";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var roles = ViewBag.Roles as List<string>;
+    var currentRole = ViewBag.CurrentRole as string;
+}
+
+<h2 class="text-primary mb-4"><i class="fas fa-edit"></i> Cập nhật Nhân viên</h2>
+
+<form asp-action="Update" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group mb-3">
+        <label asp-for="FullName" class="form-label">Họ tên</label>
+        <input asp-for="FullName" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Email" class="form-label">Email</label>
+        <input asp-for="Email" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-3">
+        <label class="form-label">Vai trò (quyền)</label>
+        <select name="selectedRole" class="form-select" required>
+            @foreach (var role in roles)
+            {
+                <option value="@role" selected="@(role == currentRole ? "selected" : null)">
+                    @role
+                </option>
+            }
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">💾 Cập nhật</button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">⬅️ Quay lại</a>
+</form>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

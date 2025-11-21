@@ -1,0 +1,267 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.ProductWithSoldCount>
+@using System.Linq
+
+@{
+    ViewData["Title"] = "Trang Chủ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    // Tạm chọn các nhóm sản phẩm
+    var products = Model.ToList();
+    var topSold = products.OrderByDescending(p => p.SoldCount).Take(8).ToList(); // cần thêm SoldCount vào model Product hoặc ProductWithSoldCount
+    var topDiscount = products.OrderByDescending(p => p.DiscountPercent).Take(8).ToList();
+    var newest = products.OrderByDescending(p => p.Id).Take(8).ToList();
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    .product-card {
+        background: white;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        margin-bottom: 20px;
+        padding: 10px;
+    }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+    .product-image {
+        height: 200px;
+        object-fit: contain;
+        border-radius: 12px 12px 0 0;
+        width: 100%;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .discount-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: #dc2626;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.875rem;
+    }
+
+    .hot-label {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #ffc107;
+        color: #333;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: .95em;
+    }
+
+    .rating-stars i {
+        color: #fbbf24;
+    }
+
+    .category-badge {
+        background: #e5e7eb;
+        color: #4b5563;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .swiper {
+        padding-bottom: 32px;
+    }
+
+    .swiper-slide {
+        height: auto;
+    }
+
+    .flash-sale-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: linear-gradient(90deg,#ff4e00 50%,#ffb600 100%);
+        color: #fff;
+        font-weight: bold;
+        padding: 4px 16px;
+        border-radius: 30px;
+        font-size: 0.95rem;
+        z-index: 10;
+        box-shadow: 0 2px 8px #0002;
+        animation: flashbadge 1.2s infinite alternate;
+    }
+    keyframes flashbadge {
+        0%
+
+    {
+        filter: brightness(1.2);
+    }
+
+    100% {
+        filter: brightness(1);
+    }
+
+    }
+
+</style>
+
+<div class="container mt-4">
+
+    <!-- FLASH SALE -->
+    <div class="flash-sale-section my-4 p-4 rounded-4 shadow" style="background: linear-gradient(90deg, #ffe6e6 70%, #fff 100%); border:2px solid #ff2e2e;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <span class="fs-3 fw-bold text-danger"><i class="bi bi-lightning-fill"></i> FLASH SALE</span>
+                <span class="badge bg-danger ms-3 fs-6" style="vertical-align: middle;">
+                    Kết thúc sau <span id="countdown"></span>
+                </span>
+            </div>
+            <div>
+                <a href="/Product?sortBy=giamgia" class="btn btn-outline-danger btn-sm">Xem tất cả sản phẩm sale</a>
+            </div>
+        </div>
+        <div class="swiper flashSaleSwiper">
+            <div class="swiper-wrapper">
+                @foreach (var p in topDiscount.Take(8))
+                {
+                    <div class="swiper-slide">
+                        @await Html.PartialAsync("_ProductCard", p, new ViewDataDictionary(ViewData) { { "FlashSale", true } })
+                    </div>
+                }
+            </div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+        </div>
+    </div>
+
+    <!-- DANH MỤC NỔI BẬT -->
+    <div class="d-flex gap-4 justify-content-center mb-4 flex-wrap">
+        <a href="/Product?categoryId=1" class="text-center text-decoration-none">
+            <img src="/images/smartphone.png" alt="Điện thoại" style="width:48px"><br>
+            <span class="fw-semibold text-dark small">Điện thoại</span>
+        </a>
+        <a href="/Product?categoryId=2" class="text-center text-decoration-none">
+            <img src="/images/tablet.png" alt="Máy tính bảng" style="width:48px"><br>
+            <span class="fw-semibold text-dark small">Tablet</span>
+        </a>
+        <a href="/Product?categoryId=3" class="text-center text-decoration-none">
+            <img src="/images/phone-charger.png" alt="Củ sạc" style="width:48px"><br>
+            <span class="fw-semibold text-dark small">Củ sạc</span>
+        </a>
+        <a href="/Product?categoryId=4" class="text-center text-decoration-none">
+            <img src="/images/cable.png" alt="Cáp sạc" style="width:48px"><br>
+            <span class="fw-semibold text-dark small">Cáp sạc</span>
+        </a>
+        <a href="/Product?categoryId=5" class="text-center text-decoration-none">
+            <img src="/images/power-bank.png" alt="Sạc dự phòng" style="width:48px"><br>
+            <span class="fw-semibold text-dark small">Sạc dự phòng</span>
+        </a>
+        <!-- ... -->
+    </div>
+
+    <!-- SẢN PHẨM BÁN CHẠY -->
+    <h3 class="mb-3 mt-4">🔥 Sản phẩm bán chạy nhất</h3>
+    <div class="swiper mySwiper">
+        <div class="swiper-wrapper">
+            @foreach (var p in topSold)
+            {
+                <div class="swiper-slide">
+                    @await Html.PartialAsync("_ProductCard", p, new ViewDataDictionary(ViewData) { { "HotSale", true } })
+                </div>
+            }
+        </div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+    </div>
+
+
+    <!-- SẢN PHẨM GIẢM GIÁ NỔI BẬT -->
+    <h3 class="mb-3 mt-5">💸 Khuyến mãi HOT</h3>
+    <div class="swiper mySwiper">
+        <div class="swiper-wrapper">
+        @foreach (var p in topDiscount)
+        {
+                <div class="swiper-slide">
+                @await Html.PartialAsync("_ProductCard", p, new ViewDataDictionary(ViewData) { { "Discount", true } })
+            </div>
+        }
+        </div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+    </div>
+
+    <!-- SẢN PHẨM MỚI NHẤT -->
+    <h3 class="mb-3 mt-5">🆕 Sản phẩm mới</h3>
+    <div class="swiper mySwiper">
+        <div class="swiper-wrapper">
+        @foreach (var p in newest)
+        {
+                <div class="swiper-slide">
+                @await Html.PartialAsync("_ProductCard", p, new ViewDataDictionary(ViewData) { { "New", true } })
+            </div>
+        }
+        </div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+    </div>
+</div>
+
+<script>
+    var swiper = new Swiper('.mySwiper', {
+        slidesPerView: 4,      // Số sản phẩm hiện cùng lúc
+        spaceBetween: 24,      // Khoảng cách giữa các sản phẩm (px)
+        navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev',
+        },
+        breakpoints: {
+            1200: { slidesPerView: 4 },
+            992: { slidesPerView: 3 },
+            768: { slidesPerView: 2 },
+            0: { slidesPerView: 1 }
+        }
+    });
+</script>
+
+<script>
+    // Khởi tạo slider riêng cho Flash Sale
+    var swiper2 = new Swiper('.flashSaleSwiper', {
+        slidesPerView: 4,
+        spaceBetween: 24,
+        navigation: {
+            nextEl: '.flash-sale-section .swiper-button-next',
+            prevEl: '.flash-sale-section .swiper-button-prev',
+        },
+        breakpoints: {
+            1200: { slidesPerView: 4 },
+            992: { slidesPerView: 3 },
+            768: { slidesPerView: 2 },
+            0: { slidesPerView: 1 }
+        }
+    });
+
+    // Countdown đến 23:59:59 hôm nay
+    function startCountdown() {
+        let deadline = new Date();
+        deadline.setHours(23, 59, 59, 999);
+        setInterval(function () {
+            let now = new Date();
+            let diff = deadline - now;
+            if (diff <= 0) { document.getElementById('countdown').innerText = "00:00:00"; return; }
+            let h = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, "0");
+            let m = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, "0");
+            let s = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, "0");
+            document.getElementById('countdown').innerText = `${h}:${m}:${s}`;
+        }, 1000);
+    }
+    startCountdown();
+</script>

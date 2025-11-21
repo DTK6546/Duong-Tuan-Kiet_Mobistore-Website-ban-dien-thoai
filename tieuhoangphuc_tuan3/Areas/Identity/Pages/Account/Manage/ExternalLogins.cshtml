@@ -1,0 +1,56 @@
+﻿@page
+@model ExternalLoginsModel
+@{
+    Layout = "_ManageLayout";
+    ViewData["Title"] = "Đăng nhập ngoài";
+    ViewData["ActivePage"] = ManageNavPages.ExternalLogins;
+}
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+@if (Model.CurrentLogins?.Count > 0)
+{
+    <h4>Đã liên kết</h4>
+    <table class="table">
+        <tbody>
+            @foreach (var login in Model.CurrentLogins)
+            {
+                <tr>
+                    <td>@login.ProviderDisplayName</td>
+                    <td>
+                        @if (Model.ShowRemoveButton)
+                        {
+                            <form asp-page-handler="RemoveLogin" method="post">
+                                <input name="LoginProvider" type="hidden" value="@login.LoginProvider" />
+                                <input name="ProviderKey" type="hidden" value="@login.ProviderKey" />
+                                <button type="submit" class="btn btn-danger" title="Xóa liên kết này">Xóa</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (Model.OtherLogins?.Count > 0)
+{
+    <h4>Thêm dịch vụ đăng nhập</h4>
+    <form asp-page-handler="LinkLogin" method="post">
+        @foreach (var provider in Model.OtherLogins)
+        {
+            <button type="submit" class="btn btn-outline-primary me-2" name="provider" value="@provider.Name">
+                Đăng nhập bằng @provider.DisplayName
+            </button>
+        }
+    </form>
+}
+
+<script>
+    window.onload = function() {
+            var adBanner = document.querySelector('.carousel');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+            }
+        };
+</script>

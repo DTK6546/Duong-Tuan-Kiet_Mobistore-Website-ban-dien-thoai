@@ -1,0 +1,123 @@
+﻿@model WebBanDienThoai.Models.Order
+@using WebBanDienThoai.Extensions
+
+@{
+    ViewData["Title"] = "Chi tiết đơn hàng";
+    bool canCancel = Model.Status == WebBanDienThoai.Models.OrderStatus.ChoXacNhan
+                  || Model.Status == WebBanDienThoai.Models.OrderStatus.DangXuLy;
+    Func<WebBanDienThoai.Models.OrderStatus, string> statusClass = s =>
+    {
+        switch (s)
+        {
+            case WebBanDienThoai.Models.OrderStatus.ChoXacNhan: return "badge bg-secondary";
+            case WebBanDienThoai.Models.OrderStatus.DangXuLy: return "badge bg-warning text-dark";
+            case WebBanDienThoai.Models.OrderStatus.DangGiao: return "badge bg-info text-dark";
+            case WebBanDienThoai.Models.OrderStatus.DaGiao: return "badge bg-success";
+            case WebBanDienThoai.Models.OrderStatus.DaHuy: return "badge bg-danger";
+            default: return "badge bg-light text-dark";
+        }
+    };
+}
+
+<div class="container mt-4 mb-4">
+    <div class="card shadow rounded-4 mx-auto" style="max-width: 1100px;">
+        <div class="card-header bg-light d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <h3 class="mb-0 fw-bold">Chi tiết đơn hàng #@Model.Id</h3>
+                <span class="@statusClass(Model.Status) ms-3 px-3 py-2 fs-6">
+                    @Model.Status.ToVietnameseStatus()
+                </span>
+            </div>
+            <div class="mt-2 mt-md-0">
+                <a href="@Url.Action("MyOrders", "Order")" class="btn btn-outline-primary px-4 me-2 rounded-pill">
+                    <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                </a>
+                @if (canCancel)
+                {
+                    <form asp-action="CancelOrder" method="post" class="d-inline"
+                          onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?');">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-danger px-4 rounded-pill">
+                            <i class="bi bi-x-circle"></i> Hủy đơn hàng
+                        </button>
+                    </form>
+                }
+                @* NÚT XÁC NHẬN ĐÃ NHẬN HÀNG *@
+                @if (Model.Status == WebBanDienThoai.Models.OrderStatus.DaGiao)
+                {
+                    <form asp-action="ConfirmReceived" method="post" class="d-inline"
+                          onsubmit="return confirm('Bạn đã nhận được hàng và muốn hoàn tất đơn này?');">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-success px-4 rounded-pill">
+                            <i class="bi bi-check2-circle"></i> Đã nhận hàng
+                        </button>
+                    </form>
+                }
+                @* NÚT TRẢ HÀNG *@
+                @if (Model.Status == WebBanDienThoai.Models.OrderStatus.HoanTat)
+                {
+                    <form asp-action="ReturnOrder" method="post" class="d-inline"
+                          onsubmit="return confirm('Bạn chắc chắn muốn trả lại đơn hàng này?');">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-warning text-dark px-4 rounded-pill">
+                            <i class="bi bi-arrow-counterclockwise"></i> Trả hàng
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+        <div class="card-body pb-2">
+            <div class="row mb-2">
+                <div class="col-md-4 text-md-end fw-semibold text-muted">Ngày đặt:</div>
+                <div class="col-md-8 mb-2 mb-md-0">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
+
+                <div class="col-md-4 text-md-end fw-semibold text-muted">Địa chỉ giao hàng:</div>
+                <div class="col-md-8 mb-2 mb-md-0">@Model.ShippingAddress</div>
+
+                <div class="col-md-4 text-md-end fw-semibold text-muted">Ghi chú:</div>
+                <div class="col-md-8">@Model.Notes</div>
+            </div>
+        </div>
+        <div class="card-footer bg-white pt-4">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0 rounded">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Giá</th>
+                            <th>Số lượng</th>
+                            <th>Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.OrderDetails)
+                        {
+                            var thanhTien = item.Price * item.Quantity;
+                            <tr>
+                                <td>@item.Product?.Name</td>
+                                <td>@item.Price.ToString("N0") VNĐ</td>
+                                <td>@item.Quantity</td>
+                                <td>@thanhTien.ToString("N0") VNĐ</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
+                            <td class="fw-bold">@Model.TotalPrice.ToString("N0") VNĐ</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = function() {
+            var adBanner = document.querySelector('.carousel');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+            }
+        };
+</script>

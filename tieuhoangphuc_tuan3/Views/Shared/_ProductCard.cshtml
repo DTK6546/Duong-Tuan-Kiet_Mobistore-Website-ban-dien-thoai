@@ -1,0 +1,94 @@
+﻿@model WebBanDienThoai.Models.ProductWithSoldCount
+@{
+    var isFlashSale = ViewData["FlashSale"] as bool? == true;
+}
+<div class="product-card shadow-sm h-100">
+    <div class="position-relative">
+        <a href="@Url.Action("Display", "Product", new { id = Model.Id })">
+            <img src="@Model.ImageUrl" class="product-image w-100" alt="@Model.Name">
+        </a>
+        @if (isFlashSale)
+        {
+            <span class="flash-sale-badge">FLASH SALE</span>
+        }
+        @if (Model.DiscountPercent > 0)
+        {
+            <span class="discount-badge">-@Model.DiscountPercent%</span>
+        }
+        @if (ViewBag.HotSale != null && (bool)ViewBag.HotSale)
+        {
+            <span class="hot-label bg-warning text-dark"><i class="bi bi-fire"></i> Bán chạy</span>
+        }
+        else if (ViewBag.Discount != null && (bool)ViewBag.Discount)
+        {
+            <span class="hot-label bg-danger text-white"><i class="bi bi-cash-coin"></i> Giảm giá</span>
+        }
+        else if (ViewBag.New != null && (bool)ViewBag.New)
+        {
+            <span class="hot-label bg-success text-white"><i class="bi bi-star-fill"></i> Mới ra mắt</span>
+        }
+    </div>
+    <div class="card-body text-center">
+        <h5 class="card-title fw-bold">@Model.Name</h5>
+        <div class="d-flex justify-content-center gap-2 mt-2 mb-2">
+            <span class="category-badge">@Model.Category?.Name</span>
+            @if (Model.SubCategory != null)
+            {
+                <span class="category-badge">@Model.SubCategory.Name</span>
+            }
+        </div>
+        <div class="sold-count text-muted small mb-2">
+            <i class="bi bi-bag-check-fill text-danger me-1"></i> Đã bán @Model.SoldCount
+        </div>
+        <div class="rating-stars mb-2">
+            @{
+                double avg = Model.Rating;
+                int fullStars = (int)Math.Floor(avg);
+                bool hasHalf = avg - fullStars >= 0.5;
+            }
+            @for (int i = 1; i <= 5; i++)
+            {
+                if (i <= fullStars)
+                {
+                    <i class="bi bi-star-fill text-warning"></i>
+                }
+                else if (i == fullStars + 1 && hasHalf)
+                {
+                    <i class="bi bi-star-half text-warning"></i>
+                }
+                else
+                {
+                    <i class="bi bi-star text-warning"></i>
+                }
+            }
+            <span class="text-muted ms-2">(@avg.ToString("0.0"))</span>
+        </div>
+        <div class="product-price">
+            @if (Model.DiscountPercent > 0)
+            {
+                <del>@Model.Price.ToString("N0") VNĐ</del>
+                <h6 class="text-danger fw-bold">@Model.DiscountedPrice.ToString("N0") VNĐ</h6>
+            }
+            else
+            {
+                <h6 class="text-danger fw-bold">@Model.Price.ToString("N0") VNĐ</h6>
+            }
+        </div>
+        <div class="d-flex justify-content-center gap-2 mt-3">
+            @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin") && !User.IsInRole("Employer"))
+            {
+                <a href="@Url.Action("Buy", "Product", new { id = Model.Id })" class="btn btn-danger btn-sm">Mua</a>
+            }
+            else if (User.IsInRole("Admin") || User.IsInRole("Employer"))
+            {
+                <button class="btn btn-secondary btn-sm" disabled>Mua</button>
+            }
+            else
+            {
+                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-cart-fill me-2"></i> Mua
+                </a>
+            }
+        </div>
+    </div>
+</div>

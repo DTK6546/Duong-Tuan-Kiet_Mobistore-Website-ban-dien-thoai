@@ -1,0 +1,23 @@
+﻿@model WebBanDienThoai.Models.Category
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Thêm/Sửa danh mục";
+}
+
+<h2 class="text-success mb-4">✏️ @ViewData["Title"]</h2>
+
+<form asp-action="@ViewContext.RouteData.Values["action"]" method="post">
+    <div class="form-group mb-3">
+        <label asp-for="Name" class="form-label">Tên danh mục</label>
+        <input asp-for="Name" class="form-control" placeholder="Nhập tên danh mục..." required />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">💾 Lưu</button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">⬅️ Quay lại</a>
+</form>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

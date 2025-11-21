@@ -1,0 +1,193 @@
+﻿@model List<WebBanDienThoai.Models.ProductRating>
+@{
+    Layout = "~/Areas/Employer/Views/Shared/_EmployerLayout.cshtml";
+    ViewData["Title"] = "Quản lý đánh giá sản phẩm";
+
+    var products = ViewBag.Products as List<WebBanDienThoai.Models.Product> ?? new();
+    int totalCount = ViewBag.TotalCount ?? 0;
+    int pageSize = ViewBag.PageSize ?? 5;
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    string search = ViewBag.Search as string ?? "";
+    int productId = ViewBag.ProductId ?? 0;
+    int star = ViewBag.Star ?? 0;
+    int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+    int editingReplyId = 0;
+    if (!string.IsNullOrEmpty(Context.Request.Query["editingReplyId"]))
+    {
+        int.TryParse(Context.Request.Query["editingReplyId"], out editingReplyId);
+    }
+}
+
+<div class="container py-4">
+    <h2 class="mb-4 fw-bold">Quản lý đánh giá sản phẩm</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <!-- FILTER BAR -->
+    <div class="bg-white p-3 rounded-4 shadow-sm mb-4">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label mb-1">Tìm kiếm</label>
+                <input name="search" class="form-control" value="@search" placeholder="Tên SP, người đánh giá, bình luận..." />
+            </div>
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label mb-1">Sản phẩm</label>
+                <select name="productId" class="form-select">
+                    <option value="0">Tất cả</option>
+                    @foreach (var p in products)
+                        {
+                            @:<option value="@p.Id"@(p.Id == productId ? " selected" : "")>@p.Name</option>
+                        }
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label mb-1">Số sao</label>
+                <select name="star" class="form-select">
+                    <option value="0">Tất cả</option>
+                    @for (int i = 1; i <= 5; i++)
+                        {
+                            @:<option value="@i"@(star == i ? " selected" : "")>@i sao</option>
+                        }
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <button class="btn btn-primary w-100" type="submit">
+                    <i class="bi bi-search"></i> Lọc / Tìm kiếm
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- DANH SÁCH ĐÁNH GIÁ -->
+    @if (Model.Any())
+    {
+        @foreach (var r in Model)
+        {
+            <div class="bg-white shadow-sm rounded-4 p-4 mb-4">
+                <div class="d-flex flex-wrap align-items-center mb-2">
+                    <span class="badge bg-primary me-2 mb-2">@r.Product?.Name</span>
+                    <span class="fw-semibold me-3 mb-2">@r.User?.FullName</span>
+                    <span class="text-warning me-2 mb-2" style="font-size:1.1rem">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <i class="bi @(i <= r.Stars ? "bi-star-fill" : "bi-star")"></i>
+                        }
+                        <span class="ms-1 fw-normal text-dark">@r.Stars ⭐</span>
+                    </span>
+                    <span class="text-muted mb-2" style="font-size:90%">
+                        @r.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                    </span>
+                </div>
+                <div class="mb-3" style="font-size:1.08rem;">@r.Comment</div>
+                <div class="bg-light rounded-3 p-3">
+                    <div class="fw-semibold mb-2">Phản hồi của Admin/Nhân viên</div>
+                    @foreach (var reply in r.Replies.OrderBy(x => x.CreatedAt))
+{
+    <div class="mb-2">
+        <span class="badge bg-info text-dark me-2" style="vertical-align: top;">@(reply.User?.FullName ?? "Admin/Staff")</span>
+        <span style="word-break: break-word;">
+            @if (editingReplyId == reply.Id)
+            {
+                <!-- Form sửa inline -->
+                <form asp-action="EditReply" method="post" class="d-inline" style="width: 50%;">
+                    <input type="hidden" name="id" value="@reply.Id" />
+                    <input type="hidden" name="search" value="@search" />
+                    <input type="hidden" name="productId" value="@productId" />
+                    <input type="hidden" name="star" value="@star" />
+                    <input type="hidden" name="page" value="@currentPage" />
+                    <input name="content" class="form-control d-inline-block" value="@reply.Content" style="width: 65%; display:inline;" />
+                    <button class="btn btn-success btn-sm ms-1" type="submit">Lưu</button>
+                    <a href="@Url.Action("Index", new { search, productId, star, page = currentPage })" class="btn btn-secondary btn-sm ms-1">Hủy</a>
+                </form>
+            }
+            else
+            {
+                @reply.Content
+                <span class="text-muted ms-2" style="font-size:90%">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+            }
+        </span>
+        <span class="float-end ms-2">
+            @if (editingReplyId != reply.Id)
+            {
+                <a href="@Url.Action("Index", new { search, productId, star, page = currentPage, editingReplyId = reply.Id })" class="btn btn-sm btn-warning ms-2">Sửa</a>
+            }
+            <form asp-action="DeleteReply" asp-route-id="@reply.Id" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Xóa phản hồi này?')">Xóa</button>
+            </form>
+        </span>
+    </div>
+}
+
+
+                    <form asp-action="AddReply" method="post" class="mt-2">
+                        <input type="hidden" name="ratingId" value="@r.Id" />
+                        <div class="input-group">
+                            <input name="content" class="form-control" placeholder="Thêm phản hồi..." autocomplete="off" />
+                            <button class="btn btn-primary" type="submit">Phản hồi</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-info text-center">Không có đánh giá nào phù hợp!</div>
+    }
+
+    <!-- PHÂN TRANG -->
+    @if (totalPages > 1)
+    {
+        <nav aria-label="pagination" class="d-flex justify-content-center my-4">
+            <ul class="pagination pagination-lg">
+                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { search, productId, star, page = currentPage - 1 })">«</a>
+                </li>
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    if (i == currentPage || (i <= 2 || i > totalPages - 2 || Math.Abs(i - currentPage) <= 1))
+                    {
+                        <li class="page-item @(i == currentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { search, productId, star, page = i })">@i</a>
+                        </li>
+                    }
+                    else if (i == currentPage - 2 || i == currentPage + 2)
+                    {
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    }
+                }
+                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { search, productId, star, page = currentPage + 1 })">»</a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
+
+<style>
+    .pagination > li > a, .pagination > li > span {
+        border-radius: 1.5rem !important;
+        margin: 0 2px;
+        min-width: 42px;
+        text-align: center;
+    }
+    .badge.bg-primary, .badge.bg-info {
+        font-size: 1rem;
+        padding: .4em 1.1em .45em 1.1em;
+        border-radius: 1.2rem;
+    }
+    .bg-light {
+        background: #f8f9fb !important;
+    }
+    .rounded-4 {
+        border-radius: 1.2rem !important;
+    }
+</style>

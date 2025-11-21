@@ -1,0 +1,16 @@
+﻿@model WebBanDienThoai.Models.Contact
+@{
+    ViewData["Title"] = "Xóa liên hệ";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+<div class="container mt-4">
+    <h2 class="mb-4 text-danger">Xóa liên hệ</h2>
+    <div class="alert alert-warning">
+        Bạn có chắc chắn muốn xóa liên hệ của <b>@Model.Name</b> không?
+    </div>
+    <form asp-action="DeleteConfirmed" method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn btn-danger">Xác nhận xóa</button>
+        <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+    </form>
+</div>

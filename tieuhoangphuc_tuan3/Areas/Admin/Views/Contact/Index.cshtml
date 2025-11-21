@@ -1,0 +1,56 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.Contact>
+@{
+    ViewData["Title"] = "Quản lý liên hệ";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var page = ViewBag.Page ?? 1;
+    var pageSize = ViewBag.PageSize ?? 10;
+    var total = ViewBag.Total ?? 0;
+    var totalPages = (int)Math.Ceiling((double)total / pageSize);
+}
+<div class="container mt-4">
+    <h2 class="mb-4">Quản lý liên hệ</h2>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    <table class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Họ và tên</th>
+                <th>Email</th>
+                <th>Điện thoại</th>
+                <th>Ngày gửi</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td>@c.Id</td>
+                    <td>@c.Name</td>
+                    <td>@c.Email</td>
+                    <td>@c.Phone</td>
+                    <td>@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>
+                        <a class="btn btn-primary btn-sm" asp-action="Details" asp-route-id="@c.Id">Chi tiết</a>
+                        <a class="btn btn-danger btn-sm" asp-action="Delete" asp-route-id="@c.Id">Xóa</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Phân trang cơ bản -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == page ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@pageSize">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
+</div>

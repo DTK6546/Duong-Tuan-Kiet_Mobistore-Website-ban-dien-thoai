@@ -1,0 +1,106 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.News>
+@{
+    ViewData["Title"] = "Quản lý Tin tức";
+    Layout = "~/Areas/Employer/Views/Shared/_EmployerLayout.cshtml";
+}
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0 fw-bold text-primary">Quản lý Tin tức</h2>
+        <a class="btn btn-success px-4" asp-action="Create">
+            <i class="bi bi-plus-circle me-1"></i> Thêm tin mới
+        </a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success shadow-sm">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger shadow-sm">@TempData["Error"]</div>
+    }
+
+    <div class="table-responsive rounded shadow">
+        <table class="table table-hover align-middle mb-0 admin-news-table">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:42px;">#</th>
+                    <th style="min-width: 170px;">Tiêu đề</th>
+                    <th style="min-width: 140px;">Mô tả ngắn</th>
+                    <th style="width:95px;">Ảnh</th>
+                    <th style="width:130px;">Ngày tạo</th>
+                    <th style="width:120px;">Chức năng</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">Chưa có tin tức nào.</td>
+                    </tr>
+                }
+                else
+                {
+                    int stt = 1;
+                    foreach (var n in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold">@stt</td>
+                            <td class="fw-semibold text-dark">@n.Title</td>
+                            <td class="small text-muted" style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@n.Summary</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(n.ImageUrl))
+                                {
+                                    <img src="@n.ImageUrl" class="rounded border" width="78" height="48" style="object-fit:cover" alt="Ảnh tin">
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">-</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">@n.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            </td>
+                            <td>
+                                <a class="btn btn-warning btn-sm me-1" asp-action="Edit" asp-route-id="@n.Id"><i class="bi bi-pencil"></i> Sửa</a>
+                                <a class="btn btn-danger btn-sm" asp-action="Delete" asp-route-id="@n.Id"
+                                   onclick="return confirm('Bạn chắc chắn muốn xóa tin này?');"><i class="bi bi-trash"></i> Xóa</a>
+                            </td>
+                        </tr>
+                        stt++;
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .admin-news-table th, .admin-news-table td {
+        vertical-align: middle !important;
+    }
+
+    .admin-news-table tr:hover {
+        background: #ffe3e3 !important;
+    }
+
+    .admin-news-table td .btn {
+        min-width: 70px;
+        font-size: .97em;
+        box-shadow: 0 2px 7px #0001;
+    }
+
+    media (max-width:700px) {
+        .admin-news-table td, .admin-news-table th
+
+    {
+        font-size: 0.93em;
+    }
+
+    .container {
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+
+    }
+</style>

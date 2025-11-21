@@ -1,0 +1,52 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.Category>
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Danh mục";
+}
+
+<h2 class="mb-4 text-primary">📁 Danh mục sản phẩm</h2>
+
+<a asp-action="Add" class="btn btn-success mb-3">
+    <i class="fas fa-plus"></i> Thêm danh mục mới
+</a>
+
+<table class="table table-bordered table-hover shadow-sm">
+    <thead class="table-dark text-center">
+        <tr>
+            <th>#</th>
+            <th>Tên danh mục</th>
+            <th>Số lượng sản phẩm</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Where(c => c.Id != 16).Select((value, index) => new { value, index }))
+        {
+            <tr>
+                <td>@(item.index + 1)</td>
+                <td>@item.value.Name</td>
+                <td class="text-center">
+                    @if (item.value.Products != null && item.value.Products.Any())
+                    {
+                        @item.value.Products.Count()
+                    }
+                    else
+                    {
+                        @:0
+                    }
+                </td>
+                <td class="text-center">
+                    <a asp-action="Update" asp-route-id="@item.value.Id" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> Sửa
+                    </a>
+                    <form asp-action="Delete" method="post" asp-route-id="@item.value.Id" style="display:inline;" onsubmit="return confirm('Xác nhận xoá danh mục này?');">
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i> Xoá
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

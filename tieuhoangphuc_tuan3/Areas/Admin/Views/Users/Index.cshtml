@@ -1,0 +1,70 @@
+﻿@model IEnumerable<(WebBanDienThoai.Models.ApplicationUser User, string Role)>
+
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<h2 class="mb-4 text-primary"><i class="fas fa-users"></i> Danh sách Người dùng</h2>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <a asp-action="Add" class="btn btn-success">
+        <i class="fas fa-user-plus"></i> Thêm người dùng mới
+    </a>
+    <div class="mb-3" style="max-width: 400px; float: right;">
+        <form method="get">
+            <div class="input-group">
+                <input type="text" name="searchTerm" class="form-control" placeholder="Tìm theo tên hoặc email..." value="@ViewBag.CurrentFilter" />
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Tìm
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-bordered table-hover shadow-sm w-100">
+    <thead class="table-dark text-center">
+        <tr>
+            <th style="width: 5%;">#</th>
+            <th style="width: 25%;">👤 Tên</th>
+            <th style="width: 30%;">📧 Email</th>
+            <th style="width: 15%;">🔐 Quyền</th>
+            <th style="width: 25%;">⚙️ Hành động</th>
+        </tr>
+    </thead>
+    <tbody class="text-center align-middle">
+        @foreach (var item in Model.Select((val, i) => new { val, i }))
+        {
+            <tr>
+                <td>@(item.i + 1)</td>
+                <td>@item.val.User.FullName</td>
+                <td>@item.val.User.Email</td>
+                <td>@item.val.Role</td>
+                <td>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <a asp-action="Update" asp-route-id="@item.val.User.Id" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i> Sửa
+                        </a>
+
+                        <form asp-action="Delete" method="post" asp-route-id="@item.val.User.Id"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xoá người dùng này?');" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i> Xóa
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
