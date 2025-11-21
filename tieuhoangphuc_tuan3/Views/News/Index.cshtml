@@ -1,0 +1,103 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.News>
+@{
+    ViewData["Title"] = "Tin tức điện thoại";
+}
+
+<div class="container mt-4 mb-5">
+    <h2 class="mb-4 fw-bold text-primary">
+        <i class="bi bi-newspaper"></i> Tin tức công nghệ
+    </h2>
+    <div class="row g-4">
+        @foreach (var n in Model)
+        {
+            <div class="col-12 col-md-6 col-lg-4 d-flex align-items-stretch">
+                <div class="card news-card h-100 shadow-sm border-0">
+                    <a asp-action="Detail" asp-route-id="@n.Id" class="text-decoration-none text-dark">
+                        @if (!string.IsNullOrEmpty(n.ImageUrl))
+                        {
+                            <div class="overflow-hidden rounded-top news-img-container">
+                                <img src="@n.ImageUrl" class="card-img-top news-img" alt="@n.Title" />
+                            </div>
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold mb-2 news-title">@n.Title</h5>
+                            <p class="card-text text-muted small news-summary">
+                                @n.Summary
+                            </p>
+                        </div>
+                    </a>
+                    <div class="card-footer bg-white border-0 d-flex justify-content-between align-items-center pt-0">
+                        <span class="small text-muted">
+                            <i class="bi bi-clock"></i> @n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                        </span>
+                        <a asp-action="Detail" asp-route-id="@n.Id" class="btn btn-outline-primary btn-sm px-3">
+                            Đọc tiếp <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .news-card {
+        border-radius: 18px;
+        transition: transform .18s, box-shadow .18s;
+        background: #fff;
+    }
+
+        .news-card:hover {
+            transform: translateY(-7px) scale(1.025);
+            box-shadow: 0 8px 32px rgba(44, 62, 80, 0.14) !important;
+            z-index: 3;
+        }
+
+    .news-img-container {
+        max-height: 220px;
+        min-height: 180px;
+        overflow: hidden;
+        border-radius: 18px 18px 0 0;
+    }
+
+    .news-img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+
+    .news-card:hover .news-img {
+        transform: scale(1.06);
+        filter: brightness(0.98);
+    }
+
+    .news-title {
+        font-size: 1.1rem;
+        min-height: 48px;
+        color: #19375a;
+        margin-bottom: 8px;
+    }
+
+    .news-summary {
+        min-height: 40px;
+        color: #656d77;
+        line-height: 1.5;
+    }
+    media (max-width: 768px) {
+        .news-title
+
+    {
+        font-size: 1rem;
+    }
+
+    .news-summary {
+        min-height: unset;
+    }
+
+    .news-img, .news-img-container {
+        height: 150px !important;
+    }
+
+    }
+</style>

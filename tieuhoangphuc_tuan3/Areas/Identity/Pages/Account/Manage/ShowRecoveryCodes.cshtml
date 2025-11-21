@@ -1,0 +1,37 @@
+﻿@page
+@model ShowRecoveryCodesModel
+@{
+    Layout = "_ManageLayout";
+    ViewData["Title"] = "Mã khôi phục";
+    ViewData["ActivePage"] = "TwoFactorAuthentication";
+}
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<h3 class="fw-bold mb-3">@ViewData["Title"]</h3>
+
+<div class="alert alert-warning" role="alert">
+    <p><strong>Hãy lưu các mã này ở nơi an toàn!</strong></p>
+    <p>Nếu mất thiết bị xác thực và không có mã này, bạn sẽ không thể đăng nhập tài khoản.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-12 bg-light p-3 rounded shadow-sm">
+        @for (var row = 0; row < Model.RecoveryCodes.Length; row += 2)
+        {
+            <code class="recovery-code me-3">@Model.RecoveryCodes[row]</code>
+            <code class="recovery-code">@Model.RecoveryCodes[row + 1]</code>
+
+            <br />
+        }
+    </div>
+</div>
+
+<script>
+    window.onload = function() {
+            var adBanner = document.querySelector('.carousel');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+            }
+        };
+</script>

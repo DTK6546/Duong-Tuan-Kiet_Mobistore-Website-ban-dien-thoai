@@ -1,0 +1,30 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var title = ViewData["Title"] ?? "Quản lý tài khoản";
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="bg-white rounded-4 shadow-lg p-4 mb-4">
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 gap-3">
+                    <div>
+                        <h2 class="fw-bold mb-1" style="font-size:2.1rem">
+                            <i class="bi bi-person-gear text-primary me-2"></i> Quản lý tài khoản
+                        </h2>
+                        <div class="text-muted fs-5 ms-1">Thay đổi thông tin và bảo mật tài khoản cá nhân</div>
+                    </div>
+                    <div>
+                        <!-- Bạn có thể đặt thêm nút nhanh như Đổi mật khẩu, Đăng xuất, v.v. ở đây -->
+                    </div>
+                </div>
+                <hr />
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}

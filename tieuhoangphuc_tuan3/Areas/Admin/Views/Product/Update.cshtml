@@ -1,0 +1,121 @@
+﻿@model WebBanDienThoai.Models.Product
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Cập nhật sản phẩm";
+}
+
+<h2 class="mb-4 text-warning">✏️ Cập Nhật Sản Phẩm</h2>
+
+<form asp-area="Admin" asp-controller="Product" asp-action="Update" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group mb-3">
+        <label asp-for="Name" class="form-label">Tên sản phẩm</label>
+        <input asp-for="Name" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Price" class="form-label">Giá sản phẩm (VNĐ)</label>
+        <input asp-for="Price" type="number" class="form-control" required />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="DiscountPercent" class="form-label">Giảm giá (%)</label>
+        <input asp-for="DiscountPercent" type="number" class="form-control" min="0" max="100" />
+    </div>
+
+    <!-- ⚙️ Tồn kho -->
+    <div class="form-group mb-3">
+        <label asp-for="Quantity" class="form-label">Số lượng tồn kho</label>
+        <input asp-for="Quantity" type="number" class="form-control" min="0" />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="MinStockLevel" class="form-label">Ngưỡng cảnh báo tồn kho</label>
+        <input asp-for="MinStockLevel" type="number" class="form-control" min="0" />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="CategoryId" class="form-label">Danh mục</label>
+        <select asp-for="CategoryId" asp-items="ViewBag.Categories" class="form-select">
+            <option value="">-- Chọn danh mục --</option>
+        </select>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="SubCategoryId" class="form-label">Phân loại nhỏ</label>
+        <select asp-for="SubCategoryId" class="form-select" id="SubCategoryId">
+            <option value="">-- Chọn phân loại nhỏ --</option>
+            @if (ViewBag.SubCategories != null)
+            {
+                foreach (var sub in (SelectList)ViewBag.SubCategories)
+                {
+                    int.TryParse(sub.Value, out int subId);
+                    <option value="@sub.Value" selected="@(Model.SubCategoryId == subId)">@sub.Text</option>
+                }
+            }
+        </select>
+    </div>
+
+    <div class="form-group mb-3">
+        <label class="form-label">Ảnh hiện tại</label><br />
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <img src="@Model.ImageUrl" alt="Ảnh sản phẩm" width="120" class="rounded shadow-sm mb-2" />
+        }
+    </div>
+
+    <div class="form-group mb-3">
+        <label class="form-label">Chọn ảnh mới (nếu muốn thay)</label>
+        <input type="file" name="imageUrl" class="form-control" id="imageInput" accept="image/*" />
+        <div class="mt-2">
+            <img id="previewImage" src="#" alt="Ảnh xem trước" class="d-none"
+                 style="max-width: 200px; border: 1px solid #ddd; padding: 5px;" />
+        </div>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Description" class="form-label">Mô tả sản phẩm</label>
+        <textarea asp-for="Description" class="form-control" id="editor" rows="5"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">💾 Cập nhật</button>
+    <a asp-action="Index" asp-area="Admin" asp-controller="Product" class="btn btn-secondary ms-2">⬅️ Quay lại</a>
+</form>
+
+@section Scripts {
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.0/classic/ckeditor.js"></script>
+    <script>
+        ClassicEditor.create(document.querySelector('#editor')).catch(console.error);
+        document.getElementById("imageInput").addEventListener("change", e => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const img = document.getElementById("previewImage");
+                    img.src = ev.target.result;
+                    img.classList.remove("d-none");
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        document.getElementById("CategoryId").addEventListener("change", function () {
+            const catId = this.value;
+            const subSelect = document.getElementById("SubCategoryId");
+            subSelect.innerHTML = '<option value="">-- Chọn phân loại nhỏ --</option>';
+            if (catId) {
+                fetch('/Admin/Product/GetSubCategories?categoryId=' + catId)
+                    .then(r => r.json())
+                    .then(data => data.forEach(i => {
+                        const opt = document.createElement("option");
+                        opt.value = i.id;
+                        opt.text = i.name;
+                        subSelect.appendChild(opt);
+                    }));
+            }
+        });
+    </script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

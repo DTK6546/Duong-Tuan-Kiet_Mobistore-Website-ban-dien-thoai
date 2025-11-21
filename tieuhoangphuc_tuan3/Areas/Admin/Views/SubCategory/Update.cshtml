@@ -1,0 +1,28 @@
+﻿@model WebBanDienThoai.Models.SubCategory
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Sửa phân loại danh mục";
+    var categories = ViewBag.Categories as List<WebBanDienThoai.Models.Category>;
+}
+<h2>@ViewData["Title"]</h2>
+<form asp-action="@(ViewContext.RouteData.Values["action"])" method="post">
+    <div class="mb-3">
+        <label>Tên phân loại</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label>Thuộc danh mục</label>
+        <select asp-for="CategoryId" class="form-select">
+            <option value="">--Chọn danh mục--</option>
+            @foreach(var c in categories)
+            {
+                var selected = Model.CategoryId == c.Id ? "selected" : "";
+                @:<option value="@c.Id" @selected>@c.Name</option>
+            }
+        </select>
+        <span asp-validation-for="CategoryId" class="text-danger"></span>
+    </div>
+    <button class="btn btn-primary" type="submit">Cập nhật</button>
+    <a href="@Url.Action("Index")" class="btn btn-secondary">Quay lại</a>
+</form>

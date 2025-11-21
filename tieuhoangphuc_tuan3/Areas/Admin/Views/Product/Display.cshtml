@@ -1,0 +1,76 @@
+﻿@model WebBanDienThoai.Models.Product
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Chi tiết sản phẩm";
+}
+
+<h2 class="text-primary mb-4">🔍 Chi tiết Sản Phẩm</h2>
+
+<div class="card shadow-sm">
+    <div class="row g-0">
+        <div class="col-md-4 text-center p-3">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="Ảnh sản phẩm" class="img-fluid rounded border" style="max-height: 300px;" />
+            }
+            else
+            {
+                <div class="text-muted fst-italic">Không có ảnh</div>
+            }
+        </div>
+
+        <div class="col-md-8">
+            <div class="card-body">
+                <h4 class="card-title text-primary">@Model.Name</h4>
+
+                <p class="card-text">
+                    <strong>💰 Giá:</strong>
+                    @if (Model.DiscountPercent > 0)
+                    {
+                        <del>@Model.Price.ToString("N0") VNĐ</del>
+                        <strong class="text-danger">@Model.DiscountedPrice.ToString("N0") VNĐ</strong>
+                    }
+                    else
+                    {
+                        <strong>@Model.Price.ToString("N0") VNĐ</strong>
+                    }
+                </p>
+
+                <p class="card-text">
+                    <strong>📦 Tồn kho:</strong>
+                    @if (Model.Quantity <= Model.MinStockLevel)
+                    {
+                        <span class="badge bg-danger">@Model.Quantity</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success">@Model.Quantity</span>
+                    }
+                    <br />
+                    <strong>🔔 Ngưỡng cảnh báo:</strong> @Model.MinStockLevel <br />
+                    <strong>📅 Ngày nhập gần nhất:</strong> @Model.LastImportDate?.ToString("dd/MM/yyyy") <br />
+                    <strong>📤 Ngày xuất gần nhất:</strong> @Model.LastExportDate?.ToString("dd/MM/yyyy")
+                </p>
+
+                <p><strong>📁 Danh mục:</strong> @Model.Category?.Name ?? "Chưa phân loại"</p>
+
+                <div>
+                    <strong>📝 Mô tả:</strong>
+                    <div class="border p-2 mt-1 bg-light">
+                        @Html.Raw(Model.Description)
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a asp-action="Index" asp-controller="Product" asp-area="Admin" class="btn btn-secondary me-2">
+                        ⬅️ Quay lại
+                    </a>
+                    <a asp-action="Update" asp-route-id="@Model.Id" asp-controller="Product" asp-area="Admin" class="btn btn-warning">
+                        ✏️ Sửa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,47 @@
+﻿@model WebBanDienThoai.Models.Product
+
+@{
+    Layout = "~/Areas/Employer/Views/Shared/_EmployerLayout.cshtml";
+    ViewData["Title"] = "Chi tiết sản phẩm";
+}
+
+<h2 class="text-success mb-4">🔍 Chi tiết Sản Phẩm</h2>
+
+<div class="card shadow-sm">
+    <div class="row g-0">
+        <div class="col-md-4 text-center p-3">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="Ảnh sản phẩm" class="img-fluid rounded border" style="max-height: 300px;" />
+            }
+        </div>
+
+        <div class="col-md-8">
+            <div class="card-body">
+                <h4 class="text-primary">@Model.Name</h4>
+                <p>
+                    <strong>💰 Giá:</strong> @Model.Price.ToString("N0") VNĐ <br />
+                    <strong>📁 Danh mục:</strong>
+                    @(!string.IsNullOrWhiteSpace(Model.Category?.Name)
+                        ? Model.Category.Name
+                        : "Chưa phân loại")
+                </p>
+                <div>
+                    <strong>📝 Mô tả:</strong>
+                    <div class="border bg-light p-2 mt-1">
+                        @Html.Raw(Model.Description)
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a asp-action="Index" asp-area="Employer" asp-controller="Product" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                    <a asp-action="Update" asp-route-id="@Model.Id" asp-area="Employer" asp-controller="Product" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Sửa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

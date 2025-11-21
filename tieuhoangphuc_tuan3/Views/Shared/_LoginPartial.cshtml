@@ -1,0 +1,75 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using WebBanDienThoai.Models
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<ul class="navbar-nav ms-auto align-items-center">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        var user = await UserManager.GetUserAsync(User);
+        if (user != null)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+
+            <li class="nav-item dropdown me-2">
+                <a class="nav-link dropdown-toggle text-white" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Xin chào, <strong>@user.FullName</strong>!
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                    <li>
+                        <a class="dropdown-item" href="/Identity/Account/Manage">Quản lý tài khoản</a>
+                    </li>
+                    @if (!(roles.Contains("Admin") || roles.Contains("Employer")))
+                    {
+                        <li>
+                            <a class="dropdown-item" asp-area="" asp-controller="Order" asp-action="MyOrders">
+                                <i class="bi bi-receipt"></i> Đơn hàng của tôi
+                            </a>
+                        </li>
+                    }
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form id="logoutForm" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Product", new { area = "" })">
+                            <button id="logout" type="submit" class="dropdown-item btn btn-link">Đăng xuất</button>
+                        </form>
+                    </li>
+                </ul>
+            </li>
+
+            @if (roles.Contains("Admin"))
+            {
+                <li class="nav-item me-2">
+                    <span class="badge bg-danger text-white">Admin</span>
+                </li>
+            }
+            @if (roles.Contains("Employer"))
+            {
+                <li class="nav-item me-2">
+                    <span class="badge bg-primary text-white">Employer</span>
+                </li>
+            }
+        }
+        else
+        {
+            // Trường hợp user là null (phiên đăng nhập không hợp lệ)
+            <li class="nav-item dropdown me-2">
+                <a class="nav-link text-white" href="#">Phiên đăng nhập không hợp lệ</a>
+            </li>
+            <li class="nav-item">
+                <form id="logoutForm" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Product", new { area = "" })">
+                    <button id="logout" type="submit" class="btn btn-link text-white">Đăng xuất</button>
+                </form>
+            </li>
+        }
+    }
+    else
+    {
+        <li class="nav-item me-2">
+            <a class="btn btn-outline-light" id="register" asp-area="Identity" asp-page="/Account/Register">Đăng ký</a>
+        </li>
+        <li class="nav-item">
+            <a class="btn btn-light text-danger fw-bold" id="login" asp-area="Identity" asp-page="/Account/Login">Đăng nhập</a>
+        </li>
+    }
+</ul>

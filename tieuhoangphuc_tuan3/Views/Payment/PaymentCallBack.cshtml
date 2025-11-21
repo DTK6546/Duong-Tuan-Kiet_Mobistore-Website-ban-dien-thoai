@@ -1,0 +1,61 @@
+﻿@model MomoExecuteResponseModel
+
+@{
+    ViewData["Title"] = "Kết quả thanh toán";
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white text-center">
+                    <h4 class="mb-0">🔔 Kết quả thanh toán</h4>
+                </div>
+                <div class="card-body">
+
+                    @if (ViewBag.Message == "PaypalSuccess")
+                    {
+                        <h5 class="text-success">✅ Thanh toán PayPal thành công:</h5>
+                        <h6>🧾 Mã đơn hàng: @ViewBag.OrderId</h6>
+                        <h6>📄 Thông tin đơn hàng: @ViewBag.OrderInfo</h6>
+                        <h6>💰 Tổng tiền: @String.Format("{0:N0}", ViewBag.Amount) VNĐ</h6>
+                    }
+                    else if (ViewBag.Message == "Success")
+                    {
+                        <h5 class="text-success">✅ Thanh toán VNPay thành công:</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>🧾 Mã đơn hàng:</strong> @ViewBag.OrderId</li>
+                            <li><strong>📄 Thông tin:</strong> @ViewBag.OrderInfo</li>
+                            <li><strong>💰 Tổng tiền:</strong> @ViewBag.Amount VNĐ</li>
+                        </ul>
+                    }
+                    else if (ViewBag.Message != null)
+                    {
+                        <div class="alert alert-danger">
+                            <h5>❌ Thanh toán thất bại hoặc đã bị hủy.</h5>
+                        </div>
+                    }
+                    else
+                    {
+                        <h5 class="text-success">✅ Thanh toán MoMo thành công:</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>🧾 Mã đơn hàng:</strong> @Model.OrderId</li>
+                            <li><strong>📄 Thông tin:</strong> @Model.OrderInfo</li>
+                            <li><strong>💰 Tổng tiền:</strong> @Model.Amount VNĐ</li>
+                        </ul>
+                    }
+
+                </div>
+
+                <div class="card-footer text-center">
+                    <a href="@Url.Action("Index", "Product")" class="btn btn-outline-primary px-4 py-2 shadow">
+                        🛒 Tiếp tục mua sắm
+                    </a>
+                    <a href="@Url.Action("MyOrders", "Order")" class="btn btn-outline-primary px-4 py-2 shadow">
+                        🛒 Xem đơn hàng của tôi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,20 @@
+﻿@model WebBanDienThoai.Models.Contact
+@{
+    ViewData["Title"] = "Chi tiết liên hệ";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+<div class="container mt-4">
+    <h2 class="mb-4">Chi tiết liên hệ</h2>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="mb-3">@Model.Name</h5>
+            <p><b>Email:</b> @Model.Email</p>
+            <p><b>Số điện thoại:</b> @Model.Phone</p>
+            <p><b>Ngày gửi:</b> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+            <hr />
+            <h6 class="fw-bold">Nội dung:</h6>
+            <p style="white-space: pre-line;">@Model.Message</p>
+        </div>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary mt-3"><i class="bi bi-arrow-left"></i> Quay lại</a>
+</div>

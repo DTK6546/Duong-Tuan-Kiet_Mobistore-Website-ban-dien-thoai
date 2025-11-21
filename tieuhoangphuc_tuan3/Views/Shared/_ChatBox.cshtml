@@ -1,0 +1,176 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using WebBanDienThoai.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    var user = await UserManager.GetUserAsync(User);
+    if (user != null)
+    {
+        var userRole = (await UserManager.GetRolesAsync(user)).FirstOrDefault() ?? "Customer";
+
+        <div class="chat-container" data-user-name="@user.UserName" data-user-role="@userRole">
+            <div class="chat-box" id="chatBox">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." />
+                    <button id="sendMessage"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <button class="chat-toggle" id="chatToggle">💬</button>
+        </div>
+
+        <style>
+            .chat-container {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 9999;
+                font-family: Arial, sans-serif;
+            }
+
+            .chat-toggle {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: #0084FF;
+                color: white;
+                font-size: 24px;
+                border: none;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                cursor: pointer;
+            }
+
+            .chat-box {
+                display: none;
+                flex-direction: column;
+                width: 300px;
+                height: 400px;
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                overflow: hidden;
+            }
+
+                .chat-box.active {
+                    display: flex;
+                }
+
+            .chat-messages {
+                flex: 1;
+                padding: 10px;
+                overflow-y: auto;
+                background: #F0F2F5;
+            }
+
+            .message {
+                display: inline-block;
+                padding: 10px 15px;
+                border-radius: 18px;
+                margin-bottom: 10px;
+                max-width: 70%;
+                word-wrap: break-word;
+                clear: both;
+            }
+
+            .own-message {
+                background-color: #0084FF;
+                color: white;
+                float: right;
+                text-align: right;
+            }
+
+            .other-message {
+                background-color: #E4E6EB;
+                color: black;
+                float: left;
+                text-align: left;
+            }
+
+            .chat-input {
+                display: flex;
+                padding: 10px;
+                border-top: 1px solid #ddd;
+                background: #fff;
+            }
+
+                .chat-input input {
+                    flex: 1;
+                    padding: 8px 10px;
+                    border: 1px solid #ccc;
+                    border-radius: 20px;
+                    outline: none;
+                }
+
+                .chat-input button {
+                    background: #0084FF;
+                    border: none;
+                    color: white;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    margin-left: 10px;
+                    cursor: pointer;
+                }
+
+            .chat-messages::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .chat-messages::-webkit-scrollbar-thumb {
+                background: #ccc;
+                border-radius: 10px;
+            }
+        </style>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.0/signalr.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const chatToggle = document.getElementById('chatToggle');
+                const chatBox = document.getElementById('chatBox');
+                const chatMessages = document.getElementById('chatMessages');
+                const messageInput = document.getElementById('messageInput');
+                const sendMessage = document.getElementById('sendMessage');
+
+                const userName = document.querySelector('.chat-container').dataset.userName;
+
+                // Toggle chat box
+                chatToggle.addEventListener('click', () => {
+                    chatBox.classList.toggle('active');
+                });
+
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/chatHub")
+                    .build();
+
+                connection.on("ReceiveMessage", (sender, message, timestamp, role) => {
+                    const messageDiv = document.createElement('div');
+                    const isOwnMessage = sender === userName;
+
+                    messageDiv.className = 'message ' + (isOwnMessage ? 'own-message' : 'other-message');
+                    messageDiv.innerHTML = `<div>${message}</div>`;
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+
+                connection.start().then(() => {
+                    connection.invoke("LoadMessages");
+                });
+
+                sendMessage.addEventListener('click', () => {
+                    const message = messageInput.value.trim();
+                    if (message) {
+                        connection.invoke("SendMessage", message);
+                        messageInput.value = '';
+                    }
+                });
+
+                messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendMessage.click();
+                });
+            });
+        </script>
+    }
+}

@@ -1,0 +1,173 @@
+﻿@model List<WebBanDienThoai.Models.SubCategory>
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Quản lý phân loại danh mục";
+    var allCategories = Model.Select(x => x.Category?.Name).Distinct().Where(x => !string.IsNullOrEmpty(x)).OrderBy(x => x).ToList();
+}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    .table-rounded {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 6px 24px rgba(80,80,80,0.08);
+        background: #fff;
+    }
+
+    .table thead th {
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 1.07rem;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #ececec;
+    }
+
+    .table tbody tr {
+        transition: background .18s;
+    }
+
+        .table tbody tr:hover {
+            background: #f1f7ff !important;
+        }
+
+    .badge-category {
+        font-size: .95em;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-weight: 500;
+        background: #e3f2fd;
+        color: #1565c0;
+        box-shadow: 0 1px 6px rgba(40,40,180,0.07);
+    }
+
+    .action-btns .btn {
+        margin-right: 4px;
+        min-width: 44px;
+    }
+
+    .input-group, .form-select, .add-btn {
+        height: 44px;
+    }
+
+    .add-btn {
+        font-weight: 600;
+        font-size: 1.05em;
+    }
+    media (max-width: 768px) {
+        .add-btn, .form-select, .input-group
+
+    {
+        height: 40px;
+        font-size: 1em;
+    }
+
+    .input-group {
+        max-width: 100%;
+    }
+
+    }
+
+    }
+</style>
+
+<div class="row align-items-center mb-4 g-2 flex-column-reverse flex-md-row">
+    <div class="col-md-6 col-12">
+        <h2 class="fw-bold mb-0 d-flex align-items-center" style="font-size:1.7rem;">
+            <i class="bi bi-layers text-primary me-2"></i>
+            @ViewData["Title"]
+        </h2>
+    </div>
+    <div class="col-md-6 col-12">
+        <div class="d-flex flex-wrap gap-2 justify-content-md-end justify-content-start align-items-center">
+            <!-- Search -->
+            <div class="input-group" style="max-width:220px;">
+                <input type="text" id="searchInput" class="form-control" placeholder="Tìm phân loại...">
+            </div>
+            <!-- Filter -->
+            <select id="categoryFilter" class="form-select" style="max-width:170px;">
+                <option value="">Tất cả danh mục</option>
+                @foreach (var cat in allCategories)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+            <!-- Nút thêm -->
+            <a href="@Url.Action("Add")" class="btn btn-success d-flex align-items-center gap-1 px-3 py-2 shadow-sm add-btn" style="white-space:nowrap;">
+                <i class="bi bi-plus-circle"></i> Thêm phân loại
+            </a>
+        </div>
+    </div>
+</div>
+
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle table-rounded" id="subcategoryTable">
+        <thead>
+            <tr>
+                <th class="text-center" style="width:48px;">#</th>
+                <th>Tên phân loại</th>
+                <th>Thuộc danh mục</th>
+                <th class="text-center" style="width:160px;">Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Count; i++)
+            {
+                <tr data-category="@Model[i].Category?.Name?.ToLower()" data-name="@Model[i].Name?.ToLower()">
+                    <td class="text-center row-index">@(@i + 1)</td>
+                    <td class="fw-semibold">@Model[i].Name</td>
+                    <td>
+                        @if (Model[i].Category != null)
+                        {
+                            <span class="badge badge-category">
+                                <i class="bi bi-folder2-open me-1"></i> @Model[i].Category.Name
+                            </span>
+                        }
+                    </td>
+                    <td class="text-center action-btns">
+                        <a class="btn btn-warning btn-sm shadow-sm" href="@Url.Action("Update", new { id = Model[i].Id })">
+                            <i class="bi bi-pencil-square"></i> Sửa
+                        </a>
+                        <form asp-action="Delete" asp-route-id="@Model[i].Id" method="post" style="display:inline;">
+                            <button class="btn btn-danger btn-sm shadow-sm" onclick="return confirm('Xoá phân loại nhỏ này?')">
+                                <i class="bi bi-trash"></i> Xoá
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        // Filter + Search live
+        const filterInput = document.getElementById('searchInput');
+        const filterSelect = document.getElementById('categoryFilter');
+        const table = document.getElementById('subcategoryTable').getElementsByTagName('tbody')[0];
+
+        function filterTable() {
+            const search = filterInput.value.trim().toLowerCase();
+            const cat = filterSelect.value.toLowerCase();
+            let index = 1;
+            Array.from(table.rows).forEach(row => {
+                const rowCat = (row.getAttribute('data-category') || '').toLowerCase();
+                const rowName = (row.getAttribute('data-name') || '').toLowerCase();
+                // Ẩn/hiện row theo filter
+                const show =
+                    (search === "" || rowName.includes(search)) &&
+                    (cat === "" || rowCat === cat);
+
+                row.style.display = show ? "" : "none";
+                // Đánh lại số thứ tự
+                if (show) {
+                    row.querySelector('.row-index').textContent = index++;
+                }
+            });
+        }
+
+        filterInput.addEventListener('input', filterTable);
+        filterSelect.addEventListener('change', filterTable);
+    </script>
+}

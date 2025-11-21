@@ -1,0 +1,82 @@
+﻿@page
+@{
+    ViewData["Title"] = "Truy cập bị từ chối";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .access-denied-wrapper {
+        min-height: 65vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .access-denied-icon {
+        font-size: 5rem;
+        color: #e53935;
+        margin-bottom: 24px;
+        animation: shake 0.8s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    keyframes shake {
+        10%, 90%
+
+    {
+        transform: translateX(-2px);
+    }
+
+    20%, 80% {
+        transform: translateX(4px);
+    }
+
+    30%, 50%, 70% {
+        transform: translateX(-8px);
+    }
+
+    40%, 60% {
+        transform: translateX(8px);
+    }
+
+    }
+
+    .access-denied-title {
+        color: #e53935;
+        font-weight: bold;
+        font-size: 2.2rem;
+        margin-bottom: 12px;
+    }
+
+    .access-denied-desc {
+        color: #333;
+        font-size: 1.15rem;
+        margin-bottom: 22px;
+    }
+</style>
+
+
+<div class="access-denied-wrapper">
+    <div class="access-denied-icon">
+        <i class="bi bi-shield-lock-fill"></i>
+    </div>
+    <div class="access-denied-title">
+        Truy cập bị từ chối
+    </div>
+    <div class="access-denied-desc">
+        Bạn không có quyền truy cập vào trang này.<br />
+        Vui lòng kiểm tra quyền tài khoản hoặc liên hệ quản trị viên để được hỗ trợ.
+    </div>
+    <a href="/" class="btn btn-danger px-4 py-2">
+        <i class="bi bi-arrow-left"></i> Về trang chủ
+    </a>
+</div>
+
+<script>
+    window.onload = function() {
+            var adBanner = document.querySelector('.carousel');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+            }
+        };
+</script>

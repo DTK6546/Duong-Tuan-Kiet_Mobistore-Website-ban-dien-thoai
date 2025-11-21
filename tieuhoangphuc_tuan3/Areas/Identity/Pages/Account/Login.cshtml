@@ -1,0 +1,176 @@
+﻿@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<style>
+    .login-container {
+        min-height: 100vh;
+        background: #f7f8fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-card {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        display: flex;
+        overflow: hidden;
+        width: 900px;
+        max-width: 97vw;
+        min-height: 540px;
+    }
+
+    .login-left {
+        background: linear-gradient(140deg,#2574fc 0%,#66b2fd 100%);
+        color: #fff;
+        min-width: 340px;
+        padding: 48px 32px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+        .login-left img {
+            max-width: 210px;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 4px 24px #1d5db5bb);
+        }
+
+        .login-left h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .login-left p {
+            font-size: 1.1rem;
+            opacity: .93;
+            line-height: 1.5;
+        }
+
+    .login-right {
+        flex: 1;
+        padding: 42px 36px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    media (max-width: 820px) {
+        .login-card
+
+    {
+        flex-direction: column;
+        min-height: unset;
+    }
+
+    .login-left {
+        min-width: 100%;
+        border-radius: 18px 18px 0 0;
+    }
+
+    .login-right {
+        padding: 32px 18px;
+    }
+
+    }
+</style>
+
+<div class="login-container">
+    <div class="login-card">
+        <!-- Bên trái: Hình và giới thiệu -->
+        <div class="login-left text-center">
+            <img src="~/images/login-side.jpg" alt="Shop Điện Thoại" />
+            <h3>Chào mừng trở lại!</h3>
+            <p>Mua sắm các sản phẩm <b>chính hãng</b>,<br />ưu đãi hấp dẫn mỗi ngày cùng Shop Điện Thoại.</p>
+            <div style="margin-top:42px;font-size:13px;opacity:.75;">
+                © @DateTime.Now.Year ShopDienThoai.com.vn<br>
+                <span style="font-size:12px;">An tâm mua sắm, bảo mật tuyệt đối.</span>
+            </div>
+        </div>
+
+        <!-- Bên phải: Form login -->
+        <div class="login-right">
+            <h2 class="fw-bold text-center mb-4">Đăng nhập tài khoản</h2>
+            <form id="account" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                    <label asp-for="Input.Email" class="form-label">Email</label>
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label asp-for="Input.Password" class="form-label">Mật khẩu</label>
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" asp-for="Input.RememberMe" />
+                        <label class="form-check-label" asp-for="Input.RememberMe">Ghi nhớ tôi</label>
+                    </div>
+                </div>
+
+                <button id="login-submit" type="submit" class="w-100 btn btn-primary btn-lg mb-2">Đăng nhập</button>
+
+                <div class="d-flex justify-content-between small mt-2 mb-1">
+                    <a id="forgot-password" asp-page="./ForgotPassword">Quên mật khẩu?</a>
+                    <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Đăng ký tài khoản mới</a>
+                </div>
+                <div class="text-center mb-1">
+                    <a id="resend-confirmation" asp-page="./ResendEmailConfirmation" class="small">Gửi lại email xác nhận</a>
+                </div>
+            </form>
+            <hr class="my-4" />
+            <div class="text-center">
+                <h6 class="mb-3 fw-semibold">Hoặc đăng nhập bằng:</h6>
+                @if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                {
+                    <p class="text-muted">Không có dịch vụ xác thực bên ngoài nào được cấu hình.</p>
+                }
+                else
+                {
+                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                        @foreach (var provider in Model.ExternalLogins!)
+                        {
+                            <button type="submit" class="btn btn-outline-primary btn-sm mx-1" name="provider" value="@provider.Name" title="Đăng nhập bằng tài khoản @provider.DisplayName">
+                                <i class="bi bi-box-arrow-in-right"></i> @provider.DisplayName
+                            </button>
+                        }
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+<script>
+    window.onload = function() {
+        var adBanner = document.querySelector('.carousel');
+        if (adBanner) {
+            adBanner.style.display = 'none';
+        }
+    };
+</script>
+
+<script>
+    window.onload = function() {
+        var adBanner = document.querySelector('.carousel');
+        if (adBanner) {
+            adBanner.style.display = 'none';
+        }
+    };
+</script>

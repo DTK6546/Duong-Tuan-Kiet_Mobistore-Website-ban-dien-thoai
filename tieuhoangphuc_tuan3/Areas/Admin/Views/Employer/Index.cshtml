@@ -1,0 +1,46 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.ApplicationUser>
+
+@{
+    ViewData["Title"] = "Quản lý Nhân viên";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4 text-primary">👔 Danh sách Nhân viên</h2>
+
+<a asp-action="Add" class="btn btn-success mb-3">
+    <i class="fas fa-user-plus"></i> Thêm Nhân viên
+</a>
+
+<table class="table table-bordered table-hover shadow-sm w-100">
+    <thead class="table-dark text-center">
+        <tr>
+            <th style="width: 10%;">#</th>
+            <th style="width: 25%;">Tên</th>
+            <th style="width: 30%;">Email</th>
+            <th style="width: 15%;">Chức vụ</th>
+            <th style="width: 20%;">Hành động</th>
+        </tr>
+    </thead>
+    <tbody class="text-center align-middle">
+        @foreach (var user in Model.Select((value, index) => new { value, index }))
+        {
+            <tr>
+                <td>@(user.index + 1)</td>
+                <td>@user.value.FullName</td>
+                <td>@user.value.Email</td>
+                <td>Nhân viên</td>
+                <td>
+                    <a asp-action="Update" asp-route-id="@user.value.Id" class="btn btn-warning btn-sm me-2">
+                        <i class="fas fa-edit"></i> Sửa
+                    </a>
+                    <form asp-action="Delete" method="post" asp-route-id="@user.value.Id"
+                          onsubmit="return confirm('Bạn có chắc muốn xóa nhân viên này?');" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i> Xóa
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

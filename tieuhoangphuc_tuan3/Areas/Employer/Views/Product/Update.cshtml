@@ -1,0 +1,94 @@
+﻿@model WebBanDienThoai.Models.Product
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    Layout = "~/Areas/Employer/Views/Shared/_EmployerLayout.cshtml";
+    ViewData["Title"] = "Cập nhật sản phẩm";
+}
+
+<h2 class="mb-4 text-warning">✏️ Cập Nhật Sản Phẩm</h2>
+
+<form asp-area="Employer" asp-controller="Product" asp-action="Update" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group mb-3">
+        <label asp-for="Name" class="form-label">Tên sản phẩm</label>
+        <input asp-for="Name" class="form-control" required />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Price" class="form-label">Giá sản phẩm (VNĐ)</label>
+        <input asp-for="Price" type="number" class="form-control" required />
+        <span asp-validation-for="Price" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="DiscountPercent" class="form-label">Giảm giá (%)</label>
+        <input asp-for="DiscountPercent" type="number" class="form-control" placeholder="Nhập giảm giá (0 - 100)" min="0" max="100" />
+        <span asp-validation-for="DiscountPercent" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="CategoryId" class="form-label">Danh mục</label>
+        <select asp-for="CategoryId" asp-items="ViewBag.Categories" class="form-select" required>
+            <option value="">-- Chọn danh mục --</option>
+        </select>
+        <span asp-validation-for="CategoryId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label class="form-label">Ảnh hiện tại</label><br />
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <img src="@Model.ImageUrl" width="120" class="rounded shadow-sm mb-2" />
+        }
+    </div>
+
+    <div class="form-group mb-3">
+        <label class="form-label">Chọn ảnh mới (nếu muốn thay)</label>
+        <input type="file" name="imageUrl" class="form-control" id="imageInput" accept="image/*" />
+        <div class="mt-2">
+            <img id="previewImage" src="#" alt="Ảnh xem trước" class="d-none" style="max-width: 200px; border: 1px solid #ddd;" />
+        </div>
+    </div>
+
+   
+    <div class="form-group mb-3">
+        <label asp-for="Description" class="form-label">Mô tả sản phẩm</label>
+        <textarea asp-for="Description" class="form-control" id="editor" rows="5" placeholder="Nhập mô tả..."></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">💾 Cập nhật</button>
+    <a asp-action="Index" asp-area="Employer" asp-controller="Product" class="btn btn-secondary ms-2">⬅️ Quay lại</a>
+</form>
+
+@section Scripts {
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.0/classic/ckeditor.js"></script>
+    <script>
+        ClassicEditor
+            .create(document.querySelector('#editor'))
+            .catch(error => {
+                console.error(error);
+            });
+
+        // Hiển thị ảnh xem trước
+        document.getElementById("imageInput").addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const img = document.getElementById("previewImage");
+                    img.src = event.target.result;
+                    img.classList.remove("d-none");
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+      
+    </script>
+
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

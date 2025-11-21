@@ -1,0 +1,149 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chính sách";
+    var type = Context.Request.Query["type"].ToString().ToLower();
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- Cột trái: danh mục chính sách -->
+        <div class="col-md-3">
+            <div class="list-group shadow-sm">
+                <div class="list-group-item fw-bold bg-light">Danh mục chính sách</div>
+                <a href="@Url.Action("Policy", "Home", new { type = "baohanh" })" class="list-group-item list-group-item-action @(type == "baohanh" ? "active" : "")">
+                    Chính sách bảo hành
+                </a>
+                <a href="@Url.Action("Policy", "Home", new { type = "doitra" })" class="list-group-item list-group-item-action @(type == "doitra" ? "active" : "")">
+                    Chính sách đổi trả
+                </a>
+                <a href="@Url.Action("Policy", "Home", new { type = "baomat" })" class="list-group-item list-group-item-action @(type == "baomat" ? "active" : "")">
+                    Chính sách bảo mật
+                </a>
+            </div>
+        </div>
+
+        <!-- Cột phải: nội dung chính sách -->
+        <div class="col-md-9">
+            @if (type == "baohanh")
+            {
+                <h2 class="text-primary mb-4"><i class="fas fa-shield-alt"></i> Chính sách bảo hành</h2>
+                <div style="line-height: 1.8; font-size: 1.1rem;">
+                    <p>Tất cả sản phẩm tại Mobistore kinh doanh đều là sản phẩm chính hãng và được bảo hành theo đúng chính sách của nhà sản xuất(*). Ngoài ra Mobistore cũng hỗ trợ gửi bảo hành miễn phí giúp khách hàng đối với cả sản phẩm do Mobistore bán ra và sản phẩm Quý khách mua tại các chuỗi bán lẻ khác.</p>
+                    <h5 class="mt-3 fw-bold">Mua hàng tại Mobistore, Quý khách sẽ được hưởng những đặc quyền sau:</h5>
+                    <ul>
+                        <li>Bảo hành đổi sản phẩm mới ngay tại shop trong 30 ngày nếu có lỗi NSX.(**)</li>
+                        <li>Gửi bảo hành chính hãng không mất phí vận chuyển.(***)</li>
+                        <li>Hỗ trợ làm việc với hãng để xử lý phát sinh trong quá trình bảo hành.</li>
+                    </ul>
+                    <h5 class="mt-4 fw-bold">Một số trường hợp thường gặp nằm ngoài chính sách bảo hành:</h5>
+                    <ul>
+                        <li>Sản phẩm hết hạn bảo hành.</li>
+                        <li>Đã sửa chữa không thuộc trung tâm bảo hành ủy quyền của hãng.</li>
+                        <li>Sử dụng sai hướng dẫn gây hư hỏng.</li>
+                        <li>Bị ngấm nước, bụi bẩn, nứt vỡ, biến dạng do ngoại lực.</li>
+                        <li>Bị oxy hóa, mốc rỉ, thiên tai, hỏa hoạn, sét đánh, côn trùng phá hoại.</li>
+                        <li>Khóa tài khoản cá nhân (iCloud, Samsung Cloud, Gmail...).</li>
+                        <li>Sử dụng phần mềm không chính hãng.</li>
+                        <li>Màn hình có từ 4 điểm chết trở xuống.</li>
+                    </ul>
+                    <h5 class="mt-4 fw-bold">Lưu ý:</h5>
+                    <ul>
+                        <li>Chương trình bảo hành bắt đầu từ ngày xuất hóa đơn tại Mobistore.</li>
+                        <li>Mỗi dòng sản phẩm có chính sách riêng theo Hãng/Nhà cung cấp.</li>
+                        <li>Liên hệ CSKH: <strong>1800 6616</strong> để biết thêm chi tiết.</li>
+                        <li>FPT Shop không chịu trách nhiệm nếu khách hàng không sao lưu dữ liệu trước khi gửi bảo hành.</li>
+                        <li>Vui lòng gỡ bỏ mật khẩu/mã khóa trước khi gửi bảo hành.</li>
+                    </ul>
+                    <p class="fst-italic mt-4 text-muted">
+                        (*) Áp dụng với sản phẩm mới hoặc còn hạn bảo hành.<br />
+                        (**) Áp dụng cho sản phẩm đủ điều kiện công bố theo <a href="#">chính sách đổi trả</a>.<br />
+                        (***) Trừ trường hợp sản phẩm cồng kềnh hoặc bảo hành tại nhà.
+                    </p>
+                </div>
+            }
+            else if (type == "doitra")
+            {
+                <h2 class="text-primary mb-4"><i class="fas fa-exchange-alt"></i> Chính sách đổi trả</h2>
+                <div style="line-height: 1.8; font-size: 1.1rem;">
+                    <p>Mobistore hỗ trợ đổi trả linh hoạt theo điều kiện dưới đây:</p>
+                    <h5>1. Điều kiện áp dụng</h5>
+                    <ul>
+                        <li>Sản phẩm còn nguyên vẹn, đầy đủ phụ kiện, hóa đơn.</li>
+                        <li>Không bị trầy xước nặng, móp méo, hư hỏng do người dùng.</li>
+                    </ul>
+                    <h5>2. Trường hợp & thời gian</h5>
+                    <table class="table table-bordered text-center">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Trường hợp</th>
+                                <th>Thời gian</th>
+                                <th>Hình thức xử lý</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Lỗi NSX</td>
+                                <td>0 – 30 ngày</td>
+                                <td>Đổi mới 1-1 cùng model</td>
+                            </tr>
+                            <tr>
+                                <td>Lỗi NSX</td>
+                                <td>31 – 365 ngày</td>
+                                <td>Gửi bảo hành theo hãng</td>
+                            </tr>
+                            <tr>
+                                <td>Khách muốn trả</td>
+                                <td>0 – 365 ngày</td>
+                                <td>Khấu hao 30% tháng đầu, +5% mỗi tháng tiếp theo</td>
+                            </tr>
+                            <tr>
+                                <td>Lỗi do người dùng</td>
+                                <td>Mọi thời gian</td>
+                                <td>Gửi sửa chữa tính phí</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <h5>3. Phụ phí (nếu có)</h5>
+                    <ul>
+                        <li>Trầy xước nhẹ: 0% – 10%</li>
+                        <li>Thiếu hộp: +2%</li>
+                        <li>Thiếu phụ kiện: +5% mỗi món</li>
+                    </ul>
+                </div>
+            }
+            else if (type == "baomat")
+            {
+                <h2 class="text-primary mb-4"><i class="fas fa-user-secret"></i> Chính sách bảo mật</h2>
+                <div style="line-height: 1.8; font-size: 1.1rem;">
+                    <p>Mobistore cam kết bảo mật mọi thông tin cá nhân của khách hàng một cách tuyệt đối.</p>
+                    <h5>1. Thu thập thông tin</h5>
+                    <p>Email, Họ tên, Số điện thoại,... khi khách hàng đăng ký hoặc giao dịch.</p>
+                    <h5>2. Sử dụng thông tin</h5>
+                    <p>Dùng để hỗ trợ giao hàng, chăm sóc khách hàng và thông báo chương trình.</p>
+                    <h5>3. Thời gian lưu trữ</h5>
+                    <p>Lưu trữ đến khi có yêu cầu xóa hoặc khách hàng tự xóa.</p>
+                    <h5>4. Bảo mật giao dịch</h5>
+                    <ul>
+                        <li>Sử dụng SSL 256-bit, OTP xác thực, không lưu thông tin thẻ trên hệ thống.</li>
+                        <li>Thông tin được mã hóa và lưu trữ an toàn theo tiêu chuẩn quốc tế PCI DSS.</li>
+                    </ul>
+                    <h5>5. Xoá thông tin</h5>
+                    <p>Gửi email đến <strong>mobistore@shopdienthoai.vn</strong> để yêu cầu xóa dữ liệu cá nhân.</p>
+                </div>
+            }
+            else
+            {
+                <p class="text-danger">Không tìm thấy nội dung chính sách phù hợp.</p>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = function() {
+        var adBanner = document.querySelector('.carousel');
+        if (adBanner) {
+            adBanner.style.display = 'none';
+        }
+    };
+</script>
