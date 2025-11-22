@@ -38,6 +38,28 @@
             z-index: 1039;
         }
 
+        /* ==== FIX MÀU CHỮ TÀI KHOẢN TRÊN HEADER ==== */
+        .header-top .nav-link,
+        .header-top .dropdown-toggle,
+        .header-top .dropdown-menu a,
+        .header-top span,
+        .header-top strong {
+            color: #ffffff !important;
+        }
+
+        .header-top .dropdown-menu {
+            background: #ffffff; /* giữ popup dropdown trắng đẹp */
+        }
+
+            .header-top .dropdown-menu a {
+                color: #000 !important; /* chữ trong menu xổ xuống vẫn đen */
+            }
+
+                .header-top .dropdown-menu a:hover {
+                    background: #f0f0f0;
+                }
+
+
         /* Đảm bảo dropdown menu nổi lên */
         .dropdown-menu {
             z-index: 3000 !important;
