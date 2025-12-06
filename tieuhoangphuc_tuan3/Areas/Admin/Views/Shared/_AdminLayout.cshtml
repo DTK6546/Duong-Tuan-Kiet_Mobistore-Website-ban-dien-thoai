@@ -73,6 +73,20 @@
                                 <p>Danh sách Sản phẩm</p>
                             </a>
                         </li>
+                        <!-- ⭐ Quản lý gói bảo hành -->
+                        <li class="nav-item">
+                            <a href="/Admin/WarrantyOption/Index" class="nav-link">
+                                <i class="nav-icon fas fa-shield-alt"></i>
+                                <p>Quản lý gói bảo hành</p>
+                            </a>
+                        </li>
+                        <!-- Quản lý cấu hình sản phẩm -->
+                        <li class="nav-item">
+                            <a href="/Admin/ProductSpecs/Index" class="nav-link">
+                                <i class="nav-icon fas fa-cogs"></i>
+                                <p>Quản lý cấu hình</p>
+                            </a>
+                        </li>
                         <!-- Danh mục -->
                         <li class="nav-item">
                             <a asp-area="Admin" asp-controller="Category" asp-action="Index" class="nav-link @(ViewData["ActivePage"]?.ToString() == "Category" ? "active" : "")">
@@ -85,6 +99,13 @@
                             <a href="/Admin/SubCategory/Index" class="nav-link">
                                 <i class="nav-icon fas fa-th-large"></i>
                                 <p>Quản lý phân loại</p>
+                            </a>
+                        </li>
+                        <!-- Quản lý cửa hàng -->
+                        <li class="nav-item">
+                            <a href="/Admin/Store/Index" class="nav-link">
+                                <i class="nav-icon fas fa-store"></i>
+                                <p>Quản lý cửa hàng</p>
                             </a>
                         </li>
                         <!-- Quan lý nhân viên  -->
@@ -106,6 +127,13 @@
                             <a href="/Admin/Order/Index" class="nav-link">
                                 <i class="nav-icon fas fa-truck"></i>
                                 <p>Quản lý đơn hàng</p>
+                            </a>
+                        </li>
+                        <!-- Quản lý mã giảm giá -->
+                        <li class="nav-item">
+                            <a href="/Admin/Coupon/Index" class="nav-link">
+                                <i class="nav-icon fas fa-ticket-alt"></i>
+                                <p>Quản lý mã giảm giá</p>
                             </a>
                         </li>
                         <!-- Quản lý phản hồi -->

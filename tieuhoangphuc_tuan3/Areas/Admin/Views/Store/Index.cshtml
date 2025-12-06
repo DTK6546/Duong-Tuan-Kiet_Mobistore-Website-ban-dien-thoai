@@ -1,0 +1,55 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.Store>
+
+@{
+    ViewData["Title"] = "Quản lý cửa hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"; 
+}
+
+<h2>Quản lý cửa hàng</h2>
+
+<p>
+    <a asp-area="Admin" asp-controller="Store" asp-action="Add" class="btn btn-primary">
+        Thêm cửa hàng
+    </a>
+</p>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Tên cửa hàng</th>
+            <th>Địa chỉ</th>
+            <th>Tỉnh/Thành</th>
+            <th>Số điện thoại</th>
+            <th>Giờ mở cửa</th>
+            <th>Trạng thái</th>
+            <th style="width: 150px;">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Address, @item.Ward, @item.District</td>
+                <td>@item.Province</td>
+                <td>@item.PhoneNumber</td>
+                <td>@item.OpenHours</td>
+                <td>
+                    @(item.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
+                </td>
+                <td>
+                    <a asp-area="Admin" asp-controller="Store" asp-action="Update" asp-route-id="@item.Id"
+                       class="btn btn-sm btn-warning">
+                        Sửa
+                    </a>
+
+                    <form asp-area="Admin" asp-controller="Store" asp-action="Delete" asp-route-id="@item.Id"
+                          method="post" style="display:inline;"
+                          onsubmit="return confirm('Bạn có chắc muốn xóa cửa hàng này không?');">
+                        <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

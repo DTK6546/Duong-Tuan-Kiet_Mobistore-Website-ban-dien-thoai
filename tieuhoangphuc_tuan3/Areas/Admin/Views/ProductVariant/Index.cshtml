@@ -1,0 +1,87 @@
+﻿@using WebBanDienThoai.Models
+@model IEnumerable<ProductVariant>
+
+@{
+    ViewData["Title"] = "Quản lý biến thể";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>Biến thể của sản phẩm: @ViewBag.ProductName</h2>
+
+<div class="mb-3">
+    <a asp-area="Admin"
+       asp-controller="Product"
+       asp-action="Index"
+       class="btn btn-secondary">
+        ← Quay lại danh sách sản phẩm
+    </a>
+
+    <a asp-area="Admin"
+       asp-controller="ProductVariant"
+       asp-action="Create"
+       asp-route-productId="@ViewBag.ProductId"
+       class="btn btn-primary">
+        + Thêm biến thể
+    </a>
+</div>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th style="width: 15%;">Màu sắc</th>
+            <th style="width: 15%;">Dung lượng</th>
+            <th style="width: 15%;">RAM</th>
+            <th style="width: 20%;">Dung lượng còn lại (khả dụng)</th>
+            <th style="width: 15%;">Giá</th>
+            <th style="width: 10%;">Tồn kho</th>
+            <th style="width: 10%;">Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Color</td>
+                    <td>@item.Storage</td>
+                    <td>@item.Ram</td>
+                    <td>@item.StorageAvailable</td>
+                    <td>@String.Format("{0:N0} ₫", item.Price)</td>
+                    <td>@item.Stock</td>
+                    <td>
+                        <a asp-area="Admin"
+                           asp-controller="ProductVariant"
+                           asp-action="Edit"
+                           asp-route-id="@item.Id"
+                           class="btn btn-sm btn-warning">
+                            Sửa
+                        </a>
+
+                        <form asp-area="Admin"
+                              asp-controller="ProductVariant"
+                              asp-action="Delete"
+                              asp-route-id="@item.Id"
+                              method="post"
+                              style="display:inline;">
+                            @Html.AntiForgeryToken()
+                            <button type="submit"
+                                    class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Bạn có chắc chắn muốn xóa biến thể này không?');">
+                                Xóa
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="7" class="text-center">
+                    Chưa có biến thể nào cho sản phẩm này.
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

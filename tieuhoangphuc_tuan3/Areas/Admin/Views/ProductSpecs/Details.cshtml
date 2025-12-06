@@ -1,0 +1,105 @@
+﻿@model WebBanDienThoai.Models.ProductSpecs
+
+@{
+    ViewData["Title"] = "Chi tiết cấu hình sản phẩm";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-3">Chi tiết cấu hình sản phẩm</h2>
+
+<div class="mb-3">
+    <strong>Sản phẩm:</strong>
+    <span class="text-primary fw-bold">@Model.Product?.Name</span>
+</div>
+
+<hr />
+
+<!-- ======================= 1. CẤU HÌNH & BỘ NHỚ ======================= -->
+<h4>1) Cấu hình & Bộ nhớ</h4>
+<table class="table table-bordered mb-4">
+    <tr><th>Hệ điều hành</th><td>@Model.Os</td></tr>
+    <tr><th>CPU</th><td>@Model.Cpu</td></tr>
+    <tr><th>Tốc độ CPU</th><td>@Model.CpuSpeed</td></tr>
+    <tr><th>GPU</th><td>@Model.Gpu</td></tr>
+    <tr><th>RAM</th><td>@Model.Ram</td></tr>
+    <tr><th>Bộ nhớ trong</th><td>@Model.Storage</td></tr>
+    <tr><th>Dung lượng khả dụng</th><td>@Model.StorageAvailable</td></tr>
+    <tr><th>Danh bạ</th><td>@Model.ContactLimit</td></tr>
+</table>
+
+<!-- ======================= 2. CAMERA & MÀN HÌNH ======================= -->
+<h4>2) Camera & Màn hình</h4>
+<table class="table table-bordered mb-4">
+    <tr><th>Camera sau</th><td>@Model.RearCameraResolution</td></tr>
+    <tr><th>Camera trước</th><td>@Model.FrontCameraResolution</td></tr>
+    <tr><th>Quay video (sau)</th><td>@Model.RearVideoModes</td></tr>
+    <tr><th>Quay video (trước)</th><td>@Model.FrontVideoModes</td></tr>
+    <tr><th>Tính năng camera sau</th><td>@Model.RearCameraFeatures</td></tr>
+    <tr><th>Tính năng camera trước</th><td>@Model.FrontCameraFeatures</td></tr>
+    <tr><th>Công nghệ màn hình</th><td>@Model.ScreenTech</td></tr>
+    <tr><th>Độ phân giải màn hình</th><td>@Model.ScreenResolution</td></tr>
+    <tr><th>Kích thước & tần số quét</th><td>@Model.ScreenSize</td></tr>
+    <tr><th>Độ sáng tối đa</th><td>@Model.ScreenBrightness</td></tr>
+    <tr><th>Mặt kính</th><td>@Model.ScreenGlass</td></tr>
+</table>
+
+<!-- ======================= 3. PIN & SẠC ======================= -->
+<h4>3) Pin & Sạc</h4>
+<table class="table table-bordered mb-4">
+    <tr><th>Thời lượng pin</th><td>@Model.BatteryUsageTime</td></tr>
+    <tr><th>Loại pin</th><td>@Model.BatteryType</td></tr>
+    <tr><th>Công suất sạc tối đa</th><td>@Model.MaxChargePower</td></tr>
+    <tr><th>Công nghệ pin</th><td>@Model.BatteryTech</td></tr>
+</table>
+
+<!-- ======================= 4. TIỆN ÍCH ======================= -->
+<h4>4) Tiện ích</h4>
+<table class="table table-bordered mb-4">
+    <tr><th>Bảo mật</th><td>@Model.Security</td></tr>
+    <tr><th>Kháng nước/bụi</th><td>@Model.WaterDustResist</td></tr>
+    <tr><th>Tính năng đặc biệt</th><td>@Model.SpecialFeatures</td></tr>
+    <tr><th>Ghi âm</th><td>@Model.Recorder</td></tr>
+    <tr><th>Định dạng phim</th><td>@Model.VideoFormats</td></tr>
+    <tr><th>Định dạng nhạc</th><td>@Model.AudioFormats</td></tr>
+</table>
+
+<!-- ======================= 5. KẾT NỐI ======================= -->
+<h4>5) Kết nối</h4>
+<table class="table table-bordered mb-4">
+    <tr><th>Mạng di động</th><td>@Model.MobileNetwork</td></tr>
+    <tr><th>SIM</th><td>@Model.Sim</td></tr>
+    <tr><th>WiFi</th><td>@Model.Wifi</td></tr>
+    <tr><th>GPS</th><td>@Model.Gps</td></tr>
+    <tr><th>Bluetooth</th><td>@Model.Bluetooth</td></tr>
+    <tr><th>Cổng sạc</th><td>@Model.ChargingPort</td></tr>
+    <tr><th>Jack tai nghe</th><td>@Model.HeadphoneJack</td></tr>
+    <tr><th>Kết nối khác</th><td>@Model.OtherConnections</td></tr>
+</table>
+
+<!-- ======================= 6. THIẾT KẾ & CHẤT LIỆU ======================= -->
+<h4>6) Thiết kế & Chất liệu</h4>
+<table class="table table-bordered mb-4">
+    <tr><th>Thiết kế</th><td>@Model.DesignStyle</td></tr>
+    <tr><th>Chất liệu</th><td>@Model.Material</td></tr>
+    <tr><th>Kích thước</th><td>@Model.Dimensions</td></tr>
+    <tr><th>Khối lượng</th><td>@Model.Weight</td></tr>
+    <tr><th>Thời điểm ra mắt</th><td>@Model.ReleaseTime</td></tr>
+    <tr><th>Hãng</th><td>@Model.BrandInfo</td></tr>
+</table>
+
+<div class="mt-3">
+    <a class="btn btn-primary"
+       asp-area="Admin"
+       asp-controller="ProductSpecs"
+       asp-action="Edit"
+       asp-route-id="@Model.ProductId">
+        Chỉnh sửa cấu hình
+    </a>
+
+    <a class="btn btn-secondary ms-2"
+       asp-area="Admin"
+       asp-controller="ProductSpecs"
+       asp-action="Index">
+        Quay lại danh sách
+    </a>
+</div>

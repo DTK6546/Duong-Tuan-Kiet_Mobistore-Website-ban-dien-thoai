@@ -82,7 +82,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Ảnh sản phẩm
+                // Ảnh sản phẩm chính
                 if (imageUrl != null)
                 {
                     product.ImageUrl = await SaveImage(imageUrl);
@@ -97,10 +97,35 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 // Cập nhật ngày nhập hàng
                 product.LastImportDate = DateTime.Now;
 
+                // Lưu product trước để có Id
                 await _productRepository.AddAsync(product);
 
+                // Lưu nhiều ảnh phụ
+                if (additionalImages != null && additionalImages.Length > 0)
+                {
+                    foreach (var file in additionalImages)
+                    {
+                        if (file != null && file.Length > 0)
+                        {
+                            // 🔹 ĐỔI TÊN BIẾN Ở ĐÂY
+                            var imageUrlSaved = await SaveImage(file);
+
+                            var img = new ProductImage
+                            {
+                                Url = imageUrlSaved,   // dùng imageUrlSaved chứ không phải url
+                                ProductId = product.Id
+                            };
+
+                            _context.ProductImages.Add(img);
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+
                 // 🔔 PUSH: Sản phẩm mới
-                var url = Url.Action("Display", "Product", new { area = "", id = product.Id }, Request.Scheme);
+                // 🔹 VÀ Ở ĐÂY ĐỔI TÊN BIẾN KHÁC, VD: productUrl
+                var productUrl = Url.Action("Display", "Product", new { area = "", id = product.Id }, Request.Scheme);
                 var summary = $"Giá: {product.DiscountedPrice:N0}₫" +
                               (product.DiscountPercent > 0 ? $" (Giảm {product.DiscountPercent}%)" : "");
 
@@ -108,7 +133,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     "ReceiveProductNotification",
                     $"Sản phẩm mới: {product.Name}",            // title
                     summary,                                    // summary
-                    url,                                        // url xem chi tiết
+                    productUrl,                                 // url xem chi tiết
                     DateTime.Now.ToString("dd/MM/yyyy HH:mm")   // time
                 );
 
@@ -116,7 +141,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Nếu lỗi
+            // Nếu lỗi -> load lại dropdown
             var categories = await _categoryRepository.GetAllAsync();
             ViewBag.Categories = new SelectList(categories, "Id", "Name", product.CategoryId);
 
@@ -131,7 +156,11 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         [Authorize(Roles = SD.Role_Admin)]
         public async Task<IActionResult> Display(int id)
         {
-            var product = await _productRepository.GetByIdAsync(id);
+            var product = await _context.Products
+        .Include(p => p.Images)        // 🔹 lấy luôn ảnh phụ
+        .Include(p => p.Category)      // nếu cần
+        .Include(p => p.SubCategory)   // nếu cần
+        .FirstOrDefaultAsync(p => p.Id == id);
             if (product == null)
                 return NotFound();
 
@@ -141,7 +170,11 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employer)]
         public async Task<IActionResult> Update(int id)
         {
-            var product = await _productRepository.GetByIdAsync(id);
+            var product = await _context.Products
+        .Include(p => p.Images)
+        .Include(p => p.Category)
+        .Include(p => p.SubCategory)
+        .FirstOrDefaultAsync(p => p.Id == id);
             if (product == null)
                 return NotFound();
 
@@ -158,7 +191,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
 
         [HttpPost]
         [Authorize(Roles = SD.Role_Admin)]
-        public async Task<IActionResult> Update(int id, Product product, IFormFile imageUrl, IFormFile[] additionalImages)
+        public async Task<IActionResult> Update(int id, Product product, IFormFile imageUrl, IFormFile[] additionalImages, int[] deleteImageIds)
         {
             ModelState.Remove("ImageUrl");
             if (id != product.Id)
@@ -191,6 +224,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 existingProduct.SubCategoryId = product.SubCategoryId;
                 existingProduct.ImageUrl = product.ImageUrl;
                 existingProduct.DiscountedPrice = product.DiscountedPrice;
+                existingProduct.ServiceCommitment = product.ServiceCommitment;
 
                 // 🧭 Kiểm tra thay đổi số lượng → cập nhật ngày nhập
                 if (product.Quantity > existingProduct.Quantity)
@@ -198,6 +232,41 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
 
                 existingProduct.Quantity = product.Quantity;
                 existingProduct.MinStockLevel = product.MinStockLevel;
+
+                // 🔴 3.1 XÓA ảnh phụ được tick
+                if (deleteImageIds != null && deleteImageIds.Length > 0)
+                {
+                    foreach (var imgId in deleteImageIds)
+                    {
+                        var img = existingProduct.Images.FirstOrDefault(i => i.Id == imgId);
+                        if (img != null)
+                        {
+                            _context.ProductImages.Remove(img);
+
+                            var imagePath = Path.Combine("wwwroot/images", Path.GetFileName(img.Url));
+                            if (System.IO.File.Exists(imagePath))
+                                System.IO.File.Delete(imagePath);
+                        }
+                    }
+                }
+
+                // 🟢 3.2 THÊM ảnh phụ mới
+                if (additionalImages != null && additionalImages.Length > 0)
+                {
+                    foreach (var file in additionalImages)
+                    {
+                        if (file != null && file.Length > 0)
+                        {
+                            var imageUrlSaved = await SaveImage(file);
+                            var newImg = new ProductImage
+                            {
+                                Url = imageUrlSaved,
+                                ProductId = existingProduct.Id
+                            };
+                            _context.ProductImages.Add(newImg);
+                        }
+                    }
+                }
 
                 await _productRepository.UpdateAsync(existingProduct);
 

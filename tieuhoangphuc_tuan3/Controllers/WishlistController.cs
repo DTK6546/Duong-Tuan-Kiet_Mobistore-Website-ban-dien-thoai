@@ -20,6 +20,7 @@ namespace WebBanDienThoai.Controllers
             var wishlistItems = _context.Wishlists
                 .Where(w => w.UserId == userId)
                 .Include(w => w.Product) // Bao gồm thông tin sản phẩm
+                .Include(w => w.Variant)
                 .ToList();
 
             var suggestedProducts = _context.Products
@@ -33,66 +34,72 @@ namespace WebBanDienThoai.Controllers
 
         // Action để thêm sản phẩm vào wishlist
         [HttpPost]
-        public async Task<IActionResult> AddToWishlist(int productId)
+        public async Task<IActionResult> AddToWishlist(int productId, int? variantId)
         {
-            if (User.Identity.IsAuthenticated)
+            if (!User.Identity.IsAuthenticated)
             {
-                var userId = User.Identity.Name;
-
-                // Kiểm tra xem sản phẩm đã có trong wishlist chưa
-                var existingWishlistItem = await _context.Wishlists
-                    .FirstOrDefaultAsync(w => w.UserId == userId && w.ProductId == productId);
-
-                if (existingWishlistItem == null)
-                {
-                    // Thêm sản phẩm vào danh sách yêu thích
-                    var wishlistItem = new Wishlist
-                    {
-                        UserId = userId,
-                        ProductId = productId
-                    };
-
-                    _context.Wishlists.Add(wishlistItem);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Sản phẩm đã được thêm vào yêu thích!";
-                }
-                else
-                {
-                    TempData["SuccessMessage"] = "Sản phẩm đã có trong danh sách yêu thích.";
-                }
-
-                return RedirectToAction("Display", "Product", new { id = productId });
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để thêm sản phẩm vào yêu thích.";
+                return RedirectToAction("Login", "Account");
             }
 
-            TempData["ErrorMessage"] = "Vui lòng đăng nhập để thêm sản phẩm vào yêu thích.";
-            return RedirectToAction("Login", "Account");
+            var userId = User.Identity.Name;
+
+            // Kiểm tra trùng theo user + product + variant
+            var existingWishlistItem = await _context.Wishlists
+                .FirstOrDefaultAsync(w =>
+                    w.UserId == userId &&
+                    w.ProductId == productId &&
+                    w.VariantId == variantId);
+
+            if (existingWishlistItem == null)
+            {
+                var wishlistItem = new Wishlist
+                {
+                    UserId = userId,
+                    ProductId = productId,
+                    VariantId = variantId
+                };
+
+                _context.Wishlists.Add(wishlistItem);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Sản phẩm đã được thêm vào yêu thích!";
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Sản phẩm đã có trong danh sách yêu thích.";
+            }
+
+            // Nếu gọi AJAX thì trả về 200 OK
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Ok();
+
+            return RedirectToAction("Display", "Product", new { id = productId });
         }
+
         [HttpPost]
-        public async Task<IActionResult> RemoveFromWishlist(int productId)
+        public async Task<IActionResult> RemoveFromWishlist(int id)
         {
-            if (User.Identity.IsAuthenticated)
+            if (!User.Identity.IsAuthenticated)
             {
-                var userId = User.Identity.Name;
-
-                // Tìm sản phẩm trong wishlist của người dùng
-                var wishlistItem = await _context.Wishlists
-                    .FirstOrDefaultAsync(w => w.UserId == userId && w.ProductId == productId);
-
-                if (wishlistItem != null)
-                {
-                    // Xóa sản phẩm khỏi wishlist
-                    _context.Wishlists.Remove(wishlistItem);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Sản phẩm đã được xóa khỏi yêu thích!";
-                }
-
-                return RedirectToAction("Index", "Wishlist"); // Quay lại trang danh sách yêu thích
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để xóa sản phẩm khỏi yêu thích.";
+                return RedirectToAction("Login", "Account");
             }
 
-            TempData["ErrorMessage"] = "Vui lòng đăng nhập để xóa sản phẩm khỏi yêu thích.";
-            return RedirectToAction("Login", "Account"); // Chuyển đến trang đăng nhập nếu chưa đăng nhập
+            var userId = User.Identity.Name;
+
+            var wishlistItem = await _context.Wishlists
+                .FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
+
+            if (wishlistItem != null)
+            {
+                _context.Wishlists.Remove(wishlistItem);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Sản phẩm đã được xóa khỏi yêu thích!";
+            }
+
+            return RedirectToAction("Index", "Wishlist");
         }
 
     }

@@ -1,0 +1,56 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.WarrantyOption>
+@{
+    ViewData["Title"] = "Gói bảo hành";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>Gói bảo hành</h2>
+
+<form method="get" class="mb-3">
+    <div class="row g-2 align-items-center">
+        <div class="col-auto">
+            <label class="col-form-label">Lọc theo sản phẩm:</label>
+        </div>
+        <div class="col-auto">
+            <select name="productId" class="form-select" asp-items="@(ViewBag.Products)">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" type="submit">Lọc</button>
+        </div>
+        <div class="col-auto ms-auto">
+            <a asp-action="Add" class="btn btn-success">+ Thêm gói bảo hành</a>
+        </div>
+    </div>
+</form>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Sản phẩm</th>
+            <th>Tên gói</th>
+            <th>Giá</th>
+            <th>Hoạt động</th>
+            <th style="width:150px;">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var w in Model)
+        {
+            <tr>
+                <td>@w.Product?.Name</td>
+                <td>@w.Name</td>
+                <td>@w.Price.ToString("N0") VNĐ</td>
+                <td>@(w.IsActive ? "Có" : "Không")</td>
+                <td>
+                    <a asp-action="Update" asp-route-id="@w.Id" class="btn btn-sm btn-primary">Sửa</a>
+                    <form asp-action="Delete" asp-route-id="@w.Id" method="post" class="d-inline"
+                          onsubmit="return confirm('Xóa gói bảo hành này?');">
+                        <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

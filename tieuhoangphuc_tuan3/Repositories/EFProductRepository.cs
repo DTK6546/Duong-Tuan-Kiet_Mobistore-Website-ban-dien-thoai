@@ -16,6 +16,7 @@ namespace WebBanDienThoai.Repositories
             return await _context.Products
             .Include(p => p.Category) // Include thông tin về category
             .Include(p => p.SubCategory)
+            .Include(p => p.Images)
             .ToListAsync();
         }
         public async Task<Product> GetByIdAsync(int id)
@@ -25,6 +26,7 @@ namespace WebBanDienThoai.Repositories
             return await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
+                .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
         public async Task AddAsync(Product product)

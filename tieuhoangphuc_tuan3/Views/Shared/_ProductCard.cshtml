@@ -1,8 +1,24 @@
 ﻿@model WebBanDienThoai.Models.ProductWithSoldCount
+@using System.Linq
+
 @{
     var isFlashSale = ViewData["FlashSale"] as bool? == true;
+
+    var hasVariants = Model.Variants != null && Model.Variants.Any();
+    var capacities = hasVariants
+        ? Model.Variants.Select(v => v.Storage).Distinct().ToList()
+        : new List<string>();
+
+    var defaultVariant = hasVariants ? Model.Variants.First() : null;
 }
-<div class="product-card shadow-sm h-100">
+
+<div class="product-card shadow-sm h-100" data-product-id="@Model.Id">
+    @* hidden lưu biến thể đang chọn trên card này *@
+    @if (hasVariants && defaultVariant != null)
+    {
+        <input type="hidden" class="selected-variant-id" value="@defaultVariant.Id" />
+    }
+
     <div class="position-relative">
         <a href="@Url.Action("Display", "Product", new { id = Model.Id })">
             <img src="@Model.ImageUrl" class="product-image w-100" alt="@Model.Name">
@@ -28,8 +44,10 @@
             <span class="hot-label bg-success text-white"><i class="bi bi-star-fill"></i> Mới ra mắt</span>
         }
     </div>
+
     <div class="card-body text-center">
         <h5 class="card-title fw-bold">@Model.Name</h5>
+
         <div class="d-flex justify-content-center gap-2 mt-2 mb-2">
             <span class="category-badge">@Model.Category?.Name</span>
             @if (Model.SubCategory != null)
@@ -37,9 +55,12 @@
                 <span class="category-badge">@Model.SubCategory.Name</span>
             }
         </div>
+
         <div class="sold-count text-muted small mb-2">
             <i class="bi bi-bag-check-fill text-danger me-1"></i> Đã bán @Model.SoldCount
         </div>
+
+        <!-- Rating -->
         <div class="rating-stars mb-2">
             @{
                 double avg = Model.Rating;
@@ -63,18 +84,54 @@
             }
             <span class="text-muted ms-2">(@avg.ToString("0.0"))</span>
         </div>
-        <div class="product-price">
-            @if (Model.DiscountPercent > 0)
+
+        <!-- GIÁ (đổi theo biến thể nếu có) -->
+        <div class="product-price mb-2">
+            @if (hasVariants && defaultVariant != null)
             {
-                <del>@Model.Price.ToString("N0") VNĐ</del>
-                <h6 class="text-danger fw-bold">@Model.DiscountedPrice.ToString("N0") VNĐ</h6>
+                <h6 class="text-danger fw-bold mb-0">
+                    <span class="variant-price">
+                        @defaultVariant.Price.ToString("N0") VNĐ
+                    </span>
+                </h6>
             }
             else
             {
-                <h6 class="text-danger fw-bold">@Model.Price.ToString("N0") VNĐ</h6>
+                @if (Model.DiscountPercent > 0)
+                {
+                    <del>@Model.Price.ToString("N0") VNĐ</del>
+                    <h6 class="text-danger fw-bold">@Model.DiscountedPrice.ToString("N0") VNĐ</h6>
+                }
+                else
+                {
+                    <h6 class="text-danger fw-bold">@Model.Price.ToString("N0") VNĐ</h6>
+                }
             }
         </div>
-        <div class="d-flex justify-content-center gap-2 mt-3">
+
+        <!-- NÚT DUNG LƯỢNG (biến thể) -->
+        @if (hasVariants && capacities.Any())
+        {
+            <div class="variant-capacity-group mb-2">
+                @for (int i = 0; i < capacities.Count; i++)
+                {
+                    var cap = capacities[i];
+                    var vCap = Model.Variants.First(v => v.Storage == cap);
+
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm me-1 mb-1 variant-capacity-btn @(i == 0 ? "active" : "")"
+                            data-product-id="@Model.Id"
+                            data-capacity="@cap"
+                            data-price="@vCap.Price"
+                            data-variant-id="@vCap.Id">
+                        @cap
+                    </button>
+                }
+            </div>
+        }
+
+        <!-- Nút Mua -->
+        <div class="d-flex justify-content-center gap-2 mt-2">
             @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin") && !User.IsInRole("Employer"))
             {
                 <a href="@Url.Action("Buy", "Product", new { id = Model.Id })" class="btn btn-danger btn-sm">Mua</a>
@@ -90,5 +147,67 @@
                 </a>
             }
         </div>
+
+        <!-- Nút So sánh (dùng JS để kèm variantId) -->
+        <button type="button"
+                class="btn btn-outline-primary btn-sm mt-2 btn-compare"
+                data-product-id="@Model.Id">
+            So sánh
+        </button>
     </div>
 </div>
+
+<!-- JS: chọn dung lượng + cập nhật giá + gửi Compare với variantId -->
+<script>
+    (function () {
+        if (window.__bindVariantPriceCard) return;
+        window.__bindVariantPriceCard = true;
+
+        document.addEventListener('click', function (e) {
+            // ----- Click chọn dung lượng -----
+            var btnCap = e.target.closest('.variant-capacity-btn');
+            if (btnCap) {
+                var productId = btnCap.getAttribute('data-product-id');
+                var price = Number(btnCap.getAttribute('data-price')) || 0;
+                var variantId = btnCap.getAttribute('data-variant-id') || '';
+
+                // Bỏ active các nút cùng product
+                document.querySelectorAll('.variant-capacity-btn[data-product-id="' + productId + '"]')
+                    .forEach(function (b) { b.classList.remove('active'); });
+
+                btnCap.classList.add('active');
+
+                var card = btnCap.closest('.product-card');
+                if (card) {
+                    // cập nhật giá
+                    var priceSpan = card.querySelector('.variant-price');
+                    if (priceSpan) {
+                        priceSpan.textContent = price.toLocaleString('vi-VN') + ' VNĐ';
+                    }
+                    // lưu variantId đang chọn
+                    var hidden = card.querySelector('.selected-variant-id');
+                    if (hidden) {
+                        hidden.value = variantId;
+                    }
+                }
+                return;
+            }
+
+            // ----- Click nút So sánh -----
+            var btnCompare = e.target.closest('.btn-compare');
+            if (btnCompare) {
+                var productId2 = btnCompare.getAttribute('data-product-id');
+                var card2 = btnCompare.closest('.product-card');
+                var hidden2 = card2 ? card2.querySelector('.selected-variant-id') : null;
+                var variantId2 = hidden2 ? hidden2.value : '';
+
+                var url = '@Url.Action("Add", "Compare")' + '?productId=' + productId2;
+                if (variantId2) {
+                    url += '&variantId=' + encodeURIComponent(variantId2);
+                }
+
+                window.location.href = url;
+            }
+        });
+    })();
+</script>

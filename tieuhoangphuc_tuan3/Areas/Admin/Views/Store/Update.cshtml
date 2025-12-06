@@ -1,0 +1,68 @@
+﻿@model WebBanDienThoai.Models.Store
+
+@{
+    ViewData["Title"] = "Cập nhật cửa hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>Cập nhật cửa hàng</h2>
+
+<form asp-area="Admin" asp-controller="Store" asp-action="Update" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Address"></label>
+        <input asp-for="Address" class="form-control" />
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Ward"></label>
+        <input asp-for="Ward" class="form-control" />
+        <span asp-validation-for="Ward" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="District"></label>
+        <input asp-for="District" class="form-control" />
+        <span asp-validation-for="District" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Province"></label>
+        <input asp-for="Province" class="form-control" />
+        <span asp-validation-for="Province" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="PhoneNumber"></label>
+        <input asp-for="PhoneNumber" class="form-control" />
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="OpenHours"></label>
+        <input asp-for="OpenHours" class="form-control" />
+        <span asp-validation-for="OpenHours" class="text-danger"></span>
+    </div>
+
+    <div class="form-group form-check">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label"></label>
+    </div>
+
+    <button type="submit" class="btn btn-success">Cập nhật</button>
+    <a asp-area="Admin" asp-controller="Store" asp-action="Index" class="btn btn-secondary">Quay lại</a>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

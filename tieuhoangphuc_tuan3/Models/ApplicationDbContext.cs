@@ -23,6 +23,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SubCategory> SubCategories { get; set; }
     public DbSet<News> News { get; set; }
     public DbSet<Contact> Contacts { get; set; }
+    public DbSet<Coupon> Coupons { get; set; }
+    public DbSet<WarrantyOption> WarrantyOptions { get; set; }
+    public DbSet<OrderDetailWarranty> OrderDetailWarranties { get; set; }
+    public DbSet<ProductSpecs> ProductSpecs { get; set; }
+    public DbSet<ProductVariant> ProductVariants { get; set; }
+    public DbSet<Store> Stores { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

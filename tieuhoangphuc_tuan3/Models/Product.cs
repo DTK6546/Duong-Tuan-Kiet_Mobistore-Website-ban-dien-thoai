@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace WebBanDienThoai.Models
 {
@@ -21,7 +22,11 @@ namespace WebBanDienThoai.Models
             public int Quantity { get; set; }              // Số lượng hiện tại
             public int MinStockLevel { get; set; }     // Mức tồn kho tối thiểu
             public DateTime? LastImportDate { get; set; }  // Ngày nhập hàng gần nhất
-            public DateTime? LastExportDate { get; set; }  // Ngày xuất hàng gần nhất
-
+            public DateTime? LastExportDate { get; set; }
+            [ValidateNever]// Ngày xuất hàng gần nhất
+            public ProductSpecs? Specs { get; set; }
+            [ValidateNever]
+            public virtual ICollection<ProductVariant>? Variants { get; set; }
+            public string? ServiceCommitment { get; set; }
     }
 }

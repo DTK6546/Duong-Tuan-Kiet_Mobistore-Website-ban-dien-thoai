@@ -1,0 +1,77 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.Coupon>
+@{
+    ViewData["Title"] = "Quản lý mã giảm giá";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"; // giống các view admin khác
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<p>
+    <a asp-action="Add" class="btn btn-primary">+ Thêm mã giảm giá</a>
+</p>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Mã</th>
+            <th>Giảm (VNĐ)</th>
+            <th>Giảm (%)</th>
+            <th>Đơn tối thiểu</th>
+            <th>Số lượng</th>
+            <th>Thời gian</th>
+            <th>Trạng thái</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Code</td>
+
+                <!-- DiscountAmount: decimal? -->
+                <td>
+                    @(item.DiscountAmount.HasValue
+                                    ? item.DiscountAmount.Value.ToString("N0")
+                                    : "")
+                                     </td>
+
+                <!-- DiscountPercent: int? -->
+                <td>
+                    @(item.DiscountPercent.HasValue
+                                    ? item.DiscountPercent.Value + "%"
+                                    : "")
+            </td>
+
+                <!-- MinOrderValue: decimal -->
+                <td>@item.MinOrderValue.ToString("N0")</td>
+
+                <td>@item.Quantity</td>
+
+                <td>
+                    @item.StartDate.ToString("dd/MM/yyyy") -
+                    @item.EndDate.ToString("dd/MM/yyyy")
+                </td>
+
+                <td>
+                    @(item.IsActive ? "Đang hoạt động" : "Ngưng")
+                </td>
+
+                <td>
+                    <a asp-action="Update" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Sửa</a>
+
+                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Xóa mã này?');">
+                            Xóa
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

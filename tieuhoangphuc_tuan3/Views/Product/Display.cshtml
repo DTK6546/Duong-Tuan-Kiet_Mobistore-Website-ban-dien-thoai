@@ -1,12 +1,63 @@
-﻿@model WebBanDienThoai.Models.ProductWithSoldCount
+﻿@using System.Text.Json
+@model WebBanDienThoai.Models.ProductWithSoldCount
+@using WebBanDienThoai.Models
+@using System.Collections.Generic
+@using System.Linq
 
 @{
     ViewData["Title"] = "Chi Tiết Sản Phẩm";
+
     var ratings = ViewBag.Ratings as List<WebBanDienThoai.Models.ProductRating> ?? new List<WebBanDienThoai.Models.ProductRating>();
     double avg = ratings.Count > 0 ? ratings.Average(r => r.Stars) : 0;
     int fullStars = (int)Math.Floor(avg);
     bool hasHalf = avg - fullStars >= 0.5;
+
+    // 🔹 Biến thể (màu / dung lượng)
+    var variants = ViewBag.Variants as List<ProductVariant> ?? new List<ProductVariant>();
+    bool hasVariants = variants.Any();
+    var variantDtos = variants.Select(v => new
+    {
+        id = v.Id,
+        color = v.Color,
+        capacity = v.Capacity,             // map sang Storage
+        discountedPrice = v.DiscountedPrice,
+        stock = v.Stock,
+        storage = v.Storage,               // 👈 THÊM
+        storageAvailable = v.StorageAvailable // 👈 THÊM
+    }).ToList();
+
+
+    var defaultVariantPrice = hasVariants
+    ? variants.First().DiscountedPrice
+    : Model.DiscountedPrice;
+
+    // 🔹 Gallery: gom ảnh chính + ảnh phụ
+    var galleryId = $"productGallery_{Model.Id}";
+    var media = new List<string>();
+
+    if (!string.IsNullOrEmpty(Model.ImageUrl))
+    {
+        media.Add(Model.ImageUrl);
+    }
+
+    if (Model.Images != null)
+    {
+        foreach (var img in Model.Images)
+        {
+            if (!string.IsNullOrEmpty(img.Url))
+            {
+                media.Add(img.Url);
+            }
+        }
+    }
 }
+
+}
+
+<script>
+    // Cho JS phía dưới biết là sản phẩm này có biến thể hay không
+    window.hasProductVariants = @hasVariants.ToString().ToLower();
+</script>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -99,7 +150,6 @@
 
     }
 
-
     .custom-popup-icon {
         font-size: 48px;
         color: #27c93f;
@@ -112,31 +162,161 @@
         color: #222;
     }
 
+    /* Gallery kiểu TGDD */
+    .tgdd-gallery {
+        background: #fff;
+    }
+
+    .tgdd-thumb-list {
+        gap: 6px;
+        overflow-x: auto;
+    }
+
+    .tgdd-thumb {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        cursor: pointer;
+        transition: all 0.15s;
+        background: #fff;
+        margin-right: 4px;
+        margin-bottom: 4px;
+    }
+
+        .tgdd-thumb.active {
+            border: 2px solid #0d6efd;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, .25);
+        }
+
+        .tgdd-thumb:hover {
+            transform: translateY(-1px);
+        }
+
+    /* ===== NÚT DUNG LƯỢNG / MÀU KIỂU TGDD ===== */
+
+    .variant-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 999px;
+        border: 1px solid #ddd;
+        background: #fff;
+        padding: 6px 14px;
+        font-size: 0.9rem;
+        min-width: 72px;
+        cursor: pointer;
+        margin-right: 6px;
+        margin-bottom: 6px;
+        transition: all 0.15s ease-in-out;
+        outline: none;
+        color: #333;
+        white-space: nowrap;
+    }
+
+        .variant-pill:hover {
+            border-color: #2f80ed;
+            color: #2f80ed;
+            background: rgba(47, 128, 237, 0.03);
+        }
+
+        .variant-pill.active {
+            border-color: #2f80ed;
+            color: #2f80ed;
+            background: rgba(47, 128, 237, 0.08);
+            box-shadow: 0 0 0 1px rgba(47, 128, 237, 0.25);
+            font-weight: 600;
+        }
+
+    /* chấm tròn màu bên trái chữ */
+    .color-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,0.1);
+        flex-shrink: 0;
+    }
+
+    .variant-color-btn.variant-pill {
+        padding-inline: 14px;
+    }
+
+
 </style>
 
 <div class="container mt-5">
 
+    <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small bg-light rounded px-3 py-2 mb-3">
             <li class="breadcrumb-item">
-                <a href="/" class="text-primary text-decoration-none"><i class="bi bi-house"></i> Trang chủ</a>
+                <a href="/" class="text-primary text-decoration-none">
+                    <i class="bi bi-house"></i> Trang chủ
+                </a>
             </li>
             <li class="breadcrumb-item">
-                <a href="/Product" "class="text-info text-decoration-none">Sản phẩm</a>
+                <a href="/Product" class="text-info text-decoration-none">Sản phẩm</a>
             </li>
             <li class="breadcrumb-item active text-secondary" aria-current="page">@Model.Name</li>
         </ol>
     </nav>
 
     <div class="row">
-        <!-- Hình ảnh sản phẩm chính -->
+        <!-- Hình ảnh sản phẩm chính + gallery -->
         <div class="col-md-6 mb-4">
-            <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid rounded shadow-sm product-image" id="mainImage">
+            @if (media.Count > 0)
+            {
+                <div class="tgdd-gallery border rounded-3 p-2">
+                    <div id="@galleryId" class="carousel slide" data-bs-ride="false">
+                        <div class="carousel-inner">
+                            @for (int i = 0; i < media.Count; i++)
+                            {
+                                <div class="carousel-item @(i == 0 ? "active" : "")">
+                                    <img src="@media[i]"
+                                         class="d-block w-100 img-fluid rounded shadow-sm product-image"
+                                         style="max-height:420px;object-fit:contain"
+                                         alt="@Model.Name"
+                                         @(i == 0 ? "id=\"mainImage\"" : "") />
+                                </div>
+                            }
+                        </div>
+
+                        <button class="carousel-control-prev" type="button"
+                                data-bs-target="#@galleryId" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button"
+                                data-bs-target="#@galleryId" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    </div>
+
+                    <div class="tgdd-thumb-list d-flex flex-wrap mt-2">
+                        @for (int i = 0; i < media.Count; i++)
+                        {
+                            <img src="@media[i]"
+                                 class="tgdd-thumb @(i == 0 ? "active" : "")"
+                                 data-bs-target="#@galleryId"
+                                 data-bs-slide-to="@i"
+                                 alt="thumb-@i" />
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <img src="@Model.ImageUrl" alt="@Model.Name"
+                     class="img-fluid rounded shadow-sm product-image" id="mainImage">
+            }
         </div>
 
         <!-- Thông tin sản phẩm -->
         <div class="col-md-6">
             <h2 class="mb-2 text-uppercase text-dark">@Model.Name</h2>
+
+            <!-- Rating + đã bán -->
             <div class="d-flex align-items-center mb-3 gap-3" style="font-size: 1.1rem;">
                 <span class="fw-bold me-1" style="color: #ffb300;">@avg.ToString("0.0")</span>
                 <i class="bi bi-star-fill text-warning"></i>
@@ -147,29 +327,111 @@
             </div>
 
             <div style="height: 32px;"></div>
-            <!-- Hiển thị giá với phần trăm giảm -->
+
+            <!-- GIÁ + cập nhật theo biến thể -->
             <div class="mb-3">
-                @if (Model.DiscountPercent > 0)
+                @if (hasVariants)
                 {
-                    <span class="h4 text-danger fw-bold"><del>@Model.Price.ToString("N0") VNĐ</del></span>
-                    <span class="h4 text-danger fw-bold ms-2">@Model.DiscountedPrice.ToString("N0") VNĐ</span>
+                    if (Model.DiscountPercent > 0)
+                    {
+                        <span class="h5 text-muted text-decoration-line-through">
+                            @Model.Price.ToString("N0") VNĐ
+                        </span>
+                    }
+                    <span class="h4 text-danger fw-bold ms-2" id="displayPrice">
+                        @defaultVariantPrice.ToString("N0") VNĐ
+                    </span>
                 }
                 else
                 {
-                    <span class="h4 text-danger fw-bold">@Model.Price.ToString("N0") VNĐ</span>
+                    @if (Model.DiscountPercent > 0)
+                    {
+                        <span class="h4 text-danger fw-bold">
+                            <del>@Model.Price.ToString("N0") VNĐ</del>
+                        </span>
+                        <span class="h4 text-danger fw-bold ms-2" id="displayPrice">
+                            @Model.DiscountedPrice.ToString("N0") VNĐ
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="h4 text-danger fw-bold" id="displayPrice">
+                            @Model.Price.ToString("N0") VNĐ
+                        </span>
+                    }
                 }
             </div>
 
+            <!-- CHỌN PHIÊN BẢN: dung lượng & màu -->
+            @functions {
+                public string GetColorHex(string color)
+                {
+                    if (string.IsNullOrWhiteSpace(color)) return "#cccccc";
+                    color = color.ToLower();
+
+                    if (color.Contains("đen")) return "#000000";
+                    if (color.Contains("trắng")) return "#f8f8f8";
+                    if (color.Contains("xanh lá")) return "#2ecc71";
+                    if (color.Contains("xanh")) return "#3498db";
+                    if (color.Contains("đỏ")) return "#e74c3c";
+                    if (color.Contains("vàng") || color.Contains("gold")) return "#f1c40f";
+                    if (color.Contains("tím")) return "#9b59b6";
+                    if (color.Contains("titan")) return "#bdc3c7";
+                    if (color.Contains("xám") || color.Contains("ghi") || color.Contains("gray")) return "#7f8c8d";
+
+                    return "#cccccc";
+                }
+            }
+
+            @if (hasVariants)
+            {
+                // chọn mặc định theo biến thể đầu tiên
+                var firstVariant = variants.FirstOrDefault();
+
+                <!-- Dung lượng -->
+                <div class="mb-2">
+                    <label class="form-label fw-semibold me-2">Dung lượng:</label>
+                    @foreach (var cap in variants.Select(v => v.Capacity).Distinct())
+                    {
+                        <button type="button"
+                                class="variant-pill variant-capacity-btn @(firstVariant != null && cap == firstVariant.Capacity ? "active" : "")"
+                                data-capacity="@cap">
+                            @cap
+                        </button>
+                    }
+                </div>
+
+                <!-- Màu sắc -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold me-2">Màu sắc:</label>
+                    @foreach (var color in variants.Select(v => v.Color).Distinct())
+                    {
+                        <button type="button"
+                                class="variant-pill variant-color-btn @(firstVariant != null && color == firstVariant.Color ? "active" : "")"
+                                data-color="@color">
+                            <span class="color-dot" style="background-color:@GetColorHex(color)"></span>
+                            <span>@color</span>
+                        </button>
+                    }
+                </div>
+            }
+
+            <!-- Số lượng -->
             <div class="mb-4">
                 <label for="quantity" class="form-label">Số lượng:</label>
                 <input type="number" class="form-control" id="quantity" value="1" min="1" style="width: 80px;">
             </div>
+
+            <!-- Nút mua / yêu thích -->
             <div class="d-flex gap-3">
                 @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin") && !User.IsInRole("Employer"))
                 {
                     <form id="addToCartForm" asp-controller="ShoppingCart" asp-action="AddToCart" method="post">
                         <input type="hidden" name="productId" value="@Model.Id" />
                         <input type="hidden" name="quantity" id="cartQuantity" value="1" />
+                        <!-- 🔹 VariantId -->
+                        <input type="hidden" name="variantId" id="SelectedVariantId" />
+
                         <button class="btn btn-cart px-4 py-2 shadow" type="submit" id="addToCartButton">
                             <i class="bi bi-cart-fill me-2"></i> Thêm vào giỏ hàng
                         </button>
@@ -193,6 +455,8 @@
                 {
                     <form id="addToWishlistForm" asp-controller="Wishlist" asp-action="AddToWishlist" method="post">
                         <input type="hidden" name="productId" value="@Model.Id" />
+                        <input type="hidden" name="variantId" id="WishlistVariantId" />   <!-- THÊM DÒNG NÀY -->
+
                         <button type="submit" class="btn btn-heart px-4 py-2 shadow" id="addToWishlistButton">
                             <i class="bi bi-heart me-2"></i> Yêu thích
                         </button>
@@ -204,7 +468,15 @@
                         <i class="bi bi-heart me-2"></i> Yêu thích
                     </a>
                 }
+
+                <a href="javascript:void(0)"
+                   id="btnCompare"
+                   class="btn btn-outline-primary px-4 py-2 shadow">
+                    So sánh
+                </a>
             </div>
+
+            <!-- Thông tin cơ bản -->
             <div class="mt-4">
                 <h5 class="mb-3">Thông tin sản phẩm:</h5>
                 <ul class="list-unstyled">
@@ -219,7 +491,7 @@
         </div>
     </div>
 
-    <!-- Mô tả sản phẩm: Đưa xuống dưới cùng -->
+    <!-- MÔ TẢ SẢN PHẨM -->
     @if (!string.IsNullOrEmpty(Model.Description))
     {
         <div class="row mt-4">
@@ -227,6 +499,219 @@
                 <div class="product-description-box p-4">
                     <h5 class="mb-3">Mô tả sản phẩm</h5>
                     @Html.Raw(Model.Description)
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- CAM KẾT DỊCH VỤ -->
+    @if (!string.IsNullOrWhiteSpace(Model.ServiceCommitment))
+    {
+        <div class="mt-4">
+            <h5 class="mb-3 fw-semibold">Cam kết dịch vụ</h5>
+
+            <div class="row g-3">
+                @foreach (var line in Model.ServiceCommitment.Split('\n'))
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        <div class="col-md-6 d-flex align-items-start">
+                            <div class="me-2">
+                                <i class="bi bi-patch-check-fill"
+                                   style="color:#3b82f6; font-size:20px;"></i>
+                            </div>
+
+                            <div class="text-dark" style="line-height:1.4;">
+                                @line.Trim()
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+
+    <!-- THÔNG SỐ KỸ THUẬT (Accordion) -->
+    @if (Model.Specs != null)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="product-description-box p-4">
+                    <h5 class="mb-3">Thông số kỹ thuật</h5>
+
+                    <div class="accordion" id="specsAccordion">
+                        <!-- (GIỮ NGUYÊN 6 accordion như bạn đã có) -->
+                        <!-- 1) Cấu hình & Bộ nhớ -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingCfg">
+                                <button class="accordion-button" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#collapseCfg"
+                                        aria-expanded="true" aria-controls="collapseCfg">
+                                    Cấu hình & Bộ nhớ
+                                </button>
+                            </h2>
+                            <div id="collapseCfg" class="accordion-collapse collapse show"
+                                 aria-labelledby="headingCfg" data-bs-parent="#specsAccordion">
+                                <div class="accordion-body p-0">
+                                    <table class="table table-sm mb-0">
+                                        <tr><th style="width:230px">Hệ điều hành</th><td>@Model.Specs.Os</td></tr>
+                                        <tr><th>Chip xử lý (CPU)</th><td>@Model.Specs.Cpu</td></tr>
+                                        <tr><th>Tốc độ CPU</th><td>@Model.Specs.CpuSpeed</td></tr>
+                                        <tr><th>Chip đồ họa (GPU)</th><td>@Model.Specs.Gpu</td></tr>
+                                        <tr><th>RAM</th><td>@Model.Specs.Ram</td></tr>
+                                        <tr>
+                                            <th>Dung lượng lưu trữ</th>
+                                            <td id="specStorage">
+                                                @(
+                                                                                            hasVariants && variants.Any()
+                                                                                            ? variants.First().Storage          // 👈 lấy từ biến thể đầu tiên
+                                                                                            : Model.Specs.Storage               // fallback: Specs
+                                                                                            )
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Dung lượng còn lại (khả dụng)</th>
+                                            <td id="specStorageAvailable">
+                                                @(
+                                                                                            hasVariants && variants.Any()
+                                                                                            ? (variants.First().StorageAvailable ?? Model.Specs.StorageAvailable)
+                                                                                            : Model.Specs.StorageAvailable
+                                                                                            )
+                                        </td>
+                                    </tr>
+
+                                        <tr><th>Danh bạ</th><td>@Model.Specs.ContactLimit</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2) Camera & Màn hình -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingCam">
+                                <button class="accordion-button collapsed" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#collapseCam"
+                                        aria-expanded="false" aria-controls="collapseCam">
+                                    Camera & Màn hình
+                                </button>
+                            </h2>
+                            <div id="collapseCam" class="accordion-collapse collapse"
+                                 aria-labelledby="headingCam" data-bs-parent="#specsAccordion">
+                                <div class="accordion-body p-0">
+                                    <table class="table table-sm mb-0">
+                                        <tr><th style="width:230px">Độ phân giải camera sau</th><td>@Model.Specs.RearCameraResolution</td></tr>
+                                        <tr><th>Độ phân giải camera trước</th><td>@Model.Specs.FrontCameraResolution</td></tr>
+                                        <tr><th>Quay video (sau)</th><td>@Model.Specs.RearVideoModes</td></tr>
+                                        <tr><th>Quay video (trước)</th><td>@Model.Specs.FrontVideoModes</td></tr>
+                                        <tr><th>Tính năng camera sau</th><td>@Model.Specs.RearCameraFeatures</td></tr>
+                                        <tr><th>Tính năng camera trước</th><td>@Model.Specs.FrontCameraFeatures</td></tr>
+                                        <tr><th>Công nghệ màn hình</th><td>@Model.Specs.ScreenTech</td></tr>
+                                        <tr><th>Độ phân giải màn hình</th><td>@Model.Specs.ScreenResolution</td></tr>
+                                        <tr><th>Kích thước & tần số quét</th><td>@Model.Specs.ScreenSize</td></tr>
+                                        <tr><th>Độ sáng tối đa</th><td>@Model.Specs.ScreenBrightness</td></tr>
+                                        <tr><th>Mặt kính cảm ứng</th><td>@Model.Specs.ScreenGlass</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3) Pin & Sạc -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingPin">
+                                <button class="accordion-button collapsed" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#collapsePin"
+                                        aria-expanded="false" aria-controls="collapsePin">
+                                    Pin & Sạc
+                                </button>
+                            </h2>
+                            <div id="collapsePin" class="accordion-collapse collapse"
+                                 aria-labelledby="headingPin" data-bs-parent="#specsAccordion">
+                                <div class="accordion-body p-0">
+                                    <table class="table table-sm mb-0">
+                                        <tr><th style="width:230px">Thời lượng pin</th><td>@Model.Specs.BatteryUsageTime</td></tr>
+                                        <tr><th>Loại pin</th><td>@Model.Specs.BatteryType</td></tr>
+                                        <tr><th>Công suất sạc tối đa</th><td>@Model.Specs.MaxChargePower</td></tr>
+                                        <tr><th>Công nghệ pin</th><td>@Model.Specs.BatteryTech</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4) Tiện ích -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTienIch">
+                                <button class="accordion-button collapsed" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#collapseTienIch"
+                                        aria-expanded="false" aria-controls="collapseTienIch">
+                                    Tiện ích
+                                </button>
+                            </h2>
+                            <div id="collapseTienIch" class="accordion-collapse collapse"
+                                 aria-labelledby="headingTienIch" data-bs-parent="#specsAccordion">
+                                <div class="accordion-body p-0">
+                                    <table class="table table-sm mb-0">
+                                        <tr><th style="width:230px">Bảo mật</th><td>@Model.Specs.Security</td></tr>
+                                        <tr><th>Kháng nước bụi</th><td>@Model.Specs.WaterDustResist</td></tr>
+                                        <tr><th>Tính năng đặc biệt</th><td>@Model.Specs.SpecialFeatures</td></tr>
+                                        <tr><th>Ghi âm</th><td>@Model.Specs.Recorder</td></tr>
+                                        <tr><th>Định dạng phim</th><td>@Model.Specs.VideoFormats</td></tr>
+                                        <tr><th>Định dạng nhạc</th><td>@Model.Specs.AudioFormats</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5) Kết nối -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingKetNoi">
+                                <button class="accordion-button collapsed" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#collapseKetNoi"
+                                        aria-expanded="false" aria-controls="collapseKetNoi">
+                                    Kết nối
+                                </button>
+                            </h2>
+                            <div id="collapseKetNoi" class="accordion-collapse collapse"
+                                 aria-labelledby="headingKetNoi" data-bs-parent="#specsAccordion">
+                                <div class="accordion-body p-0">
+                                    <table class="table table-sm mb-0">
+                                        <tr><th style="width:230px">Mạng di động</th><td>@Model.Specs.MobileNetwork</td></tr>
+                                        <tr><th>SIM</th><td>@Model.Specs.Sim</td></tr>
+                                        <tr><th>WiFi</th><td>@Model.Specs.Wifi</td></tr>
+                                        <tr><th>GPS</th><td>@Model.Specs.Gps</td></tr>
+                                        <tr><th>Bluetooth</th><td>@Model.Specs.Bluetooth</td></tr>
+                                        <tr><th>Cổng sạc</th><td>@Model.Specs.ChargingPort</td></tr>
+                                        <tr><th>Jack tai nghe</th><td>@Model.Specs.HeadphoneJack</td></tr>
+                                        <tr><th>Kết nối khác</th><td>@Model.Specs.OtherConnections</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6) Thiết kế & Chất liệu -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingDesign">
+                                <button class="accordion-button collapsed" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#collapseDesign"
+                                        aria-expanded="false" aria-controls="collapseDesign">
+                                    Thiết kế & Chất liệu
+                                </button>
+                            </h2>
+                            <div id="collapseDesign" class="accordion-collapse collapse"
+                                 aria-labelledby="headingDesign" data-bs-parent="#specsAccordion">
+                                <div class="accordion-body p-0">
+                                    <table class="table table-sm mb-0">
+                                        <tr><th style="width:230px">Thiết kế</th><td>@Model.Specs.DesignStyle</td></tr>
+                                        <tr><th>Chất liệu</th><td>@Model.Specs.Material</td></tr>
+                                        <tr><th>Kích thước</th><td>@Model.Specs.Dimensions</td></tr>
+                                        <tr><th>Khối lượng</th><td>@Model.Specs.Weight</td></tr>
+                                        <tr><th>Thời điểm ra mắt</th><td>@Model.Specs.ReleaseTime</td></tr>
+                                        <tr><th>Hãng</th><td>@Model.Specs.BrandInfo</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div> <!-- /accordion -->
                 </div>
             </div>
         </div>
@@ -268,7 +753,6 @@
                 <div class="mb-2">
                     <label class="form-label">Số sao:</label>
                     <div class="text-start">
-                        <!-- Bọc ngoài cho chắc chắn -->
                         <div id="star-group" class="rating-select d-flex flex-row-reverse" style="font-size:2rem; width:fit-content;">
                             @for (int i = 5; i >= 1; i--)
                             {
@@ -291,7 +775,9 @@
         }
         else
         {
-            <div class="alert alert-warning">Bạn cần <a href="/Identity/Account/Login">đăng nhập</a> để đánh giá sản phẩm này.</div>
+            <div class="alert alert-warning">
+                Bạn cần <a href="/Identity/Account/Login">đăng nhập</a> để đánh giá sản phẩm này.
+            </div>
         }
 
         <!-- Danh sách đánh giá -->
@@ -315,7 +801,6 @@
                         <span class="ms-2 text-muted" style="font-size:90%">@r.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                         <div class="word-break-all">@r.Comment</div>
 
-                        <!-- Phản hồi của admin/nhân viên -->
                         @if (r.Replies != null && r.Replies.Any())
                         {
                             <div class="ms-4 mt-2">
@@ -332,7 +817,6 @@
                             </div>
                         }
 
-                        <!-- Form trả lời nếu là admin/nhân viên -->
                         @if (User.IsInRole("Admin") || User.IsInRole("Employer"))
                         {
                             <form asp-action="ReplyRating" method="post" class="mb-2 ms-4">
@@ -349,7 +833,42 @@
         </div>
     </div>
 
-    <!-- Popup thông báo ở giữa màn hình -->
+    @{
+        var viewedProducts = ViewBag.ViewedProducts as List<WebBanDienThoai.Models.ProductWithSoldCount>;
+        var relatedProducts = ViewBag.RelatedProducts as List<WebBanDienThoai.Models.ProductWithSoldCount>;
+    }
+
+    @if (viewedProducts != null && viewedProducts.Any())
+    {
+        <div class="mt-5">
+            <h4 class="mb-3">Sản phẩm đã xem</h4>
+            <div class="row g-3">
+                @foreach (var p in viewedProducts)
+                {
+                    <div class="col-6 col-md-3">
+                        @await Html.PartialAsync("_ProductCard", p)
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (relatedProducts != null && relatedProducts.Any())
+    {
+        <div class="mt-5">
+            <h4 class="mb-3">Sản phẩm liên quan</h4>
+            <div class="row g-3">
+                @foreach (var p in relatedProducts)
+                {
+                    <div class="col-6 col-md-3">
+                        @await Html.PartialAsync("_ProductCard", p)
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Popup thông báo -->
     <div id="custom-popup-success" class="custom-popup" style="display:none;">
         <div class="custom-popup-content">
             <div class="custom-popup-icon">
@@ -358,27 +877,168 @@
             <span id="custom-popup-message"></span>
         </div>
     </div>
-
 </div>
 
+<!-- SCRIPT: quantity, variant, rating, ajax add-to-cart -->
+
 <script>
-    // Cập nhật số lượng trong giỏ hàng khi thay đổi số lượng trên trang chi tiết sản phẩm
-    document.getElementById('quantity').addEventListener('input', function() {
+    // Cập nhật số lượng trong form giỏ khi đổi số lượng
+    document.getElementById('quantity')?.addEventListener('input', function () {
         var quantity = document.getElementById('quantity').value;
-        document.getElementById('cartQuantity').value = quantity;
+        var hidden = document.getElementById('cartQuantity');
+        if (hidden) hidden.value = quantity;
     });
 
-    document.getElementById('addToCartButton').addEventListener('click', function() {
+    document.getElementById('addToCartButton')?.addEventListener('click', function () {
         var quantity = document.getElementById('quantity').value;
-        document.getElementById('cartQuantity').value = quantity;
+        var hidden = document.getElementById('cartQuantity');
+        if (hidden) hidden.value = quantity;
     });
 
-    // Cập nhật ảnh chính khi người dùng chọn ảnh nhỏ (nếu có)
+    // (Hàm này giờ gần như không dùng nữa, có thể xoá nếu muốn)
     function changeImage(imageUrl) {
-        document.getElementById("mainImage").src = imageUrl;
+        var mainImg = document.getElementById("mainImage");
+        if (mainImg) mainImg.src = imageUrl;
     }
 </script>
 
+<!-- ⭐ Đồng bộ thumbnail với carousel gallery -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var carousels = document.querySelectorAll('[id^="productGallery_"]');
+
+        carousels.forEach(function (carouselEl) {
+            // tìm thumbnail trong cùng gallery
+            var thumbs = carouselEl.parentElement.querySelectorAll('.tgdd-thumb');
+
+            // khi dùng nút prev/next
+            carouselEl.addEventListener('slide.bs.carousel', function (e) {
+                var index = e.to;
+                thumbs.forEach(function (t, i) {
+                    t.classList.toggle('active', i === index);
+                });
+            });
+
+            // khi click vào thumbnail
+            thumbs.forEach(function (thumb) {
+                thumb.addEventListener('click', function () {
+                    thumbs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+    });
+</script>
+
+<!-- ⭐ Script chọn variant + cập nhật giá -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const variants = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(variantDtos));
+        const hasVariants = variants && variants.length > 0;
+
+        // cho các script khác (AddToCart, Compare) biết có biến thể hay không
+        window.hasProductVariants = hasVariants;
+
+        let selectedCapacity = null;
+        let selectedColor = null;
+
+        // 🔹 AUTO CHỌN BIẾN THỂ ĐẦU TIÊN KHI VÀO TRANG
+        if (hasVariants) {
+            const first = variants[0];               // biến thể đầu tiên trong DB
+            selectedCapacity = first.capacity;
+            selectedColor = first.color;
+
+            // Đánh dấu nút dung lượng
+            document.querySelectorAll('.variant-capacity-btn').forEach(btn => {
+                if (btn.getAttribute('data-capacity') === first.capacity) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Đánh dấu nút màu sắc
+            document.querySelectorAll('.variant-color-btn').forEach(btn => {
+                if (btn.getAttribute('data-color') === first.color) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Gán sẵn VariantId hidden + giá hiển thị
+            const hidden = document.getElementById('SelectedVariantId');
+            if (hidden) hidden.value = first.id;
+
+            // 👉 Gán cho Wishlist luôn
+            const wishlistHidden = document.getElementById('WishlistVariantId');
+            if (wishlistHidden) wishlistHidden.value = first.id;
+
+            const priceEl = document.getElementById('displayPrice');
+            if (priceEl) {
+                priceEl.textContent =
+                    first.discountedPrice.toLocaleString('vi-VN') + ' VNĐ';
+            }
+        }
+
+        function updateSelectedVariant() {
+            if (!hasVariants) return;
+
+            const variant = variants.find(v =>
+                (!selectedCapacity || v.capacity === selectedCapacity) &&
+                (!selectedColor || v.color === selectedColor)
+            );
+            if (!variant) return;
+
+            // Hidden VariantId để AddToCart
+            const hidden = document.getElementById('SelectedVariantId');
+            if (hidden) hidden.value = variant.id;
+
+            // Hidden VariantId để Wishlist
+            const wishlistHidden = document.getElementById('WishlistVariantId');
+            if (wishlistHidden) wishlistHidden.value = variant.id;
+
+            // Cập nhật GIÁ
+            const priceEl = document.getElementById('displayPrice');
+            if (priceEl) {
+                priceEl.textContent =
+                    variant.discountedPrice.toLocaleString('vi-VN') + ' VNĐ';
+            }
+
+            // 🔹 Cập nhật "Dung lượng lưu trữ"
+            const storageEl = document.getElementById('specStorage');
+            if (storageEl) {
+                storageEl.textContent = variant.storage || variant.capacity || '';
+            }
+
+            // 🔹 Cập nhật "Dung lượng còn lại (khả dụng)"
+            const storageAvailEl = document.getElementById('specStorageAvailable');
+            if (storageAvailEl) {
+                storageAvailEl.textContent = variant.storageAvailable || '';
+            }
+        }
+
+        // click dung lượng
+        document.querySelectorAll('.variant-capacity-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                selectedCapacity = this.getAttribute('data-capacity');
+                document.querySelectorAll('.variant-capacity-btn')
+                    .forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                updateSelectedVariant();
+            });
+        });
+
+        // click màu sắc
+        document.querySelectorAll('.variant-color-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                selectedColor = this.getAttribute('data-color');
+                document.querySelectorAll('.variant-color-btn')
+                    .forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                updateSelectedVariant();
+            });
+        });
+    });
+</script>
+
+<!-- Rating stars -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const stars = document.querySelectorAll('.rating-select input[type="radio"]');
@@ -386,7 +1046,6 @@
 
         function updateStars(value) {
             starLabels.forEach((lbl, idx) => {
-                // Vì render từ 5 về 1, nên vàng từ cuối về đầu
                 if ((starLabels.length - idx) <= value) {
                     lbl.classList.add('selected');
                 } else {
@@ -395,7 +1054,6 @@
             });
         }
 
-        // Nếu đã có giá trị
         let checked = document.querySelector('.rating-select input[type="radio"]:checked');
         if (checked) updateStars(Number(checked.value));
 
@@ -403,7 +1061,6 @@
             star.addEventListener('change', function () {
                 updateStars(Number(star.value));
             });
-            // Hover
             starLabels[idx].addEventListener('mouseenter', function () {
                 updateStars(starLabels.length - idx);
             });
@@ -416,12 +1073,13 @@
 </script>
 
 <script>
-    // Hàm cập nhật số lượng cart badge trên header
+    // Cập nhật số lượng cart badge trên header
     function updateCartCount() {
         fetch('/ShoppingCart/GetCartCount')
             .then(res => res.json())
             .then(data => {
-                document.getElementById('cartCount').innerText = data.count;
+                var el = document.getElementById('cartCount');
+                if (el) el.innerText = data.count;
             });
     }
 
@@ -439,25 +1097,35 @@
     // Thêm vào giỏ hàng AJAX
     document.getElementById('addToCartForm')?.addEventListener('submit', function (e) {
         e.preventDefault();
+
+        // Nếu sản phẩm có nhiều biến thể -> bắt buộc chọn
+        if (window.hasProductVariants) {
+            const variantId = document.getElementById('SelectedVariantId')?.value;
+            if (!variantId) {
+                alert('Vui lòng chọn dung lượng và màu sắc trước khi thêm vào giỏ.');
+                return;
+            }
+        }
+
         var form = this;
         var formData = new FormData(form);
         fetch(form.action, {
             method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }, // báo AJAX
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
             body: formData
         })
-        .then(res => {
-            if (res.ok) {
-                showPopup('Sản phẩm đã được thêm vào giỏ hàng!');
-                updateCartCount();
-            } else {
-                showPopup('Có lỗi khi thêm vào giỏ hàng!', 2000);
-            }
-        })
-        .catch(err => showPopup('Lỗi mạng!', 2000));
+            .then(res => {
+                if (res.ok) {
+                    showPopup('Sản phẩm đã được thêm vào giỏ hàng!');
+                    updateCartCount();
+                } else {
+                    showPopup('Có lỗi khi thêm vào giỏ hàng!', 2000);
+                }
+            })
+            .catch(err => showPopup('Lỗi mạng!', 2000));
     });
 
-    // Thêm vào yêu thích AJAX (nếu muốn cập nhật số/hiện popup cũng làm tương tự)
+    // Yêu thích AJAX
     document.getElementById('addToWishlistForm')?.addEventListener('submit', function (e) {
         e.preventDefault();
         var form = this;
@@ -467,13 +1135,40 @@
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             body: formData
         })
-        .then(res => {
-            if (res.ok) {
-                showPopup('Đã thêm vào danh sách yêu thích!');
-            } else {
-                showPopup('Có lỗi khi thêm vào yêu thích!', 2000);
+            .then(res => {
+                if (res.ok) {
+                    showPopup('Đã thêm vào danh sách yêu thích!');
+                } else {
+                    showPopup('Có lỗi khi thêm vào yêu thích!', 2000);
+                }
+            })
+            .catch(err => showPopup('Lỗi mạng!', 2000));
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const btnCompare = document.getElementById('btnCompare');
+        if (!btnCompare) return;
+
+        btnCompare.addEventListener('click', function () {
+            // base url: /Compare/Add
+            var baseUrl = '@Url.Action("Add", "Compare")';
+            var productId = '@Model.Id';
+            var url = baseUrl + '?productId=' + productId;
+
+            // Nếu có biến thể thì bắt buộc lấy variantId
+            if (window.hasProductVariants) {
+                var variantId = document.getElementById('SelectedVariantId')?.value;
+                if (!variantId) {
+                    alert('Vui lòng chọn dung lượng và màu sắc trước khi so sánh.');
+                    return;
+                }
+                url += '&variantId=' + encodeURIComponent(variantId);
             }
-        })
-        .catch(err => showPopup('Lỗi mạng!', 2000));
+
+            // Điều hướng sang /Compare/Add
+            window.location.href = url;
+        });
     });
 </script>

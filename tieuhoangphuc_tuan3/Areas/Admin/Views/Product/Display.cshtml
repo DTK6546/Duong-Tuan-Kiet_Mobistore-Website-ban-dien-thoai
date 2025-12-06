@@ -10,15 +10,94 @@
 <div class="card shadow-sm">
     <div class="row g-0">
         <div class="col-md-4 text-center p-3">
-            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+
+            @if (!string.IsNullOrEmpty(Model.ImageUrl) || (Model.Images != null && Model.Images.Any()))
             {
-                <img src="@Model.ImageUrl" alt="Ảnh sản phẩm" class="img-fluid rounded border" style="max-height: 300px;" />
+                <style>
+                    .admin-product-gallery {
+                        max-width: 100%;
+                    }
+
+                    .admin-product-thumb-list {
+                        gap: 6px;
+                        justify-content: center;
+                    }
+
+                    .admin-product-thumb {
+                        width: 56px;
+                        height: 56px;
+                        object-fit: cover;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        border: 1px solid #ddd;
+                        transition: all 0.2s;
+                    }
+
+                        .admin-product-thumb.active {
+                            border: 2px solid #0d6efd;
+                        }
+                </style>
+
+                var carouselId = $"adminProductCarousel_{Model.Id}";
+                var thumbs = new List<string>();
+
+                // Ảnh chính
+                if (!string.IsNullOrEmpty(Model.ImageUrl))
+                {
+                    thumbs.Add(Model.ImageUrl);
+                }
+
+                // Ảnh phụ
+                if (Model.Images != null)
+                {
+                    foreach (var img in Model.Images)
+                    {
+                        if (!string.IsNullOrEmpty(img.Url))   // FIX ✔
+                        {
+                            thumbs.Add(img.Url);              // FIX ✔
+                        }
+                    }
+                }
+
+                <div class="admin-product-gallery">
+                    <div id="@carouselId" class="carousel slide" data-bs-ride="false">
+                        <div class="carousel-inner">
+                            @for (int i = 0; i < thumbs.Count; i++)
+                            {
+                                <div class="carousel-item @(i == 0 ? "active" : "")">
+                                    <img src="@thumbs[i]" class="d-block w-100 img-fluid rounded border"
+                                         style="max-height:300px; object-fit:contain"
+                                         alt="Ảnh @i" />
+                                </div>
+                            }
+                        </div>
+
+                        <button class="carousel-control-prev" type="button" data-bs-target="#@carouselId" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#@carouselId" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    </div>
+
+                    <div class="admin-product-thumb-list d-flex mt-2 flex-wrap">
+                        @for (int i = 0; i < thumbs.Count; i++)
+                        {
+                            <img src="@thumbs[i]"
+                                 class="admin-product-thumb @(i == 0 ? "active" : "")"
+                                 data-bs-target="#@carouselId"
+                                 data-bs-slide-to="@i"
+                                 alt="Thumb @i" />
+                        }
+                    </div>
+                </div>
             }
             else
             {
                 <div class="text-muted fst-italic">Không có ảnh</div>
             }
         </div>
+
 
         <div class="col-md-8">
             <div class="card-body">
@@ -62,6 +141,28 @@
                     </div>
                 </div>
 
+                @if (!string.IsNullOrWhiteSpace(Model.ServiceCommitment))
+                {
+                    var lines = Model.ServiceCommitment
+                    .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (lines.Any())
+                    {
+                        <div class="mt-3">
+                            <strong>🤝 Cam kết dịch vụ:</strong>
+                            <ul class="list-unstyled mt-1 mb-0">
+                                @foreach (var line in lines)
+                                {
+                                    <li class="d-flex align-items-start mb-1">
+                                        <span class="me-1">✔</span>
+                                        <span>@line</span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                }
+
                 <div class="mt-4">
                     <a asp-action="Index" asp-controller="Product" asp-area="Admin" class="btn btn-secondary me-2">
                         ⬅️ Quay lại
@@ -74,3 +175,31 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var carousels = document.querySelectorAll('[id^="adminProductCarousel_"]');
+
+            carousels.forEach(function (carouselEl) {
+                var thumbs = carouselEl.parentElement
+                    .querySelectorAll('.admin-product-thumb');
+
+                // sync khi đổi slide
+                carouselEl.addEventListener('slide.bs.carousel', function (e) {
+                    var index = e.to;
+                    thumbs.forEach(function (t, i) {
+                        t.classList.toggle('active', i === index);
+                    });
+                });
+
+                // click thumbnail
+                thumbs.forEach(function (thumb) {
+                    thumb.addEventListener('click', function () {
+                        thumbs.forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                });
+            });
+        });
+    </script>
+}

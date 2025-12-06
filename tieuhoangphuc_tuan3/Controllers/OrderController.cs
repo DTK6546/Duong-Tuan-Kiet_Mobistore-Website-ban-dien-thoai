@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using WebBanDienThoai.Models;
 using Microsoft.EntityFrameworkCore;
+using WebBanDienThoai.Models;
 
 namespace WebBanDienThoai.Controllers
 {
@@ -21,21 +21,29 @@ namespace WebBanDienThoai.Controllers
         public async Task<IActionResult> MyOrders()
         {
             var user = await _userManager.GetUserAsync(User);
-            var orders = _context.Orders
+            if (user == null) return Challenge();
+
+            var orders = await _context.Orders
                 .Where(o => o.UserId == user.Id)
                 .OrderByDescending(o => o.OrderDate)
-                .ToList();
+                .ToListAsync();
+
             return View(orders);
         }
 
         public async Task<IActionResult> Details(int id)
         {
             var user = await _userManager.GetUserAsync(User);
-            var order = _context.Orders
+            if (user == null) return Challenge();
+
+            var order = await _context.Orders
                 .Where(o => o.Id == id && o.UserId == user.Id)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Product)
-                .FirstOrDefault();
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Warranties)   // ⭐ lấy luôn gói bảo hành
+                .Include(o => o.Store)
+                .FirstOrDefaultAsync();
 
             if (order == null)
                 return NotFound();
@@ -90,6 +98,5 @@ namespace WebBanDienThoai.Controllers
 
             return RedirectToAction("Details", new { id });
         }
-
     }
 }

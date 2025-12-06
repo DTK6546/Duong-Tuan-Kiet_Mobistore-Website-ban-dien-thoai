@@ -1,0 +1,546 @@
+﻿@model List<WebBanDienThoai.Models.CompareProductViewModel>
+
+@{
+    ViewData["Title"] = "So sánh sản phẩm";
+    var hasSpecs = Model.All(m => m.Product.Specs != null);
+    var maxSlots = 3; // tối đa 3 sản phẩm so sánh
+}
+
+<div class="container mt-4 mb-4">
+    <h3 class="mb-3">So sánh sản phẩm</h3>
+
+    @if (ViewBag.Message != null)
+    {
+        <div class="alert alert-info">@ViewBag.Message</div>
+        return;
+    }
+
+    <!-- Dòng tiêu đề gồm tên + dung lượng + màu -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="fw-bold text-uppercase">
+            @for (int i = 0; i < Model.Count; i++)
+            {
+                var item = Model[i];
+                var p = item.Product;
+                var v = item.Variant;
+
+                var title = p.Name;
+                if (v != null && !string.IsNullOrEmpty(v.Storage))
+                {
+                    title += " " + v.Storage; // ví dụ: 512GB
+                }
+                if (v != null && !string.IsNullOrEmpty(v.Color))
+                {
+                    title += " - " + v.Color;  // ví dụ: - Đen
+                }
+
+                @(((i > 0 ? " & " : "") + title))
+            }
+        </div>
+
+        <form asp-action="Clear" method="post">
+            <button type="submit" class="btn btn-link text-danger p-0">
+                Xóa tất cả sản phẩm
+            </button>
+        </form>
+    </div>
+
+    <!-- HÀNG HÌNH ẢNH + GIÁ + Ô THÊM SẢN PHẨM (tối đa 3 cột) -->
+    <div class="row mb-4">
+        @for (int i = 0; i < maxSlots; i++)
+        {
+            if (i < Model.Count)
+            {
+                var item = Model[i];
+                var p = item.Product;
+                var v = item.Variant;
+
+                // Giá hiển thị: ưu tiên giá biến thể, nếu không có thì dùng giá sản phẩm
+                decimal showPrice = v?.DiscountedPrice
+                ?? (p.DiscountPercent > 0 ? p.DiscountedPrice : p.Price);
+
+                <div class="col-md-4 text-center mb-3">
+                    <img src="@p.ImageUrl"
+                         class="img-fluid mb-2"
+                         style="max-height:220px;object-fit:contain" />
+
+                    <!-- Tên + dung lượng (giống TGDD: iPhone 17 Pro Max 512GB) -->
+                    <h6 class="fw-bold mb-1" style="text-transform:none;">
+                        @p.Name
+                        @if (v != null && !string.IsNullOrWhiteSpace(v.Storage))
+                        {
+                            <span> @v.Storage</span>
+                        }
+                    </h6>
+
+                    @* Giá *@
+                    <div class="text-danger fw-bold">
+                        @showPrice.ToString("N0") đ
+                    </div>
+
+                    @* Nếu dùng giảm giá ở Product thì giữ lại gạch giá cũ *@
+                    @if (v == null && p.DiscountPercent > 0)
+                    {
+                        <div class="text-muted text-decoration-line-through small">
+                            @p.Price.ToString("N0") đ
+                        </div>
+                    }
+
+                    <div class="small text-muted mt-1">
+                        @p.Category?.Name
+                        @if (p.SubCategory != null)
+                        {
+                            @(" - " + p.SubCategory.Name)
+                        }
+                    </div>
+
+                    <form asp-action="Remove" method="post" class="mt-2">
+                        <input type="hidden" name="productId" value="@p.Id" />
+                        <button class="btn btn-sm btn-outline-danger">Xóa khỏi so sánh</button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <!-- Ô trống - Thêm sản phẩm -->
+                <div class="col-md-4 text-center mb-3">
+                    <div class="border border-secondary border-dashed rounded d-flex flex-column align-items-center justify-content-center"
+                         style="height:220px;">
+                        <div class="display-6">＋</div>
+                        <div class="mt-2 mb-2">Thêm sản phẩm</div>
+                        <a href="@Url.Action("Index", "Product")" class="btn btn-outline-primary btn-sm">
+                            Chọn trong danh sách
+                        </a>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    @if (!hasSpecs)
+    {
+        <div class="alert alert-warning">
+            Một số sản phẩm chưa có thông số kỹ thuật chi tiết.
+        </div>
+    }
+
+    <!-- BẢNG SO SÁNH NHANH -->
+    <h5 class="mb-2">So sánh nhanh</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <tbody>
+                <tr>
+                    <th style="width:200px;">Màn hình</th>
+                    @foreach (var item in Model)
+                    {
+                        var specs = item.Product.Specs;
+                        <td>
+                            @(specs?.ScreenTech ?? "-")<br />
+                            @(specs?.ScreenSize ?? "")
+                        </td>
+                    }
+                </tr>
+                <tr>
+                    <th>Chip xử lý</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Cpu ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>RAM</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Variant?.Ram ?? item.Product.Specs?.Ram ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Dung lượng</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Variant?.Storage ?? item.Product.Specs?.Storage ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Camera sau</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.RearCameraResolution ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Pin</th>
+                    @foreach (var item in Model)
+                    {
+                        var specs = item.Product.Specs;
+                        <td>
+                            @(specs?.BatteryType ?? "-")<br />
+                            @(specs?.BatteryUsageTime ?? "")
+                        </td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 1) CẤU HÌNH & BỘ NHỚ -->
+    <h5 class="mb-2">Cấu hình & Bộ nhớ</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <tbody>
+                <tr>
+                    <th style="width:200px;">Hệ điều hành</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Os ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>CPU</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Cpu ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Tốc độ CPU</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.CpuSpeed ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>GPU</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Gpu ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>RAM</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Variant?.Ram ?? item.Product.Specs?.Ram ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Lưu trữ</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Variant?.Storage ?? item.Product.Specs?.Storage ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Dung lượng còn lại (khả dụng)</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Variant?.StorageAvailable ?? item.Product.Specs?.StorageAvailable ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Danh bạ</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.ContactLimit ?? "-")</td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 2) CAMERA & MÀN HÌNH -->
+    <h5 class="mb-2 mt-4">Camera & Màn hình</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <tbody>
+                <tr>
+                    <th style="width:200px;">Camera sau</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.RearCameraResolution ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Camera trước</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.FrontCameraResolution ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Quay video (sau)</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.RearVideoModes ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Quay video (trước)</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.FrontVideoModes ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Tính năng camera sau</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.RearCameraFeatures ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Tính năng camera trước</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.FrontCameraFeatures ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Công nghệ màn hình</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.ScreenTech ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Độ phân giải màn hình</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.ScreenResolution ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Kích thước màn hình</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.ScreenSize ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Độ sáng</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.ScreenBrightness ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Mặt kính</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.ScreenGlass ?? "-")</td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 3) PIN & SẠC -->
+    <h5 class="mb-2 mt-4">Pin & Sạc</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <tbody>
+                <tr>
+                    <th style="width:200px;">Thời lượng pin</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.BatteryUsageTime ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Loại pin</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.BatteryType ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Công suất sạc tối đa</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.MaxChargePower ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Công nghệ pin</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.BatteryTech ?? "-")</td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 4) TIỆN ÍCH -->
+    <h5 class="mb-2 mt-4">Tiện ích</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <tbody>
+                <tr>
+                    <th style="width:200px;">Bảo mật</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Security ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Kháng nước bụi</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.WaterDustResist ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Tính năng đặc biệt</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.SpecialFeatures ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Ghi âm</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Recorder ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Định dạng phim</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.VideoFormats ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Định dạng nhạc</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.AudioFormats ?? "-")</td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 5) KẾT NỐI -->
+    <h5 class="mb-2 mt-4">Kết nối</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <tbody>
+                <tr>
+                    <th style="width:200px;">Mạng di động</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.MobileNetwork ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>SIM</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Sim ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>WiFi</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Wifi ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>GPS</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Gps ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Bluetooth</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Bluetooth ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Cổng sạc</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.ChargingPort ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Jack tai nghe</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.HeadphoneJack ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Kết nối khác</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.OtherConnections ?? "-")</td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 6) THIẾT KẾ & CHẤT LIỆU -->
+    <h5 class="mb-2 mt-4">Thiết kế & Chất liệu</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <tbody>
+                <tr>
+                    <th style="width:200px;">Thiết kế</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.DesignStyle ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Chất liệu</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Material ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Kích thước</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Dimensions ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Khối lượng</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.Weight ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Thời điểm ra mắt</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.ReleaseTime ?? "-")</td>
+                    }
+                </tr>
+                <tr>
+                    <th>Hãng</th>
+                    @foreach (var item in Model)
+                    {
+                        <td>@(item.Product.Specs?.BrandInfo ?? "-")</td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .border-dashed {
+        border-style: dashed !important;
+    }
+</style>

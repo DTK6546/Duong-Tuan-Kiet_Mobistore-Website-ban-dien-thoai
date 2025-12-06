@@ -1,0 +1,316 @@
+﻿@model WebBanDienThoai.Models.ProductSpecs
+
+@{
+    ViewData["Title"] = "Cấu hình sản phẩm";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-3">Cấu hình sản phẩm</h2>
+
+<div class="mb-3">
+    <strong>Sản phẩm:</strong>
+    <span class="text-primary fw-bold">@ViewBag.ProductName</span>
+</div>
+
+<form asp-area="Admin"
+      asp-controller="ProductSpecs"
+      asp-action="Edit"
+      asp-route-id="@ViewBag.ProductId"
+      method="post">
+    @Html.AntiForgeryToken()
+
+    @* Id và ProductId *@
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="ProductId" />
+
+    <div class="accordion" id="specsAccordion">
+
+        <!-- 1) CẤU HÌNH & BỘ NHỚ -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingConfig">
+                <button class="accordion-button" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseConfig"
+                        aria-expanded="true" aria-controls="collapseConfig">
+                    1) Cấu hình & Bộ nhớ
+                </button>
+            </h2>
+            <div id="collapseConfig" class="accordion-collapse collapse show"
+                 aria-labelledby="headingConfig" data-bs-parent="#specsAccordion">
+                <div class="accordion-body row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Os" class="form-label">Hệ điều hành</label>
+                        <input asp-for="Os" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Cpu" class="form-label">CPU</label>
+                        <input asp-for="Cpu" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CpuSpeed" class="form-label">Tốc độ CPU</label>
+                        <input asp-for="CpuSpeed" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Gpu" class="form-label">GPU</label>
+                        <input asp-for="Gpu" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Ram" class="form-label">RAM</label>
+                        <input asp-for="Ram" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Storage" class="form-label">Bộ nhớ trong</label>
+                        <input asp-for="Storage" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="StorageAvailable" class="form-label">Dung lượng khả dụng</label>
+                        <input asp-for="StorageAvailable" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ContactLimit" class="form-label">Danh bạ</label>
+                        <input asp-for="ContactLimit" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2) CAMERA & MÀN HÌNH -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingCamera">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseCamera"
+                        aria-expanded="false" aria-controls="collapseCamera">
+                    2) Camera & Màn hình
+                </button>
+            </h2>
+            <div id="collapseCamera" class="accordion-collapse collapse"
+                 aria-labelledby="headingCamera" data-bs-parent="#specsAccordion">
+                <div class="accordion-body row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="RearCameraResolution" class="form-label">Camera sau</label>
+                        <input asp-for="RearCameraResolution" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="FrontCameraResolution" class="form-label">Camera trước</label>
+                        <input asp-for="FrontCameraResolution" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="RearVideoModes" class="form-label">Quay video (sau)</label>
+                        <textarea asp-for="RearVideoModes" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="FrontVideoModes" class="form-label">Quay video (trước)</label>
+                        <textarea asp-for="FrontVideoModes" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="RearCameraFeatures" class="form-label">Tính năng camera sau</label>
+                        <textarea asp-for="RearCameraFeatures" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="FrontCameraFeatures" class="form-label">Tính năng camera trước</label>
+                        <textarea asp-for="FrontCameraFeatures" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="ScreenTech" class="form-label">Công nghệ màn hình</label>
+                        <input asp-for="ScreenTech" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ScreenResolution" class="form-label">Độ phân giải</label>
+                        <input asp-for="ScreenResolution" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ScreenSize" class="form-label">Kích thước & tần số quét</label>
+                        <input asp-for="ScreenSize" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ScreenBrightness" class="form-label">Độ sáng tối đa</label>
+                        <input asp-for="ScreenBrightness" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ScreenGlass" class="form-label">Mặt kính</label>
+                        <input asp-for="ScreenGlass" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3) PIN & SẠC -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingBattery">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseBattery"
+                        aria-expanded="false" aria-controls="collapseBattery">
+                    3) Pin & Sạc
+                </button>
+            </h2>
+            <div id="collapseBattery" class="accordion-collapse collapse"
+                 aria-labelledby="headingBattery" data-bs-parent="#specsAccordion">
+                <div class="accordion-body row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="BatteryUsageTime" class="form-label">Thời lượng pin</label>
+                        <input asp-for="BatteryUsageTime" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="BatteryType" class="form-label">Loại pin</label>
+                        <input asp-for="BatteryType" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="MaxChargePower" class="form-label">Công suất sạc tối đa</label>
+                        <input asp-for="MaxChargePower" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="BatteryTech" class="form-label">Công nghệ pin</label>
+                        <textarea asp-for="BatteryTech" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4) TIỆN ÍCH -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingFeatures">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseFeatures"
+                        aria-expanded="false" aria-controls="collapseFeatures">
+                    4) Tiện ích
+                </button>
+            </h2>
+            <div id="collapseFeatures" class="accordion-collapse collapse"
+                 aria-labelledby="headingFeatures" data-bs-parent="#specsAccordion">
+                <div class="accordion-body row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Security" class="form-label">Bảo mật</label>
+                        <input asp-for="Security" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="WaterDustResist" class="form-label">Kháng nước/bụi</label>
+                        <input asp-for="WaterDustResist" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="SpecialFeatures" class="form-label">Tính năng đặc biệt</label>
+                        <textarea asp-for="SpecialFeatures" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Recorder" class="form-label">Ghi âm</label>
+                        <input asp-for="Recorder" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="VideoFormats" class="form-label">Định dạng phim</label>
+                        <input asp-for="VideoFormats" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="AudioFormats" class="form-label">Định dạng nhạc</label>
+                        <input asp-for="AudioFormats" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5) KẾT NỐI -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingConnect">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseConnect"
+                        aria-expanded="false" aria-controls="collapseConnect">
+                    5) Kết nối
+                </button>
+            </h2>
+            <div id="collapseConnect" class="accordion-collapse collapse"
+                 aria-labelledby="headingConnect" data-bs-parent="#specsAccordion">
+                <div class="accordion-body row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="MobileNetwork" class="form-label">Mạng di động</label>
+                        <input asp-for="MobileNetwork" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Sim" class="form-label">SIM</label>
+                        <input asp-for="Sim" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Wifi" class="form-label">WiFi</label>
+                        <input asp-for="Wifi" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Gps" class="form-label">GPS</label>
+                        <input asp-for="Gps" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Bluetooth" class="form-label">Bluetooth</label>
+                        <input asp-for="Bluetooth" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ChargingPort" class="form-label">Cổng sạc</label>
+                        <input asp-for="ChargingPort" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="HeadphoneJack" class="form-label">Jack tai nghe</label>
+                        <input asp-for="HeadphoneJack" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="OtherConnections" class="form-label">Kết nối khác</label>
+                        <input asp-for="OtherConnections" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6) THIẾT KẾ & CHẤT LIỆU -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingDesign">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseDesign"
+                        aria-expanded="false" aria-controls="collapseDesign">
+                    6) Thiết kế & Chất liệu
+                </button>
+            </h2>
+            <div id="collapseDesign" class="accordion-collapse collapse"
+                 aria-labelledby="headingDesign" data-bs-parent="#specsAccordion">
+                <div class="accordion-body row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="DesignStyle" class="form-label">Thiết kế</label>
+                        <input asp-for="DesignStyle" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Material" class="form-label">Chất liệu</label>
+                        <input asp-for="Material" class="form-control" />
+                    </div>
+                    <div class="col-md-8">
+                        <label asp-for="Dimensions" class="form-label">Kích thước</label>
+                        <input asp-for="Dimensions" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Weight" class="form-label">Khối lượng</label>
+                        <input asp-for="Weight" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ReleaseTime" class="form-label">Thời điểm ra mắt</label>
+                        <input asp-for="ReleaseTime" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="BrandInfo" class="form-label">Hãng</label>
+                        <input asp-for="BrandInfo" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-success">
+            Lưu cấu hình
+        </button>
+        <a asp-area="Admin"
+           asp-controller="ProductSpecs"
+           asp-action="Index"
+           class="btn btn-secondary ms-2">
+            Quay lại danh sách
+        </a>
+    </div>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

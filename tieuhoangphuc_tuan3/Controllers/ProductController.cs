@@ -8,6 +8,8 @@ using WebBanDienThoai.Models;
 using WebBanDienThoai.Repositories;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using System.Linq;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace WebBanDienThoai.Controllers
 {
@@ -50,7 +52,11 @@ namespace WebBanDienThoai.Controllers
         public async Task<IActionResult> Index(int pageNumber = 1, int? categoryId = null, int? subCategoryId = null, decimal? minPrice = null, decimal? maxPrice = null, string query = "", string sortBy = "")
         {
             int pageSize = 16;
-            var products = await _productRepository.GetAllAsync();
+            var products = await _context.Products
+    .Include(p => p.Category)
+    .Include(p => p.SubCategory)
+    .Include(p => p.Variants)          // 👈 LẤY LUÔN BIẾN THỂ
+    .ToListAsync();
 
             if (categoryId.HasValue && categoryId.Value != 0)
             {
@@ -132,7 +138,8 @@ namespace WebBanDienThoai.Controllers
                 DiscountedPrice = p.DiscountedPrice,
                 SubCategoryId = p.SubCategoryId,
                 SubCategory = p.SubCategory,
-                SoldCount = soldDict.ContainsKey(p.Id) ? soldDict[p.Id] : 0
+                SoldCount = soldDict.ContainsKey(p.Id) ? soldDict[p.Id] : 0,
+                Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             }).ToList();
 
             // Truyền ViewBag các kiểu như cũ (giữ nguyên code)
@@ -201,15 +208,24 @@ namespace WebBanDienThoai.Controllers
             return "/images/" + image.FileName;
         }
 
-        public async Task<IActionResult> Display(int id)
+        public async Task<IActionResult> Display(int id, int? variantId)
         {
-            var product = await _productRepository.GetByIdAsync(id);
-            if (product == null) return NotFound();
+            // Lấy product + navigation cần thiết
+            var product = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.SubCategory)
+                .Include(p => p.Images)   // Ảnh phụ
+                .Include(p => p.Specs)    // Thông số kỹ thuật
+                .FirstOrDefaultAsync(p => p.Id == id);
 
+            if (product == null)
+                return NotFound();
+
+            // Đảm bảo luôn có list ảnh
             if (product.Images == null)
                 product.Images = new List<ProductImage>();
 
-            // Lấy tất cả đánh giá sản phẩm này
+            // ===== ĐÁNH GIÁ =====
             var ratings = await _context.ProductRatings
                 .Include(r => r.User)
                 .Include(r => r.Replies).ThenInclude(reply => reply.User)
@@ -219,21 +235,43 @@ namespace WebBanDienThoai.Controllers
 
             ViewBag.Ratings = ratings;
 
-            // Lấy đánh giá của user hiện tại (nếu có)
             ProductRating myRating = null;
             if (User.Identity.IsAuthenticated)
             {
                 var user = await _userManager.GetUserAsync(User);
-                myRating = await _context.ProductRatings.FirstOrDefaultAsync(r => r.ProductId == id && r.UserId == user.Id);
+                myRating = await _context.ProductRatings
+                    .FirstOrDefaultAsync(r => r.ProductId == id && r.UserId == user.Id);
             }
             ViewBag.MyRating = myRating;
 
-            // Đếm số lượng đã bán (Order đã hoàn tất)
+            // ===== ĐÃ BÁN =====
             int soldCount = await _context.OrderDetails
                 .Where(od => od.ProductId == id && od.Order.Status == OrderStatus.HoanTat)
                 .SumAsync(od => (int?)od.Quantity) ?? 0;
 
-            // Tạo model mới với SoldCount
+            // ===== BIẾN THỂ (màu / dung lượng) =====
+            var variants = await _context.ProductVariants
+                .Where(v => v.ProductId == id && v.Stock > 0)
+                .ToListAsync();
+
+            ViewBag.Variants = variants;
+
+            ProductVariant selectedVariant = null;
+            if (variants.Any())
+            {
+                if (variantId.HasValue)
+                {
+                    selectedVariant = variants.FirstOrDefault(v => v.Id == variantId.Value);
+                }
+
+                if (selectedVariant == null)
+                {
+                    selectedVariant = variants.First();
+                }
+            }
+            ViewBag.SelectedVariant = selectedVariant;
+
+            // ===== MODEL CHÍNH CHO VIEW =====
             var displayModel = new ProductWithSoldCount
             {
                 Id = product.Id,
@@ -249,8 +287,117 @@ namespace WebBanDienThoai.Controllers
                 DiscountedPrice = product.DiscountedPrice,
                 SubCategoryId = product.SubCategoryId,
                 SubCategory = product.SubCategory,
-                SoldCount = soldCount
+                SoldCount = soldCount,
+                Specs = product.Specs,
+                ServiceCommitment = product.ServiceCommitment,
+                Variants = variants
             };
+
+            // =====================================================================
+            //                    SẢN PHẨM LIÊN QUAN
+            // =====================================================================
+
+            var relatedEntities = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.SubCategory)
+                .Include(p => p.Images)
+                .Include(p => p.Variants)
+                .Where(p => p.Id != id && p.SubCategoryId == product.SubCategoryId)
+                .OrderByDescending(p => p.Id)
+                .Take(8)
+                .ToListAsync();
+
+            // =====================================================================
+            //                    SẢN PHẨM ĐÃ XEM (COOKIE)
+            // =====================================================================
+
+            const string viewedCookieName = "RecentlyViewedProducts";
+            List<int> viewedIds = new List<int>();
+
+            if (Request.Cookies.TryGetValue(viewedCookieName, out var cookieValue)
+                && !string.IsNullOrEmpty(cookieValue))
+            {
+                try
+                {
+                    viewedIds = JsonSerializer.Deserialize<List<int>>(cookieValue) ?? new List<int>();
+                }
+                catch
+                {
+                    viewedIds = new List<int>();
+                }
+            }
+
+            // Cập nhật danh sách id đã xem
+            viewedIds.Remove(id);
+            viewedIds.Insert(0, id); // đưa sản phẩm hiện tại lên đầu
+
+            if (viewedIds.Count > 10)
+                viewedIds = viewedIds.Take(10).ToList();
+
+            // Lưu lại cookie
+            Response.Cookies.Append(
+                viewedCookieName,
+                JsonSerializer.Serialize(viewedIds),
+                new CookieOptions
+                {
+                    Expires = DateTimeOffset.Now.AddDays(7),
+                    HttpOnly = false,
+                    IsEssential = true
+                });
+
+            // Lấy danh sách sản phẩm đã xem (trừ sản phẩm hiện tại)
+            var viewedEntities = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.SubCategory)
+                .Include(p => p.Images)
+                .Include(p => p.Variants)
+                .Where(p => viewedIds.Contains(p.Id) && p.Id != id)
+                .ToListAsync();
+
+            // =====================================================================
+            //             TÍNH SOLD COUNT CHO RELATED + VIEWED
+            // =====================================================================
+
+            var allIds = relatedEntities.Select(p => p.Id)
+                .Concat(viewedEntities.Select(p => p.Id))
+                .Distinct()
+                .ToList();
+
+            var soldDict = new Dictionary<int, int>();
+
+            if (allIds.Any())
+            {
+                soldDict = await _context.OrderDetails
+                    .Where(od => allIds.Contains(od.ProductId) && od.Order.Status == OrderStatus.HoanTat)
+                    .GroupBy(od => od.ProductId)
+                    .Select(g => new { ProductId = g.Key, Sold = g.Sum(x => x.Quantity) })
+                    .ToDictionaryAsync(g => g.ProductId, g => g.Sold);
+            }
+
+            // Hàm map Product -> ProductWithSoldCount để dùng cho _ProductCard
+            ProductWithSoldCount MapToVm(Product p) => new ProductWithSoldCount
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Description = p.Description,
+                ImageUrl = p.ImageUrl,
+                Images = p.Images,
+                CategoryId = p.CategoryId,
+                Category = p.Category,
+                Rating = p.Rating,
+                DiscountPercent = p.DiscountPercent,
+                DiscountedPrice = p.DiscountedPrice,
+                SubCategoryId = p.SubCategoryId,
+                SubCategory = p.SubCategory,
+                SoldCount = soldDict.ContainsKey(p.Id) ? soldDict[p.Id] : 0,
+                Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
+            };
+
+            ViewBag.RelatedProducts = relatedEntities.Select(MapToVm).ToList();
+            ViewBag.ViewedProducts = viewedEntities.Select(MapToVm).ToList();
+
+            // =====================================================================
 
             return View(displayModel);
         }

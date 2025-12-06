@@ -1,0 +1,74 @@
+﻿@using WebBanDienThoai.Models
+@model ProductVariant
+
+@{
+    ViewData["Title"] = "Thêm biến thể";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>Thêm biến thể cho sản phẩm: @ViewBag.ProductName</h2>
+
+<a asp-area="Admin"
+   asp-controller="ProductVariant"
+   asp-action="Index"
+   asp-route-productId="@ViewBag.ProductId"
+   class="btn btn-secondary mb-3">
+    ← Quay lại danh sách biến thể
+</a>
+
+<form asp-area="Admin"
+      asp-controller="ProductVariant"
+      asp-action="Create"
+      method="post">
+    @Html.AntiForgeryToken()
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <input type="hidden" asp-for="ProductId" />
+
+    <div class="mb-3">
+        <label asp-for="Color" class="form-label"></label>
+        <input asp-for="Color" class="form-control" />
+        <span asp-validation-for="Color" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Storage" class="form-label"></label>
+        <input asp-for="Storage" class="form-control" placeholder="256GB, 512GB..." />
+        <span asp-validation-for="Storage" class="text-danger"></span>
+    </div>
+
+    <!-- ⭐ RAM -->
+    <div class="mb-3">
+        <label asp-for="Ram" class="form-label"></label>
+        <input asp-for="Ram" class="form-control" placeholder="8GB, 16GB..." />
+        <span asp-validation-for="Ram" class="text-danger"></span>
+    </div>
+
+    <!-- ⭐ Dung lượng còn lại (khả dụng) -->
+    <div class="mb-3">
+        <label asp-for="StorageAvailable" class="form-label"></label>
+        <input asp-for="StorageAvailable" class="form-control" placeholder="Ví dụ: 224GB" />
+        <span asp-validation-for="StorageAvailable" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Price" class="form-label"></label>
+        <input asp-for="Price" class="form-control" />
+        <span asp-validation-for="Price" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Stock" class="form-label"></label>
+        <input asp-for="Stock" class="form-control" />
+        <span asp-validation-for="Stock" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-success">Lưu</button>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

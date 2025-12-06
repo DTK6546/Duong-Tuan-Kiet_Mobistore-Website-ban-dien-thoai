@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using WebBanDienThoai.Models;
 using WebBanDienThoai.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebBanDienThoai.Controllers
 {
@@ -22,7 +23,11 @@ namespace WebBanDienThoai.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var products = await _productRepository.GetAllAsync();
+            var products = await _context.Products
+        .Include(p => p.Category)
+        .Include(p => p.SubCategory)
+        .Include(p => p.Variants)          // 👈 THÊM
+        .ToListAsync();
 
             var productIds = products.Select(p => p.Id).ToList();
             var soldDict = _context.OrderDetails
@@ -48,7 +53,8 @@ namespace WebBanDienThoai.Controllers
                 DiscountedPrice = p.DiscountedPrice,
                 SubCategoryId = p.SubCategoryId,
                 SubCategory = p.SubCategory,
-                SoldCount = soldDict.ContainsKey(p.Id) ? soldDict[p.Id] : 0
+                SoldCount = soldDict.ContainsKey(p.Id) ? soldDict[p.Id] : 0,
+                Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             }).ToList();
 
             return View(model);

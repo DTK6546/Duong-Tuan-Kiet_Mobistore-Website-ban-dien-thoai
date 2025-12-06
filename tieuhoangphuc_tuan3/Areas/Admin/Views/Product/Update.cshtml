@@ -77,8 +77,50 @@
     </div>
 
     <div class="form-group mb-3">
+        <label class="form-label">Ảnh phụ mới (có thể chọn nhiều)</label>
+        <input type="file" name="additionalImages" class="form-control" id="additionalImagesInput" accept="image/*" multiple />
+        <small class="text-muted">Giữ Ctrl/Shift để chọn nhiều hình</small>
+
+        <div id="previewAdditionalImages" class="mt-2 d-flex flex-wrap"></div>
+    </div>
+
+    @if (Model.Images != null && Model.Images.Any())
+    {
+        <div class="form-group mb-3">
+            <label class="form-label">Ảnh phụ hiện tại</label>
+            <div class="d-flex flex-wrap">
+                @foreach (var img in Model.Images)
+                {
+                    <div class="text-center me-3 mb-3">
+                        <img src="@img.Url"
+                             style="max-width:80px;max-height:80px;object-fit:cover;border:1px solid #ddd;padding:3px;" />
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="checkbox"
+                                   name="deleteImageIds" value="@img.Id" id="img_@img.Id" />
+                            <label class="form-check-label" for="img_@img.Id">
+                                Xoá
+                            </label>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="form-group mb-3">
         <label asp-for="Description" class="form-label">Mô tả sản phẩm</label>
         <textarea asp-for="Description" class="form-control" id="editor" rows="5"></textarea>
+    </div>
+
+    <!-- 🟢 LỜI CAM KẾT DỊCH VỤ -->
+    <div class="form-group mb-3">
+        <label asp-for="ServiceCommitment" class="form-label">Lời cam kết dịch vụ</label>
+        <textarea asp-for="ServiceCommitment" class="form-control" rows="4"
+                  placeholder="Mỗi dòng là 1 cam kết. Ví dụ:
+Máy mới 100%, nguyên seal
+Bảo hành chính hãng 12 tháng
+Hỗ trợ đổi trả 7 ngày"></textarea>
+        <span asp-validation-for="ServiceCommitment" class="text-danger"></span>
     </div>
 
     <button type="submit" class="btn btn-primary">💾 Cập nhật</button>
@@ -88,34 +130,91 @@
 @section Scripts {
     <script src="https://cdn.ckeditor.com/ckeditor5/39.0.0/classic/ckeditor.js"></script>
     <script>
-        ClassicEditor.create(document.querySelector('#editor')).catch(console.error);
-        document.getElementById("imageInput").addEventListener("change", e => {
-            const file = e.target.files[0];
-            if (file) {
+        // CKEditor cho mô tả
+        ClassicEditor
+            .create(document.querySelector('#editor'))
+            .catch(console.error);
+
+        // Preview ảnh chính
+        const mainImageInput = document.getElementById("imageInput");
+        if (mainImageInput) {
+            mainImageInput.addEventListener("change", e => {
+                const file = e.target.files[0];
+                const img = document.getElementById("previewImage");
+
+                if (!file) {
+                    if (img) {
+                        img.classList.add("d-none");
+                        img.src = "#";
+                    }
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = ev => {
-                    const img = document.getElementById("previewImage");
-                    img.src = ev.target.result;
-                    img.classList.remove("d-none");
+                    if (img) {
+                        img.src = ev.target.result;
+                        img.classList.remove("d-none");
+                    }
                 };
                 reader.readAsDataURL(file);
-            }
-        });
-        document.getElementById("CategoryId").addEventListener("change", function () {
-            const catId = this.value;
-            const subSelect = document.getElementById("SubCategoryId");
-            subSelect.innerHTML = '<option value="">-- Chọn phân loại nhỏ --</option>';
-            if (catId) {
-                fetch('/Admin/Product/GetSubCategories?categoryId=' + catId)
-                    .then(r => r.json())
-                    .then(data => data.forEach(i => {
-                        const opt = document.createElement("option");
-                        opt.value = i.id;
-                        opt.text = i.name;
-                        subSelect.appendChild(opt);
-                    }));
-            }
-        });
+            });
+        }
+
+        // Preview nhiều ảnh phụ
+        const additionalImagesInput = document.getElementById("additionalImagesInput");
+        if (additionalImagesInput) {
+            additionalImagesInput.addEventListener("change", function () {
+                const container = document.getElementById("previewAdditionalImages");
+                if (!container) return;
+
+                container.innerHTML = "";
+
+                if (this.files.length === 0) return;
+
+                Array.from(this.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const img = document.createElement("img");
+                        img.src = e.target.result;
+                        img.style.maxWidth = "80px";
+                        img.style.maxHeight = "80px";
+                        img.style.objectFit = "cover";
+                        img.style.border = "1px solid #ddd";
+                        img.style.padding = "3px";
+                        img.style.marginRight = "6px";
+                        img.style.marginBottom = "6px";
+                        container.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+        }
+
+        // Load phân loại nhỏ theo danh mục
+        const categorySelect = document.getElementById("CategoryId");
+        if (categorySelect) {
+            categorySelect.addEventListener("change", function () {
+                const catId = this.value;
+                const subSelect = document.getElementById("SubCategoryId");
+                if (!subSelect) return;
+
+                subSelect.innerHTML = '<option value="">-- Chọn phân loại nhỏ --</option>';
+
+                if (catId) {
+                    fetch('/Admin/Product/GetSubCategories?categoryId=' + catId)
+                        .then(r => r.json())
+                        .then(data => data.forEach(i => {
+                            const opt = document.createElement("option");
+                            opt.value = i.id;
+                            opt.text = i.name;
+                            subSelect.appendChild(opt);
+                        }))
+                        .catch(console.error);
+                }
+            });
+        }
     </script>
+
     @await Html.PartialAsync("_ValidationScriptsPartial")
 }

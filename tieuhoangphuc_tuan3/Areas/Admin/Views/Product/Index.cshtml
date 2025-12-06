@@ -56,6 +56,7 @@
             <th class="minstock-col">Ngưỡng cảnh báo</th>
             <th class="category-col">Danh mục</th>
             <th class="subcategory-col">Phân loại</th>
+            <th class="commitment-col">Cam kết</th>
             <th class="action-col">Hành động</th>
         </tr>
     </thead>
@@ -106,10 +107,39 @@
                 <td class="category-col">@item.Category?.Name</td>
                 <td class="subcategory-col">@item.SubCategory?.Name</td>
 
+                <td class="commitment-col text-center">
+                    @if (!string.IsNullOrWhiteSpace(item.ServiceCommitment))
+                    {
+                        <span class="badge bg-success d-block mb-1">Đã cấu hình</span>
+
+                        var preview = item.ServiceCommitment.Replace("\r\n", " | ").Replace("\n", " | ");
+                        if (preview.Length > 40)
+                        {
+                            preview = preview.Substring(0, 40) + "...";
+                        }
+
+                        <small class="text-muted d-block text-truncate"
+                               title="@item.ServiceCommitment">
+                            @preview
+                        </small>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Chưa có</span>
+                    }
+                </td>
+
                 <td class="action-col text-center">
                     <div class="d-flex flex-column align-items-center gap-2">
                         <a href="@Url.Action("Display", "Product", new { area = "Admin", id = item.Id })" class="btn btn-info btn-sm w-100 mb-1">
                             <i class="fas fa-eye"></i> Xem
+                        </a>
+                        <a asp-area="Admin"
+                           asp-controller="ProductVariant"
+                           asp-action="Index"
+                           asp-route-productId="@item.Id"
+                           class="btn btn-secondary btn-sm w-100 mb-1">
+                            <i class="fas fa-layer-group"></i> Biến thể
                         </a>
                         <a href="@Url.Action("Update", "Product", new { area = "Admin", id = item.Id })" class="btn btn-warning btn-sm w-100 mb-1">
                             <i class="fas fa-edit"></i> Sửa

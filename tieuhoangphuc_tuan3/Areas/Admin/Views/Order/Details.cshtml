@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = "Chi tiết đơn hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
     Func<WebBanDienThoai.Models.OrderStatus, string> statusClass = s =>
     {
         switch (s)
@@ -18,6 +19,7 @@
             default: return "badge bg-light text-dark";
         }
     };
+
     Func<WebBanDienThoai.Models.OrderStatus, string> statusIcon = s =>
     {
         switch (s)
@@ -32,6 +34,11 @@
             default: return "bi-info-circle";
         }
     };
+
+    // 🔥 Tính tạm tính và giảm giá để hiển thị rõ ràng
+    var subTotal = Model.OrderDetails.Sum(od => od.Price * od.Quantity);
+    var discount = subTotal - Model.TotalPrice;
+    if (discount < 0) { discount = 0; }
 }
 
 <div class="card shadow-sm mb-4">
@@ -52,11 +59,38 @@
         <dl class="row mb-3">
             <dt class="col-sm-3">Khách hàng:</dt>
             <dd class="col-sm-9 fw-semibold">@Model.ApplicationUser?.FullName</dd>
+
             <dt class="col-sm-3">Ngày đặt:</dt>
             <dd class="col-sm-9">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</dd>
+
+            <dt class="col-sm-3">Phương thức nhận hàng:</dt>
+            <dd class="col-sm-9">
+                @(Model.DeliveryMethod == DeliveryMethod.ShipToHome
+                                ? "Giao hàng tận nơi"
+                                : "Nhận tại cửa hàng")
+            </dd>
+
+            @* Nếu giao hàng tận nơi thì hiện địa chỉ giao *@
+            @if (Model.DeliveryMethod == DeliveryMethod.ShipToHome)
+            {
+                <dt class="col-sm-3">Địa chỉ giao hàng:</dt>
+                <dd class="col-sm-9">@Model.ShippingAddress</dd>
+            }
+
+            @* Nếu nhận tại cửa hàng thì hiện thông tin cửa hàng *@
+            @if (Model.DeliveryMethod == DeliveryMethod.PickupAtStore && Model.Store != null)
+            {
+                <dt class="col-sm-3">Cửa hàng nhận:</dt>
+                <dd class="col-sm-9">
+                    @Model.Store.Name<br />
+                    @Model.Store.Address
+                </dd>
+            }
+
             <dt class="col-sm-3">Ghi chú:</dt>
             <dd class="col-sm-9">@Model.Notes</dd>
         </dl>
+
         <form method="post" asp-action="UpdateStatus" class="row g-2 align-items-center">
             <input type="hidden" name="id" value="@Model.Id" />
             <div class="col-auto">
@@ -75,7 +109,7 @@
                 </select>
             </div>
             <div class="col-auto">
-                <button type="submit" class="btn btn-success px-4 shadow-sm">
+                <button type="submit" class="btn btn.success px-4 shadow-sm">
                     <i class="bi bi-save"></i> Lưu trạng thái
                 </button>
             </div>
@@ -100,8 +134,16 @@
             <tbody>
                 @foreach (var item in Model.OrderDetails)
                 {
+                    // ⭐ Ưu tiên dùng tên đã lưu trong OrderDetail (có biến thể),
+                    // nếu null (đơn cũ) thì fallback về Product.Name
+                    var displayName = !string.IsNullOrEmpty(item.ProductName)
+                    ? item.ProductName
+                    : item.Product?.Name;
+
                     <tr>
-                        <td>@item.Product?.Name</td>
+                        <td>
+                            <div class="fw-semibold">@displayName</div>
+                        </td>
                         <td>@item.Price.ToString("N0") VNĐ</td>
                         <td>@item.Quantity</td>
                         <td>@((item.Price * item.Quantity).ToString("N0")) VNĐ</td>
@@ -109,6 +151,22 @@
                 }
             </tbody>
             <tfoot>
+                <!-- 🧮 Tạm tính -->
+                <tr>
+                    <td colspan="3" class="text-end fw-bold">Tạm tính:</td>
+                    <td class="fw-bold">@subTotal.ToString("N0") VNĐ</td>
+                </tr>
+
+                <!-- 🎁 Giảm giá (chỉ hiển thị nếu > 0) -->
+                @if (discount > 0)
+                {
+                    <tr>
+                        <td colspan="3" class="text-end fw-bold">Giảm giá:</td>
+                        <td class="fw-bold text-danger">-@discount.ToString("N0") VNĐ</td>
+                    </tr>
+                }
+
+                <!-- 💰 Tổng cộng -->
                 <tr>
                     <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
                     <td class="fw-bold">@Model.TotalPrice.ToString("N0") VNĐ</td>

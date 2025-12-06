@@ -222,13 +222,57 @@ namespace WebBanDienThoai.Controllers
             return View("PaymentCallBack");
         }
 
-        public IActionResult Paypal()
+        public IActionResult Paypal(decimal? amount, string? deliveryMethod, int? storeId)
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart");
-            decimal totalVND = cart?.Items.Sum(i => i.Price * i.Quantity) ?? 0;
+            if (cart == null || cart.Items == null || !cart.Items.Any())
+            {
+                return RedirectToAction("Index", "ShoppingCart");
+            }
 
-            // CHỈNH Ở ĐÂY: Làm tròn 2 chữ số sau dấu chấm, format theo chuẩn PayPal
-            decimal totalUSD = Math.Round(totalVND / 24000, 2);
+            // ⭐ LƯU phương thức nhận hàng + cửa hàng vào Session
+            if (!string.IsNullOrEmpty(deliveryMethod))
+            {
+                HttpContext.Session.SetString("DeliveryMethod", deliveryMethod);
+            }
+            else
+            {
+                // mặc định nếu không có (phòng trường hợp URL không truyền)
+                HttpContext.Session.SetString("DeliveryMethod", "ShipToHome");
+            }
+
+            if (storeId.HasValue && storeId.Value > 0)
+            {
+                HttpContext.Session.SetInt32("StoreId", storeId.Value);
+            }
+            else
+            {
+                HttpContext.Session.Remove("StoreId");
+            }
+
+            // ⭐ Tạm tính: (giá + bảo hành) * số lượng
+            decimal subtotal = cart.Items.Sum(i =>
+            {
+                decimal warrantyPerItem = i.Warranties?.Sum(w => w.Price) ?? 0m;
+                return (i.Price + warrantyPerItem) * i.Quantity;
+            });
+
+            decimal discount = cart.DiscountAmount;
+            if (discount < 0) discount = 0;
+
+            decimal priceAfterDiscount = subtotal - discount;
+            if (priceAfterDiscount < 0) priceAfterDiscount = 0;
+
+            decimal vatAmount = Math.Round(priceAfterDiscount * 0.10m, 0);
+            decimal finalTotal = priceAfterDiscount + vatAmount;   // ⭐ Tổng cộng đúng như ở giỏ hàng
+
+            // Nếu có amount truyền trên URL thì ưu tiên dùng (JS ở giỏ hàng đã set đúng finalTotal)
+            decimal totalVND = amount.HasValue && amount.Value > 0
+                ? amount.Value
+                : finalTotal;
+
+            // Quy đổi sang USD cho PayPal
+            decimal totalUSD = Math.Round(totalVND / 24000m, 2);
             string totalAmountUSD = totalUSD.ToString("0.00", CultureInfo.InvariantCulture);
 
             ViewBag.TotalAmount = totalAmountUSD;
@@ -238,15 +282,36 @@ namespace WebBanDienThoai.Controllers
 
             return View();
         }
+
         public async Task<IActionResult> PaypalSuccess()
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart");
-            decimal total = cart?.Items.Sum(i => i.Price * i.Quantity) ?? 0;
+            if (cart == null || cart.Items == null || !cart.Items.Any())
+            {
+                return RedirectToAction("Index", "ShoppingCart");
+            }
+
+            // ⭐ Tạm tính: (giá + bảo hành) * số lượng
+            decimal subtotal = cart.Items.Sum(i =>
+            {
+                decimal warrantyPerItem = i.Warranties?.Sum(w => w.Price) ?? 0m;
+                return (i.Price + warrantyPerItem) * i.Quantity;
+            });
+
+            decimal discount = cart.DiscountAmount;
+            if (discount < 0) discount = 0;
+
+            decimal priceAfterDiscount = subtotal - discount;
+            if (priceAfterDiscount < 0) priceAfterDiscount = 0;
+
+            decimal vatAmount = Math.Round(priceAfterDiscount * 0.10m, 0);
+            decimal total = priceAfterDiscount + vatAmount;   // ⭐ Tổng cộng có VAT
+
             var paypalOrderId = Guid.NewGuid().ToString("N").Substring(0, 12);
 
             string fullName = "Khách chưa đăng nhập";
             string userId = "Guest";
-            ApplicationUser? user = null; // Khai báo user ở phạm vi rộng hơn
+            ApplicationUser? user = null;
 
             if (User.Identity.IsAuthenticated)
             {
@@ -255,25 +320,39 @@ namespace WebBanDienThoai.Controllers
                 userId = user?.Id ?? "Guest";
             }
 
+            // ⭐ Lấy phương thức nhận hàng + cửa hàng từ Session (nếu đã lưu ở bước trước)
+            var deliveryMethodStr = HttpContext.Session.GetString("DeliveryMethod") ?? "ShipToHome";
+            var deliveryMethod = deliveryMethodStr == "PickupAtStore"
+                ? DeliveryMethod.PickupAtStore
+                : DeliveryMethod.ShipToHome;
+
+            int? storeIdFromSession = HttpContext.Session.GetInt32("StoreId");
+
             try
             {
-                // Tạo bản ghi Order
+                // Lưu Order
                 var order = new Order
                 {
                     UserId = userId,
                     OrderDate = DateTime.UtcNow,
-                    TotalPrice = total,
-                    ShippingAddress = user?.Address ?? "N/A", // Sử dụng user an toàn
-                    Notes = "Thanh toán qua PayPal"
+                    TotalPrice = total,                     // ✅ dùng tổng đã giảm + VAT
+                    ShippingAddress = user?.Address ?? "N/A",
+                    Notes = "Thanh toán qua PayPal",
+                    DeliveryMethod = deliveryMethod,
+                    StoreId = storeIdFromSession,           // nếu StoreId là int?
+                    Subtotal = subtotal,
+                    DiscountAmount = discount,
+                    VatAmount = vatAmount,
+                    CouponCode = cart.CouponCode
                 };
                 _dbContext.Orders.Add(order);
                 _dbContext.SaveChanges();
 
-                // Tạo bản ghi MomoInfoModel
+                // Lưu vào bảng MomoInfoModel (dùng chung làm bảng giao dịch)
                 var momoInfo = new MomoInfoModel
                 {
-                    OrderId = order.Id, // Liên kết với Order.Id
-                    MomoOrderId = paypalOrderId, // Lưu Guid
+                    OrderId = order.Id,
+                    MomoOrderId = paypalOrderId,
                     OrderInfo = $"Khách hàng: {fullName}. Nội dung đơn hàng: Thanh toán PayPal tại WebBanDienThoai",
                     FullName = fullName,
                     Amount = total,
@@ -282,26 +361,41 @@ namespace WebBanDienThoai.Controllers
                 _dbContext.MomoInfos.Add(momoInfo);
                 _dbContext.SaveChanges();
 
-                // Lưu chi tiết đơn hàng từ giỏ hàng
-                if (cart != null && cart.Items.Any())
+                foreach (var item in cart.Items)
                 {
-                    foreach (var item in cart.Items)
+                    var orderDetail = new OrderDetail
                     {
-                        var orderDetail = new OrderDetail
-                        {
-                            OrderId = order.Id,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity,
-                            Price = item.Price
-                        };
-                        _dbContext.OrderDetails.Add(orderDetail);
-                    }
-                    _dbContext.SaveChanges();
+                        OrderId = order.Id,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        Price = item.Price,
+                        ProductName = item.Name,
+                        VariantId = item.VariantId
+                    };
+                    _dbContext.OrderDetails.Add(orderDetail);
+                    _dbContext.SaveChanges(); // để lấy Id vừa tạo
 
-                    // Xóa giỏ hàng
-                    cart.Items.Clear();
-                    HttpContext.Session.SetObjectAsJson("Cart", cart);
+                    if (item.Warranties != null && item.Warranties.Any())
+                    {
+                        foreach (var w in item.Warranties)
+                        {
+                            var odw = new OrderDetailWarranty
+                            {
+                                OrderDetailId = orderDetail.Id,
+                                WarrantyOptionId = w.WarrantyOptionId,
+                                Name = w.Name,
+                                Price = w.Price,
+                                Months = w.Months
+                            };
+                            _dbContext.OrderDetailWarranties.Add(odw);
+                        }
+                        _dbContext.SaveChanges();
+                    }
                 }
+
+                // Xoá giỏ hàng
+                cart.Items.Clear();
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
 
                 ViewBag.Message = "PaypalSuccess";
                 ViewBag.Amount = total;

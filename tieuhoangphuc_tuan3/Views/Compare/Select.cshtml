@@ -1,0 +1,87 @@
+﻿@model List<WebBanDienThoai.Models.CompareProductViewModel>
+
+@{
+    ViewData["Title"] = "Chọn sản phẩm so sánh";
+    var maxSlots = 3;
+}
+
+<div class="container mt-4 mb-4">
+    <h3 class="mb-3">So sánh sản phẩm</h3>
+
+    <div class="row">
+        @for (int i = 0; i < maxSlots; i++)
+        {
+            if (i < Model.Count)
+            {
+                var item = Model[i];
+                var p = item.Product;
+                var v = item.Variant;
+
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+
+                            <!-- HÌNH ẢNH -->
+                            <img src="@p.ImageUrl"
+                                 class="img-fluid mb-2"
+                                 style="max-height:200px;object-fit:contain" />
+
+                            <!-- TÊN + DUNG LƯỢNG (giống TGDD: iPhone 17 Pro Max 512GB) -->
+                            <h6 class="fw-bold mb-1" style="text-transform: none;">
+                                @p.Name
+                                @if (v != null && !string.IsNullOrWhiteSpace(v.Storage))
+                                {
+                                    <span> @v.Storage</span>
+                                }
+                            </h6>
+
+                        </div>
+
+                        <!-- NÚT XÓA -->
+                        <div class="card-footer d-flex justify-content-start align-items-center bg-white border-0">
+                            <form asp-action="Remove" method="post" class="mb-0">
+                                <input type="hidden" name="productId" value="@p.Id" />
+                                <button type="submit"
+                                        class="btn btn-link text-danger p-0 small">
+                                    Xóa
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Ô TRỐNG THÊM SẢN PHẨM -->
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 d-flex align-items-center justify-content-center border-dashed">
+                        <div class="text-center p-3">
+                            <div class="display-6 mb-2">＋</div>
+                            <div class="mb-2">Thêm sản phẩm</div>
+                            <a href="@Url.Action("Index", "Product")"
+                               class="btn btn-outline-primary btn-sm">
+                                Chọn trong danh sách
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div> <!-- hết .row -->
+    @if (Model.Any())
+    {
+        <div class="d-flex justify-content-end mt-3">
+            <a href="@Url.Action("Index", "Compare")"
+               class="btn btn-primary px-4">
+                So sánh ngay
+            </a>
+        </div>
+    }
+
+</div> <!-- hết container -->
+
+<style>
+    .border-dashed {
+        border-style: dashed !important;
+    }
+</style>

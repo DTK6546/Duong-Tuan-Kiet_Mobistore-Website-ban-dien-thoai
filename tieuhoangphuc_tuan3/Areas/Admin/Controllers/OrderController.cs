@@ -35,10 +35,13 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         public IActionResult Details(int id)
         {
             var order = _db.Orders
-                .Include(o => o.ApplicationUser)
-                .Include(o => o.OrderDetails)
-                    .ThenInclude(od => od.Product)
-                .FirstOrDefault(o => o.Id == id);
+        .Include(o => o.ApplicationUser)
+        .Include(o => o.OrderDetails)
+            .ThenInclude(od => od.Product)
+        .Include(o => o.OrderDetails)
+            .ThenInclude(od => od.Warranties)   
+        .Include(o => o.Store)                 
+        .FirstOrDefault(o => o.Id == id);
 
             if (order == null)
                 return NotFound();
@@ -60,28 +63,40 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             order.Status = status;
 
             // 🧭 Nếu đơn hàng được hoàn tất => tự động trừ hàng tồn kho
-            if (status == OrderStatus.HoanTat)
+            if (status == OrderStatus.HoanTat || status == OrderStatus.TraHang)
             {
                 foreach (var item in order.OrderDetails)
                 {
-                    var product = _db.Products.FirstOrDefault(p => p.Id == item.ProductId);
-                    if (product != null)
-                    {
-                        product.Quantity -= item.Quantity;
-                        product.LastExportDate = DateTime.Now;
-                    }
-                }
-            }
+                    // xác định số lượng tăng/giảm
+                    int delta = status == OrderStatus.HoanTat
+                        ? -item.Quantity   // Hoàn tất: trừ kho
+                        : item.Quantity;  // Trả hàng: cộng kho
 
-            if (status == OrderStatus.TraHang)
-            {
-                foreach (var item in order.OrderDetails)
-                {
-                    var product = _db.Products.FirstOrDefault(p => p.Id == item.ProductId);
+                    ProductVariant variant = null;
+                    if (item.VariantId.HasValue)
+                    {
+                        variant = _db.ProductVariants
+                                     .FirstOrDefault(v => v.Id == item.VariantId.Value);
+                    }
+
+                    var product = _db.Products
+                                     .FirstOrDefault(p => p.Id == item.ProductId);
+
+                    // cập nhật biến thể (nếu có)
+                    if (variant != null)
+                    {
+                        variant.Stock += delta;
+                    }
+
+                    // luôn cập nhật sản phẩm cha (nếu bạn muốn tồn kho tổng cũng thay đổi)
                     if (product != null)
                     {
-                        product.Quantity += item.Quantity;
-                        product.LastImportDate = DateTime.Now;
+                        product.Quantity += delta;
+
+                        if (status == OrderStatus.HoanTat)
+                        {
+                            product.LastExportDate = DateTime.Now;
+                        }
                     }
                 }
             }
