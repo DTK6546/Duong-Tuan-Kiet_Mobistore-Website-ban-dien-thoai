@@ -83,8 +83,19 @@
             <div class="col-md-4 text-md-end fw-semibold text-muted">Ngày đặt:</div>
             <div class="col-md-8 mb-2">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
 
-            <div class="col-md-4 text-md-end fw-semibold text-muted">Địa chỉ giao hàng:</div>
-            <div class="col-md-8 mb-2">@Model.ShippingAddress</div>
+            @* Địa chỉ / cửa hàng tuỳ theo DeliveryMethod *@
+            @if (Model.DeliveryMethod == DeliveryMethod.ShipToHome)
+            {
+                <div class="col-md-4 text-md-end fw-semibold text-muted">Địa chỉ giao hàng:</div>
+                <div class="col-md-8 mb-2">@Model.ShippingAddress</div>
+            }
+            else if (Model.DeliveryMethod == DeliveryMethod.PickupAtStore && Model.Store != null)
+            {
+                <div class="col-md-4 text-md-end fw-semibold text-muted">Nhận tại cửa hàng:</div>
+                <div class="col-md-8 mb-2">
+                    @Model.Store.Name - @Model.Store.Address
+                </div>
+            }
 
             <div class="col-md-4 text-md-end fw-semibold text-muted">Phương thức nhận hàng:</div>
             <div class="col-md-8 mb-2">
@@ -92,14 +103,6 @@
                                 ? "Giao hàng tận nơi"
                                 : "Nhận tại cửa hàng")
             </div>
-
-            @if (Model.DeliveryMethod == DeliveryMethod.PickupAtStore && Model.Store != null)
-            {
-                <div class="col-md-4 text-md-end fw-semibold text-muted">Cửa hàng nhận:</div>
-                <div class="col-md-8 mb-2">
-                    @Model.Store.Name - @Model.Store.Address
-                </div>
-            }
 
             <div class="col-md-4 text-md-end fw-semibold text-muted">Ghi chú:</div>
             <div class="col-md-8 mb-3">@Model.Notes</div>

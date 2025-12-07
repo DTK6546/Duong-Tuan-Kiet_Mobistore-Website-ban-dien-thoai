@@ -430,9 +430,19 @@
                     </form>
 
                     <!-- VNPay Payment Form -->
-                    <form method="POST" asp-action="PaymentVNPay" asp-controller="Payment" class="mt-2">
+                    <form method="POST"
+                          asp-action="PaymentVNPay"
+                          asp-controller="Payment"
+                          class="mt-2"
+                          id="vnpayForm">
+                        <!-- tổng tiền đã có sẵn, updateTotal() sẽ cập nhật giá trị -->
                         <input type="hidden" name="Amount" class="payment-amount" value="@finalTotal" />
-                        <button class="btn btn-primary w-100 btn-sm" type="submit">
+
+                        <!-- 2 hidden để truyền phương thức nhận hàng + cửa hàng -->
+                        <input type="hidden" name="deliveryMethod" id="vnpDeliveryMethod" />
+                        <input type="hidden" name="storeId" id="vnpStoreId" />
+
+                        <button class="btn btn-primary w-100 btn-sm" type="button" onclick="submitVNPay()">
                             🏦 Thanh toán bằng VNPay
                         </button>
                     </form>
@@ -451,27 +461,128 @@
 
 @section Scripts {
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        // Lấy discount từ server (cố định theo cart hiện tại)
+        var discountFromServer = @discount;
 
-            // ⭐ Ẩn/hiện panel chọn cửa hàng theo phương thức nhận hàng
-            function toggleStorePanel() {
-                var method = document.querySelector("input[name='DeliveryMethod']:checked");
-                var panel = document.getElementById("storePanel");
-                if (!panel) return;
+        // Base URL của PayPal action
+        const paypalBaseUrl = '@Url.Action("Paypal", "Payment")';
 
-                if (method && method.value === "PickupAtStore") {
-                    panel.classList.remove("d-none");
-                } else {
-                    panel.classList.add("d-none");
-                }
+        // ⭐ Ẩn/hiện panel chọn cửa hàng theo phương thức nhận hàng
+        function toggleStorePanel() {
+            var method = document.querySelector("input[name='DeliveryMethod']:checked");
+            var panel = document.getElementById("storePanel");
+            if (!panel) return;
+
+            if (method && method.value === "PickupAtStore") {
+                panel.classList.remove("d-none");
+            } else {
+                panel.classList.add("d-none");
+            }
+        }
+
+        // ⭐ Hàm tính lại tiền + cập nhật các form thanh toán (Momo, VNPay, PayPal)
+        function updateTotal() {
+            let subtotal = 0;
+            document.querySelectorAll(".quantity-input").forEach(input => {
+                const quantity = parseInt(input.value, 10) || 0;
+                const unitPrice = parseFloat(input.getAttribute("data-unit-price")) || 0;
+                const warrantyPrice = parseFloat(input.getAttribute("data-warranty-price")) || 0;
+
+                subtotal += quantity * (unitPrice + warrantyPrice);
+            });
+
+            // Cập nhật tạm tính
+            const subtotalElement = document.querySelector(".subtotal-amount");
+            if (subtotalElement) {
+                subtotalElement.textContent = subtotal.toLocaleString('vi-VN') + ' VNĐ';
             }
 
-            // Lấy discount từ server (cố định theo cart hiện tại)
-            var discountFromServer = @discount;
+            // discountFromServer = số tiền giảm (VNĐ) đã áp dụng từ server
+            let priceAfterDiscount = subtotal - discountFromServer;
+            if (priceAfterDiscount < 0) priceAfterDiscount = 0;
 
-            // Base URL của PayPal action
-            const paypalBaseUrl = '@Url.Action("Paypal", "Payment")';
+            // VAT 10% trên giá sau giảm
+            let vatRate = 0.10;
+            let vatAmount = Math.round(priceAfterDiscount * vatRate);
 
+            // Tổng cộng = sau giảm + VAT
+            let totalWithVat = priceAfterDiscount + vatAmount;
+
+            // Cập nhật "Thành tiền (chưa VAT)"
+            const beforeTaxElement = document.querySelector(".before-tax-amount");
+            if (beforeTaxElement) {
+                beforeTaxElement.textContent = priceAfterDiscount.toLocaleString('vi-VN') + ' VNĐ';
+            }
+
+            // Cập nhật "VAT"
+            const vatElement = document.querySelector(".vat-amount");
+            if (vatElement) {
+                vatElement.textContent = vatAmount.toLocaleString('vi-VN') + ' VNĐ';
+            }
+
+            // Cập nhật "Tổng cộng"
+            const finalTotalElement = document.querySelector(".final-total");
+            if (finalTotalElement) {
+                finalTotalElement.textContent = totalWithVat.toLocaleString('vi-VN') + ' VNĐ';
+            }
+
+            // Cập nhật lại hidden Amount cho các form thanh toán (Momo + VNPay)
+            document.querySelectorAll(".payment-amount").forEach(input => {
+                input.value = totalWithVat;
+            });
+
+            // ⭐ Cập nhật link PayPal (amount + DeliveryMethod + StoreId)
+            const paypalBtn = document.getElementById("paypalBtn");
+            if (paypalBtn) {
+                const url = new URL(paypalBaseUrl, window.location.origin);
+
+                // amount
+                url.searchParams.set("amount", totalWithVat);
+
+                // phương thức nhận hàng
+                const methodEl = document.querySelector("input[name='DeliveryMethod']:checked");
+                const method = methodEl ? methodEl.value : "ShipToHome";
+                url.searchParams.set("deliveryMethod", method);
+
+                // cửa hàng
+                const storeSelect = document.getElementById("StoreId");
+                const storeId = storeSelect ? storeSelect.value : "";
+                if (storeId) {
+                    url.searchParams.set("storeId", storeId);
+                }
+
+                paypalBtn.href = url.toString();
+            }
+        }
+
+        // ⭐ Hàm submit dành riêng cho VNPay
+        function submitVNPay() {
+            // Đảm bảo tổng tiền đã cập nhật mới nhất
+            updateTotal();
+
+            // Lấy phương thức nhận hàng hiện tại
+            const methodEl = document.querySelector("input[name='DeliveryMethod']:checked");
+            const method = methodEl ? methodEl.value : "ShipToHome";
+            const deliveryHidden = document.getElementById("vnpDeliveryMethod");
+            if (deliveryHidden) {
+                deliveryHidden.value = method; // "ShipToHome" hoặc "PickupAtStore"
+            }
+
+            // Lấy cửa hàng (nếu có)
+            const storeSelect = document.getElementById("StoreId");
+            const storeHidden = document.getElementById("vnpStoreId");
+            if (storeHidden) {
+                storeHidden.value = storeSelect ? storeSelect.value : "";
+            }
+
+            // Submit form VNPay
+            const form = document.getElementById("vnpayForm");
+            if (form) {
+                form.submit();
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
             // ✅ Click mã trong danh sách -> tự điền + submit
             document.querySelectorAll(".coupon-btn").forEach(btn => {
                 btn.addEventListener("click", function () {
@@ -488,85 +599,11 @@
                 });
             });
 
-            function updateTotal() {
-                let subtotal = 0;
-                document.querySelectorAll(".quantity-input").forEach(input => {
-                    const quantity = parseInt(input.value, 10) || 0;
-                    const unitPrice = parseFloat(input.getAttribute("data-unit-price")) || 0;
-                    const warrantyPrice = parseFloat(input.getAttribute("data-warranty-price")) || 0;
-
-                    subtotal += quantity * (unitPrice + warrantyPrice);
-                });
-
-                // Cập nhật tạm tính
-                const subtotalElement = document.querySelector(".subtotal-amount");
-                if (subtotalElement) {
-                    subtotalElement.textContent = subtotal.toLocaleString('vi-VN') + ' VNĐ';
-                }
-
-                // discountFromServer = số tiền giảm (VNĐ) đã áp dụng từ server
-                let priceAfterDiscount = subtotal - discountFromServer;
-                if (priceAfterDiscount < 0) priceAfterDiscount = 0;
-
-                // VAT 10% trên giá sau giảm
-                let vatRate = 0.10;
-                let vatAmount = Math.round(priceAfterDiscount * vatRate);
-
-                // Tổng cộng = sau giảm + VAT
-                let totalWithVat = priceAfterDiscount + vatAmount;
-
-                // Cập nhật "Thành tiền (chưa VAT)"
-                const beforeTaxElement = document.querySelector(".before-tax-amount");
-                if (beforeTaxElement) {
-                    beforeTaxElement.textContent = priceAfterDiscount.toLocaleString('vi-VN') + ' VNĐ';
-                }
-
-                // Cập nhật "VAT"
-                const vatElement = document.querySelector(".vat-amount");
-                if (vatElement) {
-                    vatElement.textContent = vatAmount.toLocaleString('vi-VN') + ' VNĐ';
-                }
-
-                // Cập nhật "Tổng cộng"
-                const finalTotalElement = document.querySelector(".final-total");
-                if (finalTotalElement) {
-                    finalTotalElement.textContent = totalWithVat.toLocaleString('vi-VN') + ' VNĐ';
-                }
-
-                // Cập nhật lại hidden Amount cho các form thanh toán
-                document.querySelectorAll(".payment-amount").forEach(input => {
-                    input.value = totalWithVat;
-                });
-
-                // ⭐ Cập nhật link PayPal (amount + DeliveryMethod + StoreId)
-                const paypalBtn = document.getElementById("paypalBtn");
-                if (paypalBtn) {
-                    const url = new URL(paypalBaseUrl, window.location.origin);
-
-                    // amount
-                    url.searchParams.set("amount", totalWithVat);
-
-                    // phương thức nhận hàng
-                    const methodEl = document.querySelector("input[name='DeliveryMethod']:checked");
-                    const method = methodEl ? methodEl.value : "ShipToHome";
-                    url.searchParams.set("deliveryMethod", method);
-
-                    // cửa hàng
-                    const storeSelect = document.getElementById("StoreId");
-                    const storeId = storeSelect ? storeSelect.value : "";
-                    if (storeId) {
-                        url.searchParams.set("storeId", storeId);
-                    }
-
-                    paypalBtn.href = url.toString();
-                }
-            }
-
             // Gắn sự kiện change cho radio DeliveryMethod
             document.querySelectorAll("input[name='DeliveryMethod']").forEach(function (el) {
                 el.addEventListener("change", function () {
                     toggleStorePanel();
-                    updateTotal(); // cập nhật lại URL PayPal theo method mới
+                    updateTotal(); // cập nhật lại tổng + PayPal URL
                 });
             });
 

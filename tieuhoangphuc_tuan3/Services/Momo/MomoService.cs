@@ -22,44 +22,57 @@ namespace WebBanDienThoai.Services.Momo
         public async Task<MomoCreatePaymentResponseModel> CreatePaymentMomo(OrderInfoModel model, string userName)
         {
             model.OrderId = DateTime.UtcNow.Ticks.ToString();
+            var requestId = model.OrderId;
 
             model.OrderInformation = "Khách hàng: " + userName + ". Nội dung đơn hàng: " + model.OrderInformation;
 
-            // raw data để tạo chữ ký
-            var rawData =
-                $"partnerCode={_options.Value.PartnerCode}" +
-                $"&accessKey={_options.Value.AccessKey}" +
-                $"&requestId={model.OrderId}" +
-                $"&amount={model.Amount}" +
-                $"&orderId={model.OrderId}" +
-                $"&orderInfo={model.OrderInformation}" +
-                $"&returnUrl={_options.Value.ReturnUrl}" +
-                $"&notifyUrl={_options.Value.NotifyUrl}" +
-                $"&extraData=";
+            string rawHash =
+                "accessKey=" + _options.Value.AccessKey +
+                "&amount=" + model.Amount +
+                "&extraData=" +
+                "&ipnUrl=" + _options.Value.NotifyUrl +
+                "&orderId=" + model.OrderId +
+                "&orderInfo=" + model.OrderInformation +
+                "&partnerCode=" + _options.Value.PartnerCode +
+                "&redirectUrl=" + _options.Value.ReturnUrl +
+                "&requestId=" + requestId +
+                "&requestType=" + _options.Value.RequestType;
 
-            var signature = ComputeHmacSha256(rawData, _options.Value.SecretKey);
-
-            var client = new RestClient(_options.Value.MomoApiUrl);
-            var request = new RestRequest("", Method.Post);
-            request.AddHeader("Content-Type", "application/json; charset=UTF-8");
+            string signature = ComputeHmacSha256(rawHash, _options.Value.SecretKey);
 
             var requestData = new
             {
-                accessKey = _options.Value.AccessKey,
                 partnerCode = _options.Value.PartnerCode,
-                requestType = _options.Value.RequestType,
-                notifyUrl = _options.Value.NotifyUrl,
-                returnUrl = _options.Value.ReturnUrl,
-                orderId = model.OrderId,
+                accessKey = _options.Value.AccessKey,
+                requestId = requestId,
                 amount = model.Amount.ToString(),
+                orderId = model.OrderId,
                 orderInfo = model.OrderInformation,
-                requestId = model.OrderId,
+                redirectUrl = _options.Value.ReturnUrl,
+                ipnUrl = _options.Value.NotifyUrl,
                 extraData = "",
-                signature = signature
+                requestType = _options.Value.RequestType,
+                signature = signature,
+                lang = "vi"
             };
-            request.AddParameter("application/json", JsonConvert.SerializeObject(requestData), ParameterType.RequestBody);
+
+            var client = new RestClient(_options.Value.MomoApiUrl);
+            var request = new RestRequest("", Method.Post);
+            request.AddHeader("Content-Type", "application/json");
+
+            var json = JsonConvert.SerializeObject(requestData);
+            request.AddStringBody(json, DataFormat.Json);
 
             var response = await client.ExecuteAsync(request);
+
+            if (!response.IsSuccessful)
+            {
+                return new MomoCreatePaymentResponseModel
+                {
+                    ErrorCode = -1,
+                    Message = "HTTP error: " + response.StatusCode
+                };
+            }
 
             return JsonConvert.DeserializeObject<MomoCreatePaymentResponseModel>(response.Content);
         }
