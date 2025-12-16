@@ -10,14 +10,8 @@
 }
 
 body {
-    display: flex;
-    flex-direction: column;
     min-height: 100vh;
     margin: 0;
-}
-
-.wrapper {
-    flex: 1;
 }
 
 /* Footer cố định dưới */
@@ -219,7 +213,6 @@ footer {
     background: none;
     cursor: pointer;
     transition: 0.2s;
-
 }
 
     .delete-btn:hover {
@@ -253,6 +246,7 @@ footer {
     .quantity-btn:hover {
         background: #ddd;
     }
+
 .cart-table {
     width: 100%;
     border-collapse: collapse;
@@ -454,3 +448,25 @@ footer {
         .chat-input button:hover {
             background-color: #0056b3;
         }
+
+/* ===========================
+   FIX: Card bootstrap bị ảnh hưởng bởi CSS card sản phẩm
+   Áp dụng riêng cho các trang Order (MyOrders/Details)
+   =========================== */
+.order-page .card {
+    height: auto !important; /* bỏ height:100% */
+    transform: none !important; /* bỏ hover translateY */
+}
+
+    .order-page .card:hover {
+        transform: none !important;
+    }
+
+.order-page .card-body {
+    display: block !important; /* bỏ flex */
+    text-align: left !important; /* bỏ center */
+}
+
+    .order-page .card-body > * {
+        justify-content: initial !important;
+    }

@@ -2,18 +2,18 @@
 @model ProductVariant
 
 @{
-    ViewData["Title"] = "Sửa biến thể";
+    ViewData["Title"] = "Sửa phiên bản";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h2>Sửa biến thể – @ViewBag.ProductName</h2>
+<h2>Sửa phiên bản – @ViewBag.ProductName</h2>
 
 <a asp-area="Admin"
    asp-controller="ProductVariant"
    asp-action="Index"
    asp-route-productId="@ViewBag.ProductId"
    class="btn btn-secondary mb-3">
-    ← Quay lại danh sách biến thể
+    ← Quay lại danh sách phiên bản
 </a>
 
 <form asp-area="Admin"

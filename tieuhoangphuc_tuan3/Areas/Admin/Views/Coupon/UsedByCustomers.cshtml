@@ -1,0 +1,28 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.CouponUsage>
+
+@{
+    ViewData["Title"] = "Khách hàng đã sử dụng mã giảm giá";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Tên khách hàng</th>
+            <th>Email</th>
+            <th>Ngày sử dụng</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var usage in Model)
+        {
+            <tr>
+                <td>@usage.User.FullName</td>
+                <td>@usage.User.Email</td>
+                <td>@usage.UsedAt.ToString("dd/MM/yyyy HH:mm")</td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -118,6 +118,12 @@ namespace WebBanDienThoai.Controllers
                 }
             }
 
+            // Cập nhật lượt dùng mã giảm giá (nếu có)
+            if (!string.IsNullOrEmpty(cart.CouponCode))
+            {
+                UpdateCouponUsageAfterOrder(cart.CouponCode, user.Id);
+            }
+
             HttpContext.Session.Remove("Cart");
 
             return View("OrderCompleted", order.Id);
@@ -218,54 +224,108 @@ namespace WebBanDienThoai.Controllers
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
 
+            // Nếu giỏ trống thì chắc chắn không còn giảm giá
             if (cart.Items == null || !cart.Items.Any())
             {
+                cart.CouponCode = null;
+                cart.DiscountAmount = 0;
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+
                 TempData["CouponError"] = "Giỏ hàng đang trống, không thể áp dụng mã giảm giá.";
                 return RedirectToAction("Index");
             }
 
             if (string.IsNullOrWhiteSpace(couponCode))
             {
+                // Không sửa gì trong cart, chỉ báo lỗi
                 TempData["CouponError"] = "Vui lòng nhập mã giảm giá.";
                 return RedirectToAction("Index");
+            }
+
+            // BẮT BUỘC ĐĂNG NHẬP MỚI DÙNG ĐƯỢC MÃ
+            var user = _userManager.GetUserAsync(User).Result;
+            if (user == null)
+            {
+                TempData["CouponError"] = "Bạn cần đăng nhập để sử dụng mã giảm giá.";
+                return RedirectToAction("Login", "Account");
             }
 
             couponCode = couponCode.Trim();
             var now = DateTime.Now;
 
-            var coupon = _context.Coupons
-                .FirstOrDefault(c =>
-                    c.Code == couponCode &&
-                    c.IsActive &&
-                    c.StartDate <= now &&
-                    c.EndDate >= now);
+            var coupon = _context.Coupons.FirstOrDefault(c => c.Code == couponCode);
 
             if (coupon == null)
             {
-                TempData["CouponError"] = "Mã giảm giá không tồn tại hoặc đã hết hạn.";
+                // Mã không tồn tại → xoá giảm giá cũ (nếu có)
+                cart.CouponCode = null;
+                cart.DiscountAmount = 0;
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+
+                TempData["CouponError"] = "Mã giảm giá không tồn tại.";
                 return RedirectToAction("Index");
             }
 
-            var subtotal = cart.Items.Sum(i => i.Price * i.Quantity);
+            // 1. Check trạng thái + thời gian
+            if (!coupon.IsActive || coupon.StartDate > now || coupon.EndDate < now)
+            {
+                cart.CouponCode = null;
+                cart.DiscountAmount = 0;
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+
+                TempData["CouponError"] = "Mã giảm giá không còn hiệu lực.";
+                return RedirectToAction("Index");
+            }
+
+            // 2. Check số lượt toàn hệ thống (CurrentUsage < Quantity)
+            if (coupon.CurrentUsage >= coupon.Quantity)
+            {
+                cart.CouponCode = null;
+                cart.DiscountAmount = 0;
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+
+                TempData["CouponError"] = "Mã giảm giá này đã được sử dụng hết.";
+                return RedirectToAction("Index");
+            }
+
+            // 3. Check user đã dùng mã này chưa (mỗi user chỉ 1 lần)
+            bool hasUsed = _context.CouponUsages
+                .Any(x => x.CouponId == coupon.Id && x.UserId == user.Id);
+
+            if (hasUsed)
+            {
+                // ✅ QUAN TRỌNG: xoá luôn coupon + discount cũ
+                cart.CouponCode = null;
+                cart.DiscountAmount = 0;
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+
+                TempData["CouponError"] = "Bạn đã sử dụng mã này rồi, không thể dùng lại.";
+                return RedirectToAction("Index");
+            }
+
+            // 4. Tính subtotal (có cả bảo hành)
+            decimal subtotal = cart.Items.Sum(i =>
+            {
+                decimal warrantyPerItem = i.Warranties?.Sum(w => w.Price) ?? 0m;
+                return (i.Price + warrantyPerItem) * i.Quantity;
+            });
 
             if (subtotal < coupon.MinOrderValue)
             {
+                cart.CouponCode = null;
+                cart.DiscountAmount = 0;
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+
                 TempData["CouponError"] =
                     $"Đơn hàng phải tối thiểu {coupon.MinOrderValue:N0} VNĐ mới dùng được mã này.";
                 return RedirectToAction("Index");
             }
 
-            if (coupon.Quantity <= 0)
-            {
-                TempData["CouponError"] = "Mã giảm giá này đã được sử dụng hết.";
-                return RedirectToAction("Index");
-            }
-
-            // ✅ Tính số tiền giảm (xử lý nullable)
+            // 5. Tính số tiền giảm
             decimal discount = 0;
 
-            var percent = coupon.DiscountPercent ?? 0;   // int? -> int
-            var amount = coupon.DiscountAmount ?? 0m;   // decimal? -> decimal
+            var percent = coupon.DiscountPercent ?? 0;
+            var amount = coupon.DiscountAmount ?? 0m;
 
             if (percent > 0)
             {
@@ -278,24 +338,23 @@ namespace WebBanDienThoai.Controllers
 
             if (discount <= 0)
             {
+                cart.CouponCode = null;
+                cart.DiscountAmount = 0;
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+
                 TempData["CouponError"] = "Mã giảm giá hiện không áp dụng được cho đơn hàng này.";
                 return RedirectToAction("Index");
             }
 
-            // Không cho giảm quá tổng
             if (discount > subtotal)
             {
                 discount = subtotal;
             }
 
-            // ✅ Lưu vào cart (session)
+            // 6. LƯU VÀO CART (SESSION)
             cart.CouponCode = coupon.Code;
             cart.DiscountAmount = discount;
             HttpContext.Session.SetObjectAsJson("Cart", cart);
-
-            // Trừ bớt số lượng mã
-            coupon.Quantity -= 1;
-            _context.SaveChanges();
 
             TempData["CouponSuccess"] =
                 $"Áp dụng mã {coupon.Code} thành công! Bạn được giảm {discount:N0} VNĐ.";
@@ -306,16 +365,18 @@ namespace WebBanDienThoai.Controllers
 
         // ================== INDEX (TRANG GIỎ HÀNG) ==================
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            // Nếu là Admin hoặc Employer thì chuyển sang trang quản trị
             if (User.IsInRole("Admin") || User.IsInRole("Employer"))
             {
                 return RedirectToAction("Index", "Product");
             }
 
+            // 🔹 Lấy giỏ hàng từ Session (nếu trống thì tạo mới)
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
 
-            // ⭐ Cập nhật tồn kho mới nhất
+            // 🔹 Cập nhật tồn kho mới nhất cho từng sản phẩm
             foreach (var item in cart.Items)
             {
                 var product = _context.Products.FirstOrDefault(p => p.Id == item.ProductId);
@@ -331,41 +392,74 @@ namespace WebBanDienThoai.Controllers
                     }
                 }
             }
-
             HttpContext.Session.SetObjectAsJson("Cart", cart);
 
+            // 🔹 Gợi ý sản phẩm ngẫu nhiên
             var suggestedProducts = _context.Products
                 .OrderBy(p => Guid.NewGuid())
                 .Take(6)
                 .ToList();
             ViewBag.SuggestedProducts = suggestedProducts;
 
-            var availableCoupons = _context.Coupons
-                .Where(c => c.IsActive &&
-                            c.StartDate <= DateTime.Now &&
-                            c.EndDate >= DateTime.Now &&
-                            c.Quantity > 0)
-                .OrderByDescending(c => c.DiscountPercent)
-                .ToList();
-            ViewBag.AvailableCoupons = availableCoupons;
-
-            var warrantyOptions = _context.WarrantyOptions
-                .Where(w => w.IsActive)
-                .OrderBy(w => w.Price)
-                .ToList();
-            ViewBag.WarrantyOptions = warrantyOptions;
-
-            // ⭐ LẤY THÔNG TIN USER HIỆN TẠI (NẾU ĐÃ ĐĂNG NHẬP)
-            var currentUser = _userManager.GetUserAsync(User).Result;
+            // 🔹 Lấy thông tin người dùng hiện tại (nếu đã đăng nhập)
+            ApplicationUser? currentUser = null;
+            if (User.Identity.IsAuthenticated)
+            {
+                currentUser = await _userManager.GetUserAsync(User);
+            }
             ViewBag.CurrentUser = currentUser;
 
-            ViewBag.Stores = _context.Stores
-    .Where(s => s.IsActive)
-    .OrderBy(s => s.Province)
-    .ThenBy(s => s.District)
-    .ThenBy(s => s.Name)
-    .ToList();
+            // ==============================
+            // ⭐ DANH SÁCH MÃ GIẢM GIÁ ĐÃ NHẬN (Level 2)
+            // ==============================
+            List<Coupon> availableCoupons = new List<Coupon>();
 
+            if (currentUser != null)
+            {
+                var userId = currentUser.Id;
+
+                // Lấy các CouponId mà user này đã nhận (ClaimCoupon)
+                var claimedCouponIds = await _context.CouponUsages
+                    .Where(u => u.UserId == userId)
+                    .Select(u => u.CouponId)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Chỉ lấy những coupon user đã nhận + còn hiệu lực
+                availableCoupons = await _context.Coupons
+                    .Where(c =>
+                        claimedCouponIds.Contains(c.Id) &&      // chỉ các mã user đã nhận
+                        c.IsActive &&
+                        c.StartDate <= DateTime.Now &&
+                        c.EndDate >= DateTime.Now &&
+                        c.CurrentUsage < c.Quantity)            // còn lượt
+                    .OrderByDescending(c => c.DiscountPercent)
+                    .ToListAsync();
+            }
+            else
+            {
+                // Chưa đăng nhập => không hiện mã nào
+                availableCoupons = new List<Coupon>();
+            }
+
+            ViewBag.AvailableCoupons = availableCoupons;
+
+            // 🔹 Danh sách gói bảo hành đang hoạt động
+            var warrantyOptions = await _context.WarrantyOptions
+                .Where(w => w.IsActive)
+                .OrderBy(w => w.Price)
+                .ToListAsync();
+            ViewBag.WarrantyOptions = warrantyOptions;
+
+            // 🔹 Danh sách cửa hàng đang hoạt động
+            ViewBag.Stores = await _context.Stores
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.Province)
+                .ThenBy(s => s.District)
+                .ThenBy(s => s.Name)
+                .ToListAsync();
+
+            // 🔹 Trả view với giỏ hàng hiện tại
             return View(cart);
         }
 
@@ -463,6 +557,36 @@ namespace WebBanDienThoai.Controllers
         {
             var product = await _productRepository.GetByIdAsync(productId);
             return product;
+        }
+
+        private void UpdateCouponUsageAfterOrder(string? couponCode, string userId)
+        {
+            if (string.IsNullOrEmpty(couponCode)) return;
+            if (string.IsNullOrEmpty(userId)) return;
+
+            var coupon = _context.Coupons.SingleOrDefault(c => c.Code == couponCode);
+            if (coupon == null) return;
+
+            // Hết lượt thì thôi, không cập nhật nữa
+            if (coupon.CurrentUsage >= coupon.Quantity) return;
+
+            // User đã từng dùng mã này rồi -> không ghi thêm (phòng trùng)
+            bool hasUsed = _context.CouponUsages
+                .Any(x => x.CouponId == coupon.Id && x.UserId == userId);
+            if (hasUsed) return;
+
+            // Tăng lượt đã dùng
+            coupon.CurrentUsage++;
+
+            // Lưu lịch sử sử dụng
+            _context.CouponUsages.Add(new CouponUsage
+            {
+                CouponId = coupon.Id,
+                UserId = userId,
+                UsedAt = DateTime.Now
+            });
+
+            _context.SaveChanges();
         }
 
         public IActionResult RemoveFromCart(int productId, int? variantId)

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;     
 using WebBanDienThoai.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebBanDienThoai.Areas.Admin.Controllers
 {
@@ -127,6 +128,23 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
 
             TempData["Success"] = "Xóa mã giảm giá thành công.";
             return RedirectToAction(nameof(Index));
+        }
+        public IActionResult UsedByCustomers(int id)
+        {
+            var coupon = _context.Coupons.Find(id);
+            if (coupon == null)
+            {
+                return NotFound();
+            }
+
+            // Truy vấn danh sách khách hàng đã sử dụng mã giảm giá này
+            var usedCoupons = _context.CouponUsages
+                .Where(cu => cu.CouponId == coupon.Id)
+                .Include(cu => cu.User) // Lấy thông tin người dùng đã sử dụng mã
+                .ToList();
+
+            // Gửi danh sách người dùng cho view
+            return View(usedCoupons);
         }
     }
 }

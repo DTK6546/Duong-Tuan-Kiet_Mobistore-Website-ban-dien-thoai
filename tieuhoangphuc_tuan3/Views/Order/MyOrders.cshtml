@@ -1,72 +1,310 @@
 ﻿@model List<WebBanDienThoai.Models.Order>
 @using WebBanDienThoai.Extensions
+@using WebBanDienThoai.Models
 
 @{
     ViewData["Title"] = "Đơn hàng của tôi";
-    Func<WebBanDienThoai.Models.OrderStatus, string> statusClass = s =>
+
+    // ===== Tabs giống Shopee =====
+    var activeTab = (Context.Request.Query["tab"].ToString() ?? "all").Trim().ToLowerInvariant();
+    var knownTabs = new HashSet<string> { "all", "pending", "shipping", "toreceive", "completed", "cancelled", "return" };
+    if (!knownTabs.Contains(activeTab)) activeTab = "all";
+
+    Func<Order, bool> matchTab = o => activeTab switch
     {
-        switch (s)
-        {
-            case WebBanDienThoai.Models.OrderStatus.ChoXacNhan: return "badge bg-secondary";
-            case WebBanDienThoai.Models.OrderStatus.DangXuLy: return "badge bg-warning text-dark";
-            case WebBanDienThoai.Models.OrderStatus.DangGiao: return "badge bg-info text-dark";
-            case WebBanDienThoai.Models.OrderStatus.DaGiao: return "badge bg-success";
-            case WebBanDienThoai.Models.OrderStatus.HoanTat: return "badge bg-primary";
-            case WebBanDienThoai.Models.OrderStatus.DaHuy: return "badge bg-danger";
-            case WebBanDienThoai.Models.OrderStatus.TraHang: return "badge bg-dark";
-            default: return "badge bg-light text-dark";
-        }
+        "pending" => o.Status == OrderStatus.ChoXacNhan || o.Status == OrderStatus.DangXuLy, // Chờ xác nhận + Đang xử lý
+        "shipping" => o.Status == OrderStatus.DangGiao,                                       // Vận chuyển
+        "toreceive" => o.Status == OrderStatus.DaGiao,                                         // Chờ giao hàng / Chờ nhận
+        "completed" => o.Status == OrderStatus.HoanTat,                                        // Hoàn thành
+        "cancelled" => o.Status == OrderStatus.DaHuy,                                          // Đã hủy
+        "return" => o.Status == OrderStatus.TraHang,                                        // Trả hàng/Hoàn tiền
+        _ => true,
     };
+
+    Func<OrderStatus, string> statusClass = s => s switch
+    {
+        OrderStatus.ChoXacNhan => "badge bg-secondary",
+        OrderStatus.DangXuLy => "badge bg-warning text-dark",
+        OrderStatus.DangGiao => "badge bg-info text-dark",
+        OrderStatus.DaGiao => "badge bg-success",
+        OrderStatus.HoanTat => "badge bg-primary",
+        OrderStatus.DaHuy => "badge bg-danger",
+        OrderStatus.TraHang => "badge bg-dark",
+        _ => "badge bg-light text-dark",
+    };
+
+    int CountByTab(string tabKey) => tabKey switch
+    {
+        "pending" => Model?.Count(o => o.Status == OrderStatus.ChoXacNhan || o.Status == OrderStatus.DangXuLy) ?? 0,
+        "shipping" => Model?.Count(o => o.Status == OrderStatus.DangGiao) ?? 0,
+        "toreceive" => Model?.Count(o => o.Status == OrderStatus.DaGiao) ?? 0,
+        "completed" => Model?.Count(o => o.Status == OrderStatus.HoanTat) ?? 0,
+        "cancelled" => Model?.Count(o => o.Status == OrderStatus.DaHuy) ?? 0,
+        "return" => Model?.Count(o => o.Status == OrderStatus.TraHang) ?? 0,
+        _ => Model?.Count ?? 0,
+    };
+
+    string StoreName(Order o) => o.Store?.Name ?? "Mobistore";
 }
 
-<div class="container mt-4">
-    <div class="card shadow rounded-4 mb-4">
-        <div class="card-header bg-white border-bottom-0 pb-0">
-            <h2 class="fw-bold mb-0">Đơn hàng của tôi</h2>
+<style>
+    /* Tabs kiểu Shopee */
+    .order-tabs.nav-tabs {
+        border-bottom: 1px solid #eee;
+    }
+
+    .order-tabs .nav-link {
+        border: none;
+        color: #6c757d;
+        font-weight: 600;
+        padding: .85rem 1.1rem;
+        position: relative;
+        background: transparent;
+    }
+
+        .order-tabs .nav-link:hover {
+            color: #0d6efd;
+        }
+
+        .order-tabs .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+        }
+
+            .order-tabs .nav-link.active::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: -1px;
+                height: 3px;
+                background: currentColor;
+                border-radius: 999px;
+            }
+
+    .order-card {
+        border: 1px solid rgba(0,0,0,.06);
+    }
+
+    .order-item {
+        padding: .75rem 0;
+    }
+
+        .order-item + .order-item {
+            border-top: 1px dashed rgba(0,0,0,.08);
+        }
+
+    .order-thumb {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #f8f9fa;
+        border: 1px solid rgba(0,0,0,.06);
+        flex: 0 0 auto;
+    }
+
+        .order-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+</style>
+
+<div class="container mt-4 mb-4" style="max-width: 1100px;">
+    <div class="card shadow rounded-4">
+        <div class="card-header bg-white border-0 pb-0">
+            <h3 class="fw-bold mb-3">Đơn mua</h3>
+
+            <!-- Tabs -->
+            <ul class="nav nav-tabs order-tabs">
+                <li class="nav-item">
+                    <a class="nav-link @(activeTab == "all" ? "active" : "")" href="@Url.Action("MyOrders", "Order", new { tab = "all" })">
+                        Tất cả <span class="badge bg-light text-dark ms-1">@CountByTab("all")</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(activeTab == "pending" ? "active" : "")" href="@Url.Action("MyOrders", "Order", new { tab = "pending" })">
+                        Chờ xác nhận <span class="badge bg-light text-dark ms-1">@CountByTab("pending")</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(activeTab == "shipping" ? "active" : "")" href="@Url.Action("MyOrders", "Order", new { tab = "shipping" })">
+                        Vận chuyển <span class="badge bg-light text-dark ms-1">@CountByTab("shipping")</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(activeTab == "toreceive" ? "active" : "")" href="@Url.Action("MyOrders", "Order", new { tab = "toreceive" })">
+                        Chờ giao hàng <span class="badge bg-light text-dark ms-1">@CountByTab("toreceive")</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(activeTab == "completed" ? "active" : "")" href="@Url.Action("MyOrders", "Order", new { tab = "completed" })">
+                        Hoàn thành <span class="badge bg-light text-dark ms-1">@CountByTab("completed")</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(activeTab == "cancelled" ? "active" : "")" href="@Url.Action("MyOrders", "Order", new { tab = "cancelled" })">
+                        Đã hủy <span class="badge bg-light text-dark ms-1">@CountByTab("cancelled")</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(activeTab == "return" ? "active" : "")" href="@Url.Action("MyOrders", "Order", new { tab = "return" })">
+                        Trả hàng/Hoàn tiền <span class="badge bg-light text-dark ms-1">@CountByTab("return")</span>
+                    </a>
+                </li>
+            </ul>
         </div>
+
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table align-middle table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="text-center">Mã đơn</th>
-                            <th>Ngày đặt</th>
-                            <th>Tổng tiền</th>
-                            <th>Trạng thái</th>
-                            <th class="text-center">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var order in Model)
-                        {
-                            <tr>
-                                <td class="text-center fw-bold">#@order.Id</td>
-                                <td>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="fw-semibold">@order.TotalPrice.ToString("N0") VNĐ</td>
-                                <td>
-                                    <span class="@statusClass(order.Status) px-3 py-2">
-                                        @order.Status.ToVietnameseStatus()
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <a href="@Url.Action("Details", "Order", new { id = order.Id })" class="btn btn-info btn-sm px-3 rounded-pill shadow me-1">
-                                        <i class="bi bi-eye"></i> Chi tiết
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            <!-- Search -->
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input id="orderSearch" type="text" class="form-control" placeholder="Bạn có thể tìm kiếm theo Mã đơn hoặc Tên sản phẩm..." />
             </div>
+
+            @{
+                var orders = (Model ?? new List<Order>()).Where(matchTab).ToList();
+            }
+
+            @if (!orders.Any())
+            {
+                <div class="text-center py-5">
+                    <div class="text-muted">Chưa có đơn hàng nào trong mục này.</div>
+                </div>
+            }
+            else
+            {
+                foreach (var order in orders)
+                {
+                    var canCancel = order.Status == OrderStatus.ChoXacNhan || order.Status == OrderStatus.DangXuLy;
+
+                    var productNames = (order.OrderDetails ?? new List<OrderDetail>())
+                    .Select(d => d.ProductName ?? d.Product?.Name)
+                    .Where(n => !string.IsNullOrWhiteSpace(n));
+                    var searchBlob = $"{order.Id} {StoreName(order)} {string.Join(' ', productNames)}".ToLowerInvariant();
+
+                    <div class="card order-card shadow-sm rounded-4 mb-3" data-search="@searchBlob">
+                        <div class="card-header bg-white d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div class="d-flex align-items-center flex-wrap gap-2">
+                                <span class="fw-semibold"><i class="bi bi-shop me-1"></i>@StoreName(order)</span>
+                                <span class="text-muted small">• Mã đơn #@order.Id</span>
+                                <span class="text-muted small">• @order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            <span class="@statusClass(order.Status) px-3 py-2">@order.Status.ToVietnameseStatus()</span>
+                        </div>
+
+                        <div class="card-body pt-2">
+                            @foreach (var item in order.OrderDetails ?? new List<OrderDetail>())
+                            {
+                                var name = !string.IsNullOrEmpty(item.ProductName) ? item.ProductName : item.Product?.Name;
+                                var img = item.Product?.ImageUrl;
+
+                                <div class="order-item d-flex gap-3">
+                                    <div class="order-thumb">
+                                        @if (!string.IsNullOrWhiteSpace(img))
+                                        {
+                                            <img src="@img" alt="@name" />
+                                        }
+                                        else
+                                        {
+                                            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                                                <i class="bi bi-phone fs-4"></i>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">@name</div>
+
+                                        @if (item.Warranties != null && item.Warranties.Any())
+                                        {
+                                            <div class="small text-muted mt-1">
+                                                <i class="bi bi-shield-check text-success"></i>
+                                                @string.Join(", ", item.Warranties.Select(w => w.Name))
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <div class="text-end" style="min-width: 160px;">
+                                        <div class="text-muted small">x@(item.Quantity)</div>
+                                        <div class="fw-bold">@item.Price.ToString("N0") đ</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="ms-auto text-end">
+                                <div class="small text-muted">Thành tiền</div>
+                                <div class="fs-5 fw-bold text-danger">@order.TotalPrice.ToString("N0") đ</div>
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="@Url.Action("Details", "Order", new { id = order.Id })" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                    <i class="bi bi-eye"></i> Chi tiết
+                                </a>
+
+                                @if (canCancel)
+                                {
+                                    <form asp-action="CancelOrder" method="post" class="d-inline"
+                                          onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?');">
+                                        <input type="hidden" name="id" value="@order.Id" />
+                                        <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">
+                                            <i class="bi bi-x-circle"></i> Hủy đơn
+                                        </button>
+                                    </form>
+                                }
+
+                                @if (order.Status == OrderStatus.DaGiao)
+                                {
+                                    <form asp-action="ConfirmReceived" method="post" class="d-inline"
+                                          onsubmit="return confirm('Xác nhận đã nhận hàng?');">
+                                        <input type="hidden" name="id" value="@order.Id" />
+                                        <button type="submit" class="btn btn-success btn-sm rounded-pill px-3">
+                                            <i class="bi bi-check2-circle"></i> Đã nhận hàng
+                                        </button>
+                                    </form>
+                                }
+
+                                @if (order.Status == OrderStatus.HoanTat)
+                                {
+                                    <form asp-action="ReturnOrder" method="post" class="d-inline"
+                                          onsubmit="return confirm('Bạn muốn yêu cầu trả hàng/hoàn tiền cho đơn này?');">
+                                        <input type="hidden" name="id" value="@order.Id" />
+                                        <button type="submit" class="btn btn-dark btn-sm rounded-pill px-3">
+                                            <i class="bi bi-arrow-repeat"></i> Trả hàng
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
         </div>
     </div>
 </div>
 
 <script>
-    window.onload = function() {
-            var adBanner = document.querySelector('.carousel');
-            if (adBanner) {
-                adBanner.style.display = 'none';
-            }
-        };
+    // Hide banner (nếu layout có carousel quảng cáo)
+    window.addEventListener('load', function () {
+        var adBanner = document.querySelector('.carousel');
+        if (adBanner) adBanner.style.display = 'none';
+    });
+
+    // Search filter
+    (function () {
+        var input = document.getElementById('orderSearch');
+        if (!input) return;
+
+        input.addEventListener('input', function () {
+            var q = (input.value || '').toLowerCase().trim();
+            document.querySelectorAll('.order-card').forEach(function (card) {
+                var hay = (card.getAttribute('data-search') || '');
+                card.style.display = (!q || hay.includes(q)) ? '' : 'none';
+            });
+        });
+    })();
 </script>

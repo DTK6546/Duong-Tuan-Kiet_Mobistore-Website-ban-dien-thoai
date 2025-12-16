@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using WebBanDienThoai.Models;
 using WebBanDienThoai.Services.SignalR; // để dùng ChatHub
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace WebBanDienThoai.Areas.Admin.Controllers
 {
@@ -32,6 +35,11 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         // GET: Admin/News/Create
         public IActionResult Create()
         {
+            // ⭐ nạp danh sách coupon để chọn
+            ViewBag.Coupons = _context.Coupons
+                .OrderByDescending(c => c.StartDate)
+                .ToList();
+
             return View(new News());
         }
 
@@ -63,6 +71,12 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 TempData["Success"] = "Thêm tin tức thành công!";
                 return RedirectToAction(nameof(Index));
             }
+
+            // Nếu lỗi validate, phải nạp lại list coupon
+            ViewBag.Coupons = _context.Coupons
+                .OrderByDescending(c => c.StartDate)
+                .ToList();
+
             return View(model);
         }
 
@@ -71,6 +85,12 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         {
             var news = await _context.News.FindAsync(id);
             if (news == null) return NotFound();
+
+            // ⭐ nạp danh sách coupon để chọn
+            ViewBag.Coupons = _context.Coupons
+                .OrderByDescending(c => c.StartDate)
+                .ToList();
+
             return View(news);
         }
 
@@ -91,6 +111,9 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 existing.ImageUrl = model.ImageUrl;
                 existing.UpdatedAt = DateTime.Now;
 
+                // ⭐ cập nhật CouponId
+                existing.CouponId = model.CouponId;
+
                 await _context.SaveChangesAsync();
 
                 var url = Url.Action("Detail", "News", new { area = "", id = existing.Id }, Request.Scheme);
@@ -110,6 +133,12 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 TempData["Success"] = "Cập nhật tin tức thành công!";
                 return RedirectToAction(nameof(Index));
             }
+
+            // Nếu validate fail thì nạp lại list coupon
+            ViewBag.Coupons = _context.Coupons
+                .OrderByDescending(c => c.StartDate)
+                .ToList();
+
             return View(model);
         }
 
@@ -137,9 +166,9 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
 
             await _chatHub.Clients.All.SendAsync(
                 "ReceiveNewsNotification",
-                title,                                                 // 1: title
+                title,                                                // 1: title
                 "Tin tức đã bị xóa khỏi hệ thống.",                   // 2: summary
-                null,                                                  // 3: url (không có)
+                null,                                                 // 3: url (không có)
                 DateTime.Now.ToString("dd/MM/yyyy HH:mm")             // 4: time
             );
 

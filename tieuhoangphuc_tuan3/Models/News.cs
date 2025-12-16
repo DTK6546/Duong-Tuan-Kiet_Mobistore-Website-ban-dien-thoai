@@ -18,5 +18,7 @@ namespace WebBanDienThoai.Models
         public string ImageUrl { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
+        public int? CouponId { get; set; }
+        public Coupon? Coupon { get; set; }
     }
 }

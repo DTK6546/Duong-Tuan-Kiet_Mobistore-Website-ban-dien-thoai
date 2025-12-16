@@ -25,6 +25,12 @@ namespace WebBanDienThoai.Controllers
 
             var orders = await _context.Orders
                 .Where(o => o.UserId == user.Id)
+                // Load thêm chi tiết để View có thể render danh sách sản phẩm theo kiểu Shopee
+                .Include(o => o.Store)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Warranties)
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
@@ -52,9 +58,12 @@ namespace WebBanDienThoai.Controllers
         }
 
         [HttpPost]
-        public IActionResult CancelOrder(int id)
+        public async Task<IActionResult> CancelOrder(int id)
         {
-            var order = _context.Orders.FirstOrDefault(o => o.Id == id);
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
             if (order == null) return NotFound();
 
             if (order.Status == OrderStatus.ChoXacNhan || order.Status == OrderStatus.DangXuLy)
@@ -68,9 +77,12 @@ namespace WebBanDienThoai.Controllers
         }
 
         [HttpPost]
-        public IActionResult ConfirmReceived(int id)
+        public async Task<IActionResult> ConfirmReceived(int id)
         {
-            var order = _context.Orders.FirstOrDefault(o => o.Id == id);
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
             if (order == null) return NotFound();
 
             if (order.Status == OrderStatus.DaGiao)
@@ -84,9 +96,12 @@ namespace WebBanDienThoai.Controllers
         }
 
         [HttpPost]
-        public IActionResult ReturnOrder(int id)
+        public async Task<IActionResult> ReturnOrder(int id)
         {
-            var order = _context.Orders.FirstOrDefault(o => o.Id == id);
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
             if (order == null) return NotFound();
 
             if (order.Status == OrderStatus.HoanTat)

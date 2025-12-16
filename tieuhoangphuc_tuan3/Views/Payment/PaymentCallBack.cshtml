@@ -20,29 +20,29 @@
                         <h6>📄 Thông tin đơn hàng: @ViewBag.OrderInfo</h6>
                         <h6>💰 Tổng tiền: @String.Format("{0:N0}", ViewBag.Amount) VNĐ</h6>
                     }
-                    else if (ViewBag.Message == "Success")
+                    else if (ViewBag.Message == "Success")   // VNPay
                     {
                         <h5 class="text-success">✅ Thanh toán VNPay thành công:</h5>
                         <ul class="list-unstyled">
                             <li><strong>🧾 Mã đơn hàng:</strong> @ViewBag.OrderId</li>
                             <li><strong>📄 Thông tin:</strong> @ViewBag.OrderInfo</li>
-                            <li><strong>💰 Tổng tiền:</strong> @ViewBag.Amount VNĐ</li>
+                            <li><strong>💰 Tổng tiền:</strong> @String.Format("{0:N0}", ViewBag.Amount) VNĐ</li>
                         </ul>
                     }
-                    else if (ViewBag.Message != null)
-                    {
-                        <div class="alert alert-danger">
-                            <h5>❌ Thanh toán thất bại hoặc đã bị hủy.</h5>
-                        </div>
-                    }
-                    else
+                    else if (ViewBag.Message == "MomoSuccess")
                     {
                         <h5 class="text-success">✅ Thanh toán MoMo thành công:</h5>
                         <ul class="list-unstyled">
                             <li><strong>🧾 Mã đơn hàng:</strong> @Model.OrderId</li>
                             <li><strong>📄 Thông tin:</strong> @Model.OrderInfo</li>
-                            <li><strong>💰 Tổng tiền:</strong> @Model.Amount VNĐ</li>
+                            <li><strong>💰 Tổng tiền:</strong> @String.Format("{0:N0}", Model.Amount) VNĐ</li>
                         </ul>
+                    }
+                    else if (ViewBag.Message != null)
+                    {
+                        <div class="alert alert-danger">
+                            <h5>❌ @ViewBag.Message</h5>
+                        </div>
                     }
 
                 </div>

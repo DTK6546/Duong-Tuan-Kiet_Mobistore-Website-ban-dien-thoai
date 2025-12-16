@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Sửa tin tức";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    var coupons = ViewBag.Coupons as List<WebBanDienThoai.Models.Coupon>;
 }
 <h2>@ViewData["Title"]</h2>
 
@@ -10,27 +12,58 @@
     {
         <input type="hidden" asp-for="Id" />
     }
+
     <div class="mb-3">
         <label asp-for="Title" class="form-label">Tên đề tài tin tức</label>
         <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
     </div>
+
     <div class="mb-3">
         <label asp-for="Summary" class="form-label">Mô tả ngắn</label>
         <input asp-for="Summary" class="form-control" />
+        <span asp-validation-for="Summary" class="text-danger"></span>
     </div>
+
     <div class="mb-3">
         <label asp-for="ImageUrl" class="form-label">Ảnh link URL</label>
         <input asp-for="ImageUrl" class="form-control" />
+        <span asp-validation-for="ImageUrl" class="text-danger"></span>
     </div>
+
+    <!-- ⭐ GẮN / ĐỔI MÃ GIẢM GIÁ -->
+    <div class="mb-3">
+        <label class="form-label" for="CouponId">Mã giảm giá (nếu là tin khuyến mãi)</label>
+        <select asp-for="CouponId" class="form-control">
+            <option value="">-- Không gắn mã giảm giá --</option>
+            @if (coupons != null)
+            {
+                foreach (var c in coupons)
+                {
+                    var text = c.DiscountPercent.HasValue && c.DiscountPercent > 0
+                    ? $"{c.Code} - Giảm {c.DiscountPercent}% (tối thiểu {c.MinOrderValue:N0})"
+                    : $"{c.Code} - Giảm {(c.DiscountAmount ?? 0).ToString("N0")}đ (tối thiểu {c.MinOrderValue:N0})";
+
+                    <option value="@c.Id">@text</option>
+                }
+            }
+        </select>
+        <span asp-validation-for="CouponId" class="text-danger"></span>
+        <small class="form-text text-muted">
+            Để bài này thành <strong>tin khuyến mãi</strong>, hãy chọn mã giảm giá phù hợp.
+        </small>
+    </div>
+
     <div class="mb-3">
         <label asp-for="Content" class="form-label">Nội dung tin tức</label>
         <textarea asp-for="Content" class="form-control" id="editor" rows="10"></textarea>
+        <span asp-validation-for="Content" class="text-danger"></span>
     </div>
+
     <button type="submit" class="btn btn-primary">Lưu</button>
     <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
 </form>
 
-<!-- CKEditor 5 CDN -->
 <script src="https://cdn.ckeditor.com/ckeditor5/39.0.0/classic/ckeditor.js"></script>
 <script>
     ClassicEditor

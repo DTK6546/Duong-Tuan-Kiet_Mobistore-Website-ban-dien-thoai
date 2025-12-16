@@ -1,7 +1,8 @@
 ﻿@model IEnumerable<WebBanDienThoai.Models.Coupon>
+
 @{
     ViewData["Title"] = "Quản lý mã giảm giá";
-    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"; // giống các view admin khác
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
 <h2>@ViewData["Title"]</h2>
@@ -22,51 +23,96 @@
             <th>Giảm (VNĐ)</th>
             <th>Giảm (%)</th>
             <th>Đơn tối thiểu</th>
-            <th>Số lượng</th>
+            <th>Tổng lượt</th>
+            <th>Đã dùng</th>
+            <th>Còn lại</th>
             <th>Thời gian</th>
             <th>Trạng thái</th>
+            <th>Khách hàng đã sử dụng</th> <!-- Mới thêm cột này -->
             <th></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var item in Model)
         {
-            <tr>
+            var remaining = item.Quantity - item.CurrentUsage;
+            var now = DateTime.Now;
+
+            <tr class="@(remaining <= 0 || !item.IsActive ? "table-secondary" : "")">
                 <td>@item.Code</td>
 
-                <!-- DiscountAmount: decimal? -->
                 <td>
                     @(item.DiscountAmount.HasValue
                                     ? item.DiscountAmount.Value.ToString("N0")
                                     : "")
                                      </td>
 
-                <!-- DiscountPercent: int? -->
                 <td>
                     @(item.DiscountPercent.HasValue
                                     ? item.DiscountPercent.Value + "%"
                                     : "")
             </td>
 
-                <!-- MinOrderValue: decimal -->
                 <td>@item.MinOrderValue.ToString("N0")</td>
 
                 <td>@item.Quantity</td>
 
+                <td>@item.CurrentUsage</td>
+
                 <td>
-                    @item.StartDate.ToString("dd/MM/yyyy") -
-                    @item.EndDate.ToString("dd/MM/yyyy")
+                @if (remaining > 0)
+                    {
+                        @remaining
+                    }
+                    else
+                    {
+                        <span class="text-danger">Hết lượt</span>
+                    }
                 </td>
 
                 <td>
-                    @(item.IsActive ? "Đang hoạt động" : "Ngưng")
+                    @item.StartDate.ToString("dd/MM/yyyy") - @item.EndDate.ToString("dd/MM/yyyy")
                 </td>
 
                 <td>
-                    <a asp-action="Update" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Sửa</a>
+                    @if (!item.IsActive)
+                    {
+                        <span class="badge badge-secondary">Ngưng</span>
+                    }
+                    else if (item.EndDate < now)
+                    {
+                        <span class="badge badge-danger">Hết hạn</span>
+                    }
+                    else if (remaining <= 0)
+                    {
+                        <span class="badge badge-danger">Hết lượt</span>
+                    }
+                    else if (item.StartDate > now)
+                    {
+                        <span class="badge badge-warning">Chưa bắt đầu</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-success">Đang hoạt động</span>
+                    }
+                </td>
+
+                <!-- Thêm cột để xem khách hàng đã sử dụng mã này -->
+                <td>
+                    <a asp-action="UsedByCustomers" asp-route-id="@item.Id" class="btn btn-sm btn-info">
+                        Xem khách hàng
+                    </a>
+                </td>
+
+                <td>
+                    <a asp-action="Update" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                        Sửa
+                    </a>
 
                     <form asp-action="Delete" asp-route-id="@item.Id" method="post" style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Xóa mã này?');">
+                        <button type="submit"
+                                class="btn btn-sm btn-danger"
+                                onclick="return confirm('Xóa mã này?');">
                             Xóa
                         </button>
                     </form>

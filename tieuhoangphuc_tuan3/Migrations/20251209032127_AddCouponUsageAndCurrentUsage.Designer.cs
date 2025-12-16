@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace WebBanDienThoai.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251209032127_AddCouponUsageAndCurrentUsage")]
+    partial class AddCouponUsageAndCurrentUsage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -429,9 +432,6 @@ namespace WebBanDienThoai.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("CouponId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -453,8 +453,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CouponId");
 
                     b.ToTable("News");
                 });
@@ -1121,7 +1119,7 @@ namespace WebBanDienThoai.Migrations
             modelBuilder.Entity("WebBanDienThoai.Models.CouponUsage", b =>
                 {
                     b.HasOne("WebBanDienThoai.Models.Coupon", "Coupon")
-                        .WithMany()
+                        .WithMany("UserCouponUsages")
                         .HasForeignKey("CouponId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1146,15 +1144,6 @@ namespace WebBanDienThoai.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("WebBanDienThoai.Models.News", b =>
-                {
-                    b.HasOne("WebBanDienThoai.Models.Coupon", "Coupon")
-                        .WithMany()
-                        .HasForeignKey("CouponId");
-
-                    b.Navigation("Coupon");
                 });
 
             modelBuilder.Entity("WebBanDienThoai.Models.Order", b =>
@@ -1336,6 +1325,11 @@ namespace WebBanDienThoai.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("SubCategories");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.Coupon", b =>
+                {
+                    b.Navigation("UserCouponUsages");
                 });
 
             modelBuilder.Entity("WebBanDienThoai.Models.Order", b =>

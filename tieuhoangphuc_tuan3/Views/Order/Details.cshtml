@@ -1,27 +1,29 @@
 ﻿@model WebBanDienThoai.Models.Order
 @using WebBanDienThoai.Extensions
+@using WebBanDienThoai.Models
 
 @{
     ViewData["Title"] = "Chi tiết đơn hàng";
 
-    bool canCancel = Model.Status == WebBanDienThoai.Models.OrderStatus.ChoXacNhan
-                  || Model.Status == WebBanDienThoai.Models.OrderStatus.DangXuLy;
+    bool canCancel = Model.Status == OrderStatus.ChoXacNhan || Model.Status == OrderStatus.DangXuLy;
+    bool canConfirmReceived = Model.Status == OrderStatus.DaGiao;
+    bool canReturn = Model.Status == OrderStatus.HoanTat;
 
-    Func<WebBanDienThoai.Models.OrderStatus, string> statusClass = s =>
+    string storeName = Model.Store?.Name ?? "Mobistore";
+
+    Func<OrderStatus, string> statusClass = s => s switch
     {
-        switch (s)
-        {
-            case WebBanDienThoai.Models.OrderStatus.ChoXacNhan: return "badge bg-secondary";
-            case WebBanDienThoai.Models.OrderStatus.DangXuLy: return "badge bg-warning text-dark";
-            case WebBanDienThoai.Models.OrderStatus.DangGiao: return "badge bg-info text-dark";
-            case WebBanDienThoai.Models.OrderStatus.DaGiao: return "badge bg-success";
-            case WebBanDienThoai.Models.OrderStatus.DaHuy: return "badge bg-danger";
-            default: return "badge bg-light text-dark";
-        }
+        OrderStatus.ChoXacNhan => "badge bg-secondary",
+        OrderStatus.DangXuLy => "badge bg-warning text-dark",
+        OrderStatus.DangGiao => "badge bg-info text-dark",
+        OrderStatus.DaGiao => "badge bg-success",
+        OrderStatus.HoanTat => "badge bg-primary",
+        OrderStatus.DaHuy => "badge bg-danger",
+        OrderStatus.TraHang => "badge bg-dark",
+        _ => "badge bg-light text-dark",
     };
 
-    // ===== Tạm tính, giảm giá, VAT =====
-    // Ưu tiên dùng dữ liệu đã lưu trong Order
+    // ===== Money =====
     decimal subTotal = Model.Subtotal;
     decimal discount = Model.DiscountAmount;
     decimal vat = Model.VatAmount;
@@ -35,22 +37,187 @@
             return (od.Price + warrantyPerItem) * od.Quantity;
         });
     }
+
+    // ===== Progress (Shopee-like) =====
+    bool isCancelled = Model.Status == OrderStatus.DaHuy;
+    bool isReturn = Model.Status == OrderStatus.TraHang;
+
+    int progressIndex = Model.Status switch
+    {
+        OrderStatus.ChoXacNhan => 0,
+        OrderStatus.DangXuLy => 1,
+        OrderStatus.DangGiao => 2,
+        OrderStatus.DaGiao => 3,
+        OrderStatus.HoanTat => 4,
+        _ => -1
+    };
+
+    var steps = new (string Title, string Icon)[]
+    {
+        ("Chờ xác nhận", "bi-hourglass-split"),
+        ("Đang xử lý", "bi-gear"),
+        ("Vận chuyển", "bi-truck"),
+        ("Đã giao", "bi-box-seam"),
+        ("Hoàn thành", "bi-check2-circle"),
+    };
+
+    string DeliveryText() => Model.DeliveryMethod == DeliveryMethod.ShipToHome
+        ? "Giao hàng tận nơi"
+        : "Nhận tại cửa hàng";
 }
 
-<div class="container mt-4 mb-4">
-    <div class="card shadow rounded-4 mx-auto" style="max-width: 1100px;">
+<style>
+    /* =========================================================
+               QUAN TRỌNG: “Kháng” CSS global .card / .card-body trong site.css
+               (site.css của bạn đang set .card{height:100%} + .card-body{display:flex; justify-content:space-between})
+               => làm card bị kéo cao bất thường và footer nhìn như “đè”.
+               ========================================================= */
+    .od-card {
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: 1rem;
+        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        height: auto !important; /* chặn height:100% global */
+        transform: none !important; /* chặn hover translateY */
+        transition: none !important;
+    }
 
-        <!-- HEADER -->
-        <div class="card-header bg-light d-flex flex-wrap align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <h3 class="mb-0 fw-bold">Chi tiết đơn hàng #@Model.Id</h3>
-                <span class="@statusClass(Model.Status) ms-3 px-3 py-2 fs-6">
-                    @Model.Status.ToVietnameseStatus()
-                </span>
+        .od-card:hover {
+            transform: none !important;
+        }
+
+        .od-card .card-body {
+            display: block !important; /* chặn display:flex global */
+            justify-content: unset !important; /* chặn space-between global */
+            text-align: left !important; /* chặn center global */
+            flex-grow: 0 !important;
+        }
+
+    /* thêm khoảng thở cuối trang để không “chạm” footer */
+    .od-page {
+        padding-bottom: 40px;
+    }
+
+    .od-muted {
+        color: #6c757d;
+    }
+
+    /* Progress */
+    .od-progress {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+    }
+
+    .od-step {
+        text-align: center;
+        position: relative;
+        padding: 6px 4px;
+    }
+
+        .od-step .dot {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(0,0,0,.15);
+            background: #fff;
+            z-index: 1;
+            position: relative;
+        }
+
+        .od-step.done .dot, .od-step.active .dot {
+            border-color: currentColor;
+        }
+
+        .od-step.done {
+            color: #198754;
+        }
+
+        .od-step.active {
+            color: #0d6efd;
+        }
+
+        .od-step .label {
+            font-weight: 600;
+            font-size: .9rem;
+            margin-top: 6px;
+        }
+
+        .od-step::after {
+            content: "";
+            position: absolute;
+            top: 23px;
+            left: calc(50% + 20px);
+            right: calc(-50% + 20px);
+            height: 3px;
+            background: rgba(0,0,0,.08);
+            z-index: 0;
+        }
+
+        .od-step:last-child::after {
+            display: none;
+        }
+
+        .od-step.done::after {
+            background: rgba(25,135,84,.35);
+        }
+
+        .od-step.active::after {
+            background: rgba(13,110,253,.35);
+        }
+
+    /* Items */
+    .od-item {
+        padding: .9rem 0;
+    }
+
+        .od-item + .od-item {
+            border-top: 1px dashed rgba(0,0,0,.10);
+        }
+
+    .od-thumb {
+        width: 72px;
+        height: 72px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #f8f9fa;
+        border: 1px solid rgba(0,0,0,.06);
+        flex: 0 0 auto;
+    }
+
+        .od-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+    .od-price {
+        min-width: 170px;
+    }
+
+    .od-summary-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: .35rem 0;
+    }
+</style>
+
+<div class="od-page">
+    <div class="container mt-4 mb-4" style="max-width: 1100px;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <div>
+                <h3 class="fw-bold mb-1">Chi tiết đơn hàng #@Model.Id</h3>
+                <div class="od-muted small">Đặt lúc @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
             </div>
 
-            <div class="mt-2 mt-md-0">
-                <a href="@Url.Action("MyOrders", "Order")" class="btn btn-outline-primary px-4 me-2 rounded-pill">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="@statusClass(Model.Status) px-3 py-2">@Model.Status.ToVietnameseStatus()</span>
+
+                <a href="@Url.Action("MyOrders", "Order")" class="btn btn-outline-primary rounded-pill px-4">
                     <i class="bi bi-arrow-left"></i> Quay lại
                 </a>
 
@@ -59,165 +226,217 @@
                     <form asp-action="CancelOrder" method="post" class="d-inline"
                           onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?');">
                         <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-danger px-4 rounded-pill">
+                        <button type="submit" class="btn btn-danger rounded-pill px-4">
                             <i class="bi bi-x-circle"></i> Hủy đơn
                         </button>
                     </form>
                 }
 
-                @if (Model.Status == WebBanDienThoai.Models.OrderStatus.DaGiao)
+                @if (canConfirmReceived)
                 {
                     <form asp-action="ConfirmReceived" method="post" class="d-inline"
                           onsubmit="return confirm('Xác nhận đã nhận hàng?');">
                         <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-success px-4 rounded-pill">
+                        <button type="submit" class="btn btn-success rounded-pill px-4">
                             <i class="bi bi-check2-circle"></i> Đã nhận hàng
+                        </button>
+                    </form>
+                }
+
+                @if (canReturn)
+                {
+                    <form asp-action="ReturnOrder" method="post" class="d-inline"
+                          onsubmit="return confirm('Bạn muốn yêu cầu trả hàng/hoàn tiền cho đơn này?');">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-dark rounded-pill px-4">
+                            <i class="bi bi-arrow-repeat"></i> Trả hàng
                         </button>
                     </form>
                 }
             </div>
         </div>
 
-        <!-- THÔNG TIN ĐƠN -->
-        <div class="row mb-2 mt-3 px-3">
-            <div class="col-md-4 text-md-end fw-semibold text-muted">Ngày đặt:</div>
-            <div class="col-md-8 mb-2">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
-
-            @* Địa chỉ / cửa hàng tuỳ theo DeliveryMethod *@
-            @if (Model.DeliveryMethod == DeliveryMethod.ShipToHome)
-            {
-                <div class="col-md-4 text-md-end fw-semibold text-muted">Địa chỉ giao hàng:</div>
-                <div class="col-md-8 mb-2">@Model.ShippingAddress</div>
-            }
-            else if (Model.DeliveryMethod == DeliveryMethod.PickupAtStore && Model.Store != null)
-            {
-                <div class="col-md-4 text-md-end fw-semibold text-muted">Nhận tại cửa hàng:</div>
-                <div class="col-md-8 mb-2">
-                    @Model.Store.Name - @Model.Store.Address
-                </div>
-            }
-
-            <div class="col-md-4 text-md-end fw-semibold text-muted">Phương thức nhận hàng:</div>
-            <div class="col-md-8 mb-2">
-                @(Model.DeliveryMethod == DeliveryMethod.ShipToHome
-                                ? "Giao hàng tận nơi"
-                                : "Nhận tại cửa hàng")
+        <!-- Progress / Banner -->
+        <div class="card od-card mb-3">
+            <div class="card-body">
+                @if (isCancelled)
+                {
+                    <div class="alert alert-danger mb-0 rounded-4">
+                        <div class="fw-bold"><i class="bi bi-x-octagon"></i> Đơn hàng đã bị hủy</div>
+                        <div class="small">Nếu đây là nhầm lẫn, bạn có thể đặt lại sản phẩm từ trang sản phẩm.</div>
+                    </div>
+                }
+                else if (isReturn)
+                {
+                    <div class="alert alert-dark mb-0 rounded-4">
+                        <div class="fw-bold"><i class="bi bi-arrow-repeat"></i> Đơn hàng đang ở trạng thái Trả hàng/Hoàn tiền</div>
+                        <div class="small">Bộ phận hỗ trợ sẽ xử lý yêu cầu của bạn theo chính sách.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="od-progress">
+                        @for (int i = 0; i < steps.Length; i++)
+                        {
+                            var cls = i < progressIndex ? "od-step done" : (i == progressIndex ? "od-step active" : "od-step");
+                            <div class="@cls">
+                                <div class="dot"><i class="bi @steps[i].Icon"></i></div>
+                                <div class="label">@steps[i].Title</div>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
-
-            <div class="col-md-4 text-md-end fw-semibold text-muted">Ghi chú:</div>
-            <div class="col-md-8 mb-3">@Model.Notes</div>
         </div>
 
-        <!-- DANH SÁCH SẢN PHẨM -->
-        <div class="card-footer bg-white pt-3">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th>Giá</th>
-                            <th>Số lượng</th>
-                            <th>Thành tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model.OrderDetails)
+        <div class="row g-3">
+            <!-- Shipping / Info -->
+            <div class="col-lg-5">
+                <div class="card od-card">
+                    <div class="card-header bg-white border-0 pt-3">
+                        <div class="fw-bold"><i class="bi bi-geo-alt"></i> Thông tin giao hàng</div>
+                        <div class="od-muted small">Phương thức: @DeliveryText()</div>
+                    </div>
+                    <div class="card-body pt-2">
+                        @if (Model.DeliveryMethod == DeliveryMethod.ShipToHome)
                         {
-                            // Giá bảo hành / 1 sản phẩm
-                            var warrantyPerItem = item.Warranties?.Sum(w => w.Price) ?? 0m;
-                            // Thành tiền = (giá sp + bảo hành) * số lượng
-                            var thanhTien = (item.Price + warrantyPerItem) * item.Quantity;
+                            <div class="mb-2">
+                                <div class="od-muted small">Địa chỉ giao hàng</div>
+                                <div class="fw-semibold">@Model.ShippingAddress</div>
+                            </div>
+                        }
+                        else if (Model.DeliveryMethod == DeliveryMethod.PickupAtStore && Model.Store != null)
+                        {
+                            <div class="mb-2">
+                                <div class="od-muted small">Nhận tại cửa hàng</div>
+                                <div class="fw-semibold">@Model.Store.Name</div>
+                                <div class="od-muted">@Model.Store.Address</div>
+                            </div>
+                        }
 
-                            <tr>
-                                <td>
-                                    @{
-                                        // Ưu tiên dùng tên đã lưu trong OrderDetail; nếu null thì fallback về Product.Name (cho các đơn cũ)
-                                        var displayName = !string.IsNullOrEmpty(item.ProductName)
-                                        ? item.ProductName
-                                        : item.Product?.Name;
-                                    }
+                        <div class="mb-2">
+                            <div class="od-muted small">Ghi chú</div>
+                            <div>@(string.IsNullOrWhiteSpace(Model.Notes) ? "(Không có)" : Model.Notes)</div>
+                        </div>
+                    </div>
+                </div>
 
-                                    <div class="fw-bold">@displayName</div>
+                <!-- Money summary -->
+                <div class="card od-card mt-3">
+                    <div class="card-header bg-white border-0 pt-3">
+                        <div class="fw-bold"><i class="bi bi-receipt"></i> Thanh toán</div>
+                    </div>
+                    <div class="card-body pt-2">
+                        <div class="od-summary-row">
+                            <div class="od-muted">Tạm tính</div>
+                            <div class="fw-semibold">@subTotal.ToString("N0") đ</div>
+                        </div>
 
-                                    <!-- GÓI BẢO HÀNH ĐÃ MUA -->
-                                    @{
-                                        var warranties = item.Warranties?.ToList()
-                                        ?? new List<WebBanDienThoai.Models.OrderDetailWarranty>();
-                                    }
-
-                                    @if (warranties.Any())
+                        @if (discount > 0)
+                        {
+                            <div class="od-summary-row">
+                                <div class="od-muted">
+                                    Giảm giá
+                                    @if (!string.IsNullOrEmpty(Model.CouponCode))
                                     {
-                                        <div class="mt-1 p-2 bg-light rounded border">
-                                            <div class="fw-semibold mb-1">
-                                                <i class="bi bi-shield-check text-success"></i>
-                                                Gói bảo hành đã mua:
-                                            </div>
+                                        <span class="small">(Mã: @Model.CouponCode)</span>
+                                    }
+                                </div>
+                                <div class="fw-semibold text-danger">-@discount.ToString("N0") đ</div>
+                            </div>
+                        }
 
-                                            @foreach (var w in warranties)
+                        <div class="od-summary-row">
+                            <div class="od-muted">Thành tiền (chưa VAT)</div>
+                            <div class="fw-semibold">@((subTotal - discount).ToString("N0")) đ</div>
+                        </div>
+
+                        <div class="od-summary-row">
+                            <div class="od-muted">VAT (10%)</div>
+                            <div class="fw-semibold">@vat.ToString("N0") đ</div>
+                        </div>
+
+                        <hr />
+
+                        <div class="od-summary-row align-items-center">
+                            <div class="fw-bold">Tổng cộng</div>
+                            <div class="fs-5 fw-bold text-danger">@Model.TotalPrice.ToString("N0") đ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="col-lg-7">
+                <div class="card od-card">
+                    <div class="card-header bg-white border-0 pt-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="fw-bold"><i class="bi bi-shop"></i> @storeName</div>
+                        <div class="od-muted small">Mã đơn: #@Model.Id</div>
+                    </div>
+
+                    <div class="card-body pt-2">
+                        @foreach (var item in Model.OrderDetails ?? new List<OrderDetail>())
+                        {
+                            var warrantyPerItem = item.Warranties?.Sum(w => w.Price) ?? 0m;
+                            var lineTotal = (item.Price + warrantyPerItem) * item.Quantity;
+                            var displayName = !string.IsNullOrWhiteSpace(item.ProductName) ? item.ProductName : item.Product?.Name;
+                            var img = item.Product?.ImageUrl;
+
+                            <div class="od-item d-flex gap-3">
+                                <div class="od-thumb">
+                                    @if (!string.IsNullOrWhiteSpace(img))
+                                    {
+                                        <img src="@img" alt="@displayName" />
+                                    }
+                                    else
+                                    {
+                                        <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                                            <i class="bi bi-phone fs-4"></i>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">@displayName</div>
+
+                                    @if (item.Warranties != null && item.Warranties.Any())
+                                    {
+                                        <div class="mt-2 p-2 bg-light rounded border">
+                                            <div class="fw-semibold mb-1 small">
+                                                <i class="bi bi-shield-check text-success"></i> Gói bảo hành đã mua
+                                            </div>
+                                            @foreach (var w in item.Warranties)
                                             {
-                                                <div class="d-flex justify-content-between small ps-3">
+                                                <div class="d-flex justify-content-between small ps-2">
                                                     <span>• @w.Name (@w.Months tháng)</span>
-                                                    <span class="text-danger fw-bold">
-                                                        +@w.Price.ToString("N0") đ
-                                                    </span>
+                                                    <span class="text-danger fw-semibold">+@w.Price.ToString("N0") đ</span>
                                                 </div>
                                             }
                                         </div>
                                     }
-                                </td>
+                                </div>
 
-                                <td>@item.Price.ToString("N0") đ</td>
-                                <td>@item.Quantity</td>
-                                <td>@thanhTien.ToString("N0") đ</td>
-                            </tr>
-                        }
-                    </tbody>
-
-                    <tfoot>
-                        <tr>
-                            <td colspan="3" class="text-end fw-bold">Tạm tính:</td>
-                            <td class="fw-bold">@subTotal.ToString("N0") đ</td>
-                        </tr>
-
-                        @if (discount > 0)
-                        {
-                            <tr>
-                                <td colspan="3" class="text-end fw-bold">
-                                    Giảm giá
-                                    @if (!string.IsNullOrEmpty(Model.CouponCode))
+                                <div class="text-end od-price">
+                                    <div class="od-muted small">x@(item.Quantity)</div>
+                                    <div class="fw-semibold">@item.Price.ToString("N0") đ</div>
+                                    @if (warrantyPerItem > 0)
                                     {
-                                        <span class="text-muted">(Mã: @Model.CouponCode)</span>
+                                        <div class="od-muted small">BH: +@warrantyPerItem.ToString("N0") đ / sp</div>
                                     }
-                                </td>
-                                <td class="fw-bold text-danger">-@discount.ToString("N0") đ</td>
-                            </tr>
+                                    <div class="fw-bold mt-1">@lineTotal.ToString("N0") đ</div>
+                                </div>
+                            </div>
                         }
-
-                        <tr>
-                            <td colspan="3" class="text-end fw-bold">Thành tiền (chưa VAT):</td>
-                            <td class="fw-bold">@((subTotal - discount).ToString("N0")) đ</td>
-                        </tr>
-
-                        <tr>
-                            <td colspan="3" class="text-end fw-bold">VAT (10%):</td>
-                            <td class="fw-bold">@vat.ToString("N0") đ</td>
-                        </tr>
-
-                        <tr>
-                            <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
-                            <td class="fw-bold">@Model.TotalPrice.ToString("N0") đ</td>
-                        </tr>
-                    </tfoot>
-
-                </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    window.onload = function () {
+    window.addEventListener('load', function () {
         var adBanner = document.querySelector('.carousel');
         if (adBanner) adBanner.style.display = 'none';
-    };
+    });
 </script>

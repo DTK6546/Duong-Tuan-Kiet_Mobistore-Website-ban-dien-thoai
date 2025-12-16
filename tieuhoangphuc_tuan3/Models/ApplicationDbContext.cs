@@ -29,7 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProductSpecs> ProductSpecs { get; set; }
     public DbSet<ProductVariant> ProductVariants { get; set; }
     public DbSet<Store> Stores { get; set; }
-
+    public DbSet<CouponUsage> CouponUsages { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

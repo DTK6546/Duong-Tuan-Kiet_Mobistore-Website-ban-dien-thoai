@@ -203,9 +203,10 @@ namespace WebBanDienThoai.Controllers
                     }
                 }
 
+                UpdateCouponUsageAfterOnlinePayment(cart, userId);
+
                 // 10. Xoá giỏ hàng
-                cart.Items.Clear();
-                HttpContext.Session.SetObjectAsJson("Cart", cart);
+                HttpContext.Session.Remove("Cart");
 
                 // 11. Thông tin trả về view
                 ViewBag.Message = "MomoSuccess";
@@ -424,9 +425,10 @@ namespace WebBanDienThoai.Controllers
                     }
                 }
 
+                UpdateCouponUsageAfterOnlinePayment(cart, userId);
+
                 // 10. Xoá giỏ hàng
-                cart.Items.Clear();
-                HttpContext.Session.SetObjectAsJson("Cart", cart);
+                HttpContext.Session.Remove("Cart");
 
                 // 11. Thông tin hiển thị ra view
                 ViewBag.OrderId = vnpOrderId;
@@ -614,9 +616,10 @@ namespace WebBanDienThoai.Controllers
                     }
                 }
 
+                UpdateCouponUsageAfterOnlinePayment(cart, userId);
+
                 // Xoá giỏ hàng
-                cart.Items.Clear();
-                HttpContext.Session.SetObjectAsJson("Cart", cart);
+                HttpContext.Session.Remove("Cart");
 
                 ViewBag.Message = "PaypalSuccess";
                 ViewBag.Amount = total;
@@ -630,6 +633,31 @@ namespace WebBanDienThoai.Controllers
             }
 
             return View("PaymentCallBack");
+        }
+        private void UpdateCouponUsageAfterOnlinePayment(ShoppingCart cart, string userId)
+        {
+            if (cart == null || string.IsNullOrEmpty(cart.CouponCode)) return;
+            if (string.IsNullOrEmpty(userId) || userId == "Guest") return;
+
+            var coupon = _dbContext.Coupons.SingleOrDefault(c => c.Code == cart.CouponCode);
+            if (coupon == null) return;
+
+            if (coupon.CurrentUsage >= coupon.Quantity) return;
+
+            bool hasUsed = _dbContext.CouponUsages
+                .Any(x => x.CouponId == coupon.Id && x.UserId == userId);
+            if (hasUsed) return;
+
+            coupon.CurrentUsage++;
+
+            _dbContext.CouponUsages.Add(new CouponUsage
+            {
+                CouponId = coupon.Id,
+                UserId = userId,
+                UsedAt = DateTime.Now
+            });
+
+            _dbContext.SaveChanges();
         }
 
 
