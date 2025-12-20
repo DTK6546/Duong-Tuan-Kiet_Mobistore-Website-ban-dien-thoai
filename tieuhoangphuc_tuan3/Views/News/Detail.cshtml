@@ -1,5 +1,6 @@
 ﻿@model WebBanDienThoai.Models.News
 @using WebBanDienThoai.Models
+@using System.Globalization
 
 @{
     ViewData["Title"] = Model.Title;
@@ -9,6 +10,8 @@
     bool couponAlive = ViewBag.CouponAlive ?? false;
     int remaining = ViewBag.Remaining ?? 0;
     var coupon = Model.Coupon;
+
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
 }
 
 <div class="container mt-4 mb-5">
@@ -61,10 +64,10 @@
                             @(
                                                     coupon.DiscountPercent.HasValue && coupon.DiscountPercent > 0
                                                     ? $"{coupon.DiscountPercent}%"
-                                                    : $"{(coupon.DiscountAmount ?? 0).ToString("N0")} VNĐ"
+                                                    : $"{(coupon.DiscountAmount ?? 0).ToString("N0", vi)} VNĐ"
                                                     )
                         <br />
-                        <strong>Đơn tối thiểu:</strong> @coupon.MinOrderValue.ToString("N0") VNĐ <br />
+                        <strong>Đơn tối thiểu:</strong> @coupon.MinOrderValue.ToString("N0", vi) VNĐ <br />
                         <strong>Thời gian:</strong>
                         @coupon.StartDate.ToString("dd/MM/yyyy") - @coupon.EndDate.ToString("dd/MM/yyyy") <br />
                         <strong>Còn lại:</strong> @remaining mã

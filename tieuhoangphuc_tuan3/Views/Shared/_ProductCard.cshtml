@@ -1,5 +1,6 @@
 ﻿@model WebBanDienThoai.Models.ProductWithSoldCount
 @using System.Linq
+@using System.Globalization
 
 @{
     var isFlashSale = ViewData["FlashSale"] as bool? == true;
@@ -10,6 +11,8 @@
         : new List<string>();
 
     var defaultVariant = hasVariants ? Model.Variants.First() : null;
+
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
 }
 
 <div class="product-card shadow-sm h-100" data-product-id="@Model.Id">
@@ -23,14 +26,17 @@
         <a href="@Url.Action("Display", "Product", new { id = Model.Id })">
             <img src="@Model.ImageUrl" class="product-image w-100" alt="@Model.Name">
         </a>
+
         @if (isFlashSale)
         {
             <span class="flash-sale-badge">FLASH SALE</span>
         }
+
         @if (Model.DiscountPercent > 0)
         {
             <span class="discount-badge">-@Model.DiscountPercent%</span>
         }
+
         @if (ViewBag.HotSale != null && (bool)ViewBag.HotSale)
         {
             <span class="hot-label bg-warning text-dark"><i class="bi bi-fire"></i> Bán chạy</span>
@@ -91,7 +97,7 @@
             {
                 <h6 class="text-danger fw-bold mb-0">
                     <span class="variant-price">
-                        @defaultVariant.Price.ToString("N0") VNĐ
+                        @defaultVariant.Price.ToString("N0", vi) VNĐ
                     </span>
                 </h6>
             }
@@ -99,12 +105,12 @@
             {
                 @if (Model.DiscountPercent > 0)
                 {
-                    <del>@Model.Price.ToString("N0") VNĐ</del>
-                    <h6 class="text-danger fw-bold">@Model.DiscountedPrice.ToString("N0") VNĐ</h6>
+                    <del>@Model.Price.ToString("N0", vi) VNĐ</del>
+                    <h6 class="text-danger fw-bold">@Model.DiscountedPrice.ToString("N0", vi) VNĐ</h6>
                 }
                 else
                 {
-                    <h6 class="text-danger fw-bold">@Model.Price.ToString("N0") VNĐ</h6>
+                    <h6 class="text-danger fw-bold">@Model.Price.ToString("N0", vi) VNĐ</h6>
                 }
             }
         </div>
@@ -179,7 +185,7 @@
 
                 var card = btnCap.closest('.product-card');
                 if (card) {
-                    // cập nhật giá
+                    // cập nhật giá (✅ vi-VN => dấu chấm)
                     var priceSpan = card.querySelector('.variant-price');
                     if (priceSpan) {
                         priceSpan.textContent = price.toLocaleString('vi-VN') + ' VNĐ';

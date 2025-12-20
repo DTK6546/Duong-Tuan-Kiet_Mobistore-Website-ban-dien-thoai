@@ -3,8 +3,11 @@
 @using WebBanDienThoai.Models
 @using System.Collections.Generic
 @using System.Linq
+@using System.Globalization
 
 @{
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
+
     ViewData["Title"] = "Chi Tiết Sản Phẩm";
 
     var ratings = ViewBag.Ratings as List<WebBanDienThoai.Models.ProductRating> ?? new List<WebBanDienThoai.Models.ProductRating>();
@@ -50,8 +53,6 @@
             }
         }
     }
-}
-
 }
 
 <script>
@@ -138,17 +139,9 @@
     }
 
     keyframes popscale {
-        0%
-
-    {
-        transform: scale(0.7);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-
-    }
+    0% { transform: scale(0.7); }
+    100% { transform: scale(1); }
+}
 
     .custom-popup-icon {
         font-size: 48px;
@@ -335,11 +328,11 @@
                     if (Model.DiscountPercent > 0)
                     {
                         <span class="h5 text-muted text-decoration-line-through">
-                            @Model.Price.ToString("N0") VNĐ
+                            @Model.Price.ToString("N0", vi) VNĐ
                         </span>
                     }
                     <span class="h4 text-danger fw-bold ms-2" id="displayPrice">
-                        @defaultVariantPrice.ToString("N0") VNĐ
+                        @defaultVariantPrice.ToString("N0", vi) VNĐ
                     </span>
                 }
                 else
@@ -347,16 +340,16 @@
                     @if (Model.DiscountPercent > 0)
                     {
                         <span class="h4 text-danger fw-bold">
-                            <del>@Model.Price.ToString("N0") VNĐ</del>
+                            <del>@Model.Price.ToString("N0", vi) VNĐ</del>
                         </span>
                         <span class="h4 text-danger fw-bold ms-2" id="displayPrice">
-                            @Model.DiscountedPrice.ToString("N0") VNĐ
+                            @Model.DiscountedPrice.ToString("N0", vi) VNĐ
                         </span>
                     }
                     else
                     {
                         <span class="h4 text-danger fw-bold" id="displayPrice">
-                            @Model.Price.ToString("N0") VNĐ
+                            @Model.Price.ToString("N0", vi) VNĐ
                         </span>
                     }
                 }

@@ -1,9 +1,13 @@
 ﻿@model List<WebBanDienThoai.Models.CompareProductViewModel>
+@using System.Globalization
 
 @{
     ViewData["Title"] = "So sánh sản phẩm";
     var hasSpecs = Model.All(m => m.Product.Specs != null);
     var maxSlots = 3; // tối đa 3 sản phẩm so sánh
+
+    // ✅ Ép format kiểu Việt Nam: 24.000.000
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
 }
 
 <div class="container mt-4 mb-4">
@@ -75,14 +79,14 @@
 
                     @* Giá *@
                     <div class="text-danger fw-bold">
-                        @showPrice.ToString("N0") đ
+                        @showPrice.ToString("N0", vi) đ
                     </div>
 
                     @* Nếu dùng giảm giá ở Product thì giữ lại gạch giá cũ *@
                     @if (v == null && p.DiscountPercent > 0)
                     {
                         <div class="text-muted text-decoration-line-through small">
-                            @p.Price.ToString("N0") đ
+                            @p.Price.ToString("N0", vi) đ
                         </div>
                     }
 
