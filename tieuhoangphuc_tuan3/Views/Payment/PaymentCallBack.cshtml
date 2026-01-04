@@ -1,5 +1,4 @@
 ﻿@model MomoExecuteResponseModel
-
 @{
     ViewData["Title"] = "Kết quả thanh toán";
 }
@@ -7,53 +6,47 @@
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-12 col-md-8 col-lg-6">
-            <div class="card shadow-lg">
-                <div class="card-header bg-success text-white text-center">
-                    <h4 class="mb-0">🔔 Kết quả thanh toán</h4>
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-header @(ViewBag.Message != null && ViewBag.Message.Contains("Lỗi") ? "bg-danger" : "bg-success") text-white text-center py-3">
+                    <h4 class="mb-0 fw-bold">🔔 KẾT QUẢ THANH TOÁN</h4>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
 
-                    @if (ViewBag.Message == "PaypalSuccess")
+                    @if (ViewBag.Message == "PaypalSuccess" || ViewBag.Message == "Success" || ViewBag.Message == "MomoSuccess")
                     {
-                        <h5 class="text-success">✅ Thanh toán PayPal thành công:</h5>
-                        <h6>🧾 Mã đơn hàng: @ViewBag.OrderId</h6>
-                        <h6>📄 Thông tin đơn hàng: @ViewBag.OrderInfo</h6>
-                        <h6>💰 Tổng tiền: @String.Format("{0:N0}", ViewBag.Amount) VNĐ</h6>
-                    }
-                    else if (ViewBag.Message == "Success")   // VNPay
-                    {
-                        <h5 class="text-success">✅ Thanh toán VNPay thành công:</h5>
-                        <ul class="list-unstyled">
-                            <li><strong>🧾 Mã đơn hàng:</strong> @ViewBag.OrderId</li>
-                            <li><strong>📄 Thông tin:</strong> @ViewBag.OrderInfo</li>
-                            <li><strong>💰 Tổng tiền:</strong> @String.Format("{0:N0}", ViewBag.Amount) VNĐ</li>
-                        </ul>
-                    }
-                    else if (ViewBag.Message == "MomoSuccess")
-                    {
-                        <h5 class="text-success">✅ Thanh toán MoMo thành công:</h5>
-                        <ul class="list-unstyled">
-                            <li><strong>🧾 Mã đơn hàng:</strong> @Model.OrderId</li>
-                            <li><strong>📄 Thông tin:</strong> @Model.OrderInfo</li>
-                            <li><strong>💰 Tổng tiền:</strong> @String.Format("{0:N0}", Model.Amount) VNĐ</li>
-                        </ul>
+                        string method = ViewBag.Message == "PaypalSuccess" ? "PayPal" : (ViewBag.Message == "Success" ? "VNPay" : "MoMo");
+
+                        <div class="text-center mb-4">
+                            <div class="display-4 text-success mb-2"><i class="bi bi-check-circle-fill"></i></div>
+                            <h5 class="text-success fw-bold">Thanh toán qua @method thành công!</h5>
+                        </div>
+
+                        <div class="bg-light p-3 rounded-3">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><strong>🧾 Mã đơn hàng:</strong> <span class="text-primary">#@ViewBag.OrderId</span></li>
+                                <li class="mb-2"><strong>📄 Thông tin:</strong> @ViewBag.OrderInfo</li>
+                                <li class="mb-0"><strong>💰 Tổng tiền:</strong> <span class="text-danger fw-bold">@String.Format("{0:N0}", ViewBag.Amount) VNĐ</span></li>
+                            </ul>
+                        </div>
                     }
                     else if (ViewBag.Message != null)
                     {
-                        <div class="alert alert-danger">
-                            <h5>❌ @ViewBag.Message</h5>
+                        <div class="alert alert-danger border-0 shadow-sm">
+                            <h5 class="fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Thông báo lỗi:</h5>
+                            <p class="mb-0">@ViewBag.Message</p>
                         </div>
                     }
-
                 </div>
 
-                <div class="card-footer text-center">
-                    <a href="@Url.Action("Index", "Product")" class="btn btn-outline-primary px-4 py-2 shadow">
-                        🛒 Tiếp tục mua sắm
-                    </a>
-                    <a href="@Url.Action("MyOrders", "Order")" class="btn btn-outline-primary px-4 py-2 shadow">
-                        🛒 Xem đơn hàng của tôi
-                    </a>
+                <div class="card-footer bg-white border-0 text-center pb-4">
+                    <div class="d-grid gap-2 d-md-block">
+                        <a href="@Url.Action("Index", "Product")" class="btn btn-outline-primary px-4 shadow-sm me-md-2">
+                            🛒 Tiếp tục mua sắm
+                        </a>
+                        <a href="@Url.Action("MyOrders", "Order")" class="btn btn-primary px-4 shadow-sm">
+                            📦 Xem đơn hàng của tôi
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

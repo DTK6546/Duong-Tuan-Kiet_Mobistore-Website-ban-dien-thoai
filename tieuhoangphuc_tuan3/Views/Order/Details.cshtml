@@ -10,6 +10,7 @@
     bool canReturn = Model.Status == OrderStatus.HoanTat;
 
     string storeName = Model.Store?.Name ?? "Mobistore";
+    string customerName = Model.ApplicationUser?.FullName ?? (Model.Notes?.Contains("Khách hàng:") == true ? Model.Notes.Split('.')[0] : "Khách hàng");
 
     Func<OrderStatus, string> statusClass = s => s switch
     {
@@ -27,6 +28,7 @@
     decimal subTotal = Model.Subtotal;
     decimal discount = Model.DiscountAmount;
     decimal vat = Model.VatAmount;
+    decimal shipFee = Model.ShippingFee;
 
     // Fallback cho các đơn cũ (khi Subtotal = 0)
     if (subTotal == 0 && Model.OrderDetails != null && Model.OrderDetails.Any())
@@ -212,6 +214,7 @@
             <div>
                 <h3 class="fw-bold mb-1">Chi tiết đơn hàng #@Model.Id</h3>
                 <div class="od-muted small">Đặt lúc @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
+                <div class="text-primary fw-semibold small">Khách hàng: @customerName</div>
             </div>
 
             <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -348,12 +351,19 @@
 
                         <div class="od-summary-row">
                             <div class="od-muted">Thành tiền (chưa VAT)</div>
-                            <div class="fw-semibold">@((subTotal - discount).ToString("N0")) đ</div>
+                            <div class="fw-semibold">
+                                @Math.Max(0, subTotal - discount).ToString("N0") đ
+                            </div>
                         </div>
 
                         <div class="od-summary-row">
                             <div class="od-muted">VAT (10%)</div>
                             <div class="fw-semibold">@vat.ToString("N0") đ</div>
+                        </div>
+
+                        <div class="od-summary-row">
+                            <div class="od-muted">Phí vận chuyển</div>
+                            <div class="fw-semibold">@(shipFee > 0 ? shipFee.ToString("N0") + " đ" : "Miễn phí")</div>
                         </div>
 
                         <hr />

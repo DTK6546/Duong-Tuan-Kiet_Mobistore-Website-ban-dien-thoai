@@ -1,0 +1,138 @@
+﻿@model WebBanDienThoai.Models.ShippingRate
+
+@{
+    ViewData["Title"] = "Thêm phí vận chuyển";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var provinces = ViewBag.Provinces as IEnumerable<dynamic> ?? new List<dynamic>();
+}
+
+<h2>Thêm phí vận chuyển</h2>
+
+<a asp-area="Admin" asp-controller="ShippingRate" asp-action="Index"
+   class="btn btn-secondary mb-3">
+    ← Quay lại
+</a>
+
+<form asp-area="Admin" asp-controller="ShippingRate" asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label class="form-label">Tỉnh/TP</label>
+        <select asp-for="ProvinceCode" class="form-select" id="provinceSelect">
+            <option value="">-- Chọn tỉnh --</option>
+            @foreach (var p in provinces)
+            {
+                <option value="@p.Code">@p.Name (@p.Code)</option>
+            }
+        </select>
+        <span asp-validation-for="ProvinceCode" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Quận/Huyện (để trống = Toàn tỉnh)</label>
+        <select asp-for="DistrictCode" class="form-select" id="districtSelect">
+            <option value="">-- Toàn tỉnh --</option>
+        </select>
+        <span asp-validation-for="DistrictCode" class="text-danger"></span>
+    </div>
+
+    <hr />
+    <h5>Giao tiêu chuẩn (Standard)</h5>
+
+    <div class="mb-3">
+        <label class="form-label">Phí ship tiêu chuẩn (VNĐ)</label>
+        <input asp-for="Fee" class="form-control" type="number" min="0" step="1000" />
+        <span asp-validation-for="Fee" class="text-danger"></span>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">MinDays (tiêu chuẩn)</label>
+            <input asp-for="MinDays" class="form-control" type="number" min="0" />
+            <span asp-validation-for="MinDays" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">MaxDays (tiêu chuẩn)</label>
+            <input asp-for="MaxDays" class="form-control" type="number" min="0" />
+            <span asp-validation-for="MaxDays" class="text-danger"></span>
+        </div>
+    </div>
+
+    <hr />
+    <h5>Giao nhanh (Express)</h5>
+
+    <div class="mb-3">
+        <label class="form-label">Phí ship nhanh (VNĐ)</label>
+        <input asp-for="ExpressFee" class="form-control" type="number" min="0" step="1000" />
+        <span asp-validation-for="ExpressFee" class="text-danger"></span>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">ExpressMinDays</label>
+            <input asp-for="ExpressMinDays" class="form-control" type="number" min="0" />
+            <span asp-validation-for="ExpressMinDays" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">ExpressMaxDays</label>
+            <input asp-for="ExpressMaxDays" class="form-control" type="number" min="0" />
+            <span asp-validation-for="ExpressMaxDays" class="text-danger"></span>
+        </div>
+    </div>
+
+    <hr />
+    <h5>Miễn phí vận chuyển</h5>
+
+    <div class="mb-3">
+        <label class="form-label">Free ship từ (VNĐ) (để trống = không free)</label>
+        <input asp-for="FreeShipMinOrder" class="form-control" type="number" min="0" step="1000" />
+        <span asp-validation-for="FreeShipMinOrder" class="text-danger"></span>
+        <div class="form-text">Ví dụ: 5000000 = đơn hàng từ 5.000.000đ sẽ miễn phí ship.</div>
+    </div>
+
+    <div class="text-danger mb-2">
+        @Html.ValidationSummary(excludePropertyErrors: true)
+    </div>
+
+    <button type="submit" class="btn btn-success">Lưu</button>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const province = document.getElementById('provinceSelect');
+            const district = document.getElementById('districtSelect');
+            if (!province || !district) return;
+
+            async function loadDistricts() {
+                const p = (province.value || '').trim();
+                district.innerHTML = `<option value="">-- Toàn tỉnh --</option>`;
+                if (!p) return;
+
+                const url = '@Url.Action("DistrictsByProvince", "ShippingRate", new { area = "Admin" })'
+                    + '?provinceCode=' + encodeURIComponent(p);
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                data.forEach(x => {
+                    const opt = document.createElement('option');
+                    opt.value = x.code;
+                    opt.textContent = `${x.name} (${x.code})`;
+                    district.appendChild(opt);
+                });
+            }
+
+            province.addEventListener('change', function () {
+                district.value = '';
+                loadDistricts();
+            });
+
+            loadDistricts();
+        });
+    </script>
+}

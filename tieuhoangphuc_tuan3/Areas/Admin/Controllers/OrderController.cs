@@ -35,12 +35,12 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         public IActionResult Details(int id)
         {
             var order = _db.Orders
-        .Include(o => o.ApplicationUser)
+        .Include(o => o.ApplicationUser) // Cần để hiện FullName khách hàng
+        .Include(o => o.Store)
         .Include(o => o.OrderDetails)
             .ThenInclude(od => od.Product)
         .Include(o => o.OrderDetails)
-            .ThenInclude(od => od.Warranties)   
-        .Include(o => o.Store)                 
+            .ThenInclude(od => od.Warranties) // Hiển thị các gói bảo hành khách đã mua             
         .FirstOrDefault(o => o.Id == id);
 
             if (order == null)

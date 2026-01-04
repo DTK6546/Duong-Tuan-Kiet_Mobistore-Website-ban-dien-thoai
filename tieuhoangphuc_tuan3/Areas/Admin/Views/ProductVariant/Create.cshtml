@@ -53,6 +53,18 @@
     </div>
 
     <div class="mb-3">
+        <label asp-for="Sku" class="form-label">SKU</label>
+        <input asp-for="Sku" class="form-control" placeholder="VD: IP15PM-256-BLACK" />
+        <span asp-validation-for="Sku" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ImageUrl" class="form-label">Ảnh biến thể (URL)</label>
+        <input asp-for="ImageUrl" class="form-control" placeholder="/images/variants/ip15-black.png hoặc URL" />
+        <span asp-validation-for="ImageUrl" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
         <label asp-for="Price" class="form-label"></label>
         <input asp-for="Price" class="form-control" />
         <span asp-validation-for="Price" class="text-danger"></span>

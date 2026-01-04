@@ -21,21 +21,20 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         public async Task<IActionResult> Index(int productId)
         {
             var product = await _context.Products
-                .Include(p => p.Variants)
-                .FirstOrDefaultAsync(p => p.Id == productId);
+        .AsNoTracking()
+        .FirstOrDefaultAsync(p => p.Id == productId);
 
-            if (product == null)
-            {
-                return NotFound();
-            }
+            if (product == null) return NotFound();
 
             ViewBag.ProductId = product.Id;
             ViewBag.ProductName = product.Name;
 
-            var variants = product.Variants
-                                  .OrderBy(v => v.Color)
-                                  .ThenBy(v => v.Storage)
-                                  .ToList();
+            var variants = await _context.ProductVariants
+                .AsNoTracking()
+                .Where(v => v.ProductId == productId)
+                .OrderBy(v => v.Color)
+                .ThenBy(v => v.Storage)
+                .ToListAsync();
 
             return View(variants);
         }
@@ -115,10 +114,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, ProductVariant model)
         {
-            if (id != model.Id)
-            {
-                return BadRequest();
-            }
+            if (id != model.Id) return BadRequest();
 
             if (!ModelState.IsValid)
             {
@@ -128,29 +124,27 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     ViewBag.ProductId = product.Id;
                     ViewBag.ProductName = product.Name;
                 }
-
                 return View(model);
             }
 
-            try
-            {
-                _context.Update(model);   // sẽ tự update luôn Ram + StorageAvailable
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                bool exists = await _context.ProductVariants.AnyAsync(v => v.Id == model.Id);
-                if (!exists)
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            var entity = await _context.ProductVariants.FirstOrDefaultAsync(v => v.Id == id);
+            if (entity == null) return NotFound();
 
-            return RedirectToAction(nameof(Index), new { productId = model.ProductId });
+            // update đúng field
+            entity.Color = model.Color;
+            entity.Storage = model.Storage;
+            entity.Price = model.Price;
+            entity.Stock = model.Stock;
+            entity.Ram = model.Ram;
+            entity.StorageAvailable = model.StorageAvailable;
+
+            // ✅ mới thêm
+            entity.Sku = model.Sku;
+            entity.ImageUrl = model.ImageUrl;
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index), new { productId = entity.ProductId });
         }
 
         // POST: /Admin/ProductVariant/Delete/10

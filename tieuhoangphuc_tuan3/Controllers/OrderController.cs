@@ -24,8 +24,9 @@ namespace WebBanDienThoai.Controllers
             if (user == null) return Challenge();
 
             var orders = await _context.Orders
+                .AsNoTracking()
                 .Where(o => o.UserId == user.Id)
-                // Load thêm chi tiết để View có thể render danh sách sản phẩm theo kiểu Shopee
+                .Include(o => o.ApplicationUser)
                 .Include(o => o.Store)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Product)
@@ -43,21 +44,23 @@ namespace WebBanDienThoai.Controllers
             if (user == null) return Challenge();
 
             var order = await _context.Orders
+                .AsNoTracking()
                 .Where(o => o.Id == id && o.UserId == user.Id)
+                .Include(o => o.ApplicationUser)
+                .Include(o => o.Store)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Product)
                 .Include(o => o.OrderDetails)
-                    .ThenInclude(od => od.Warranties)   // ⭐ lấy luôn gói bảo hành
-                .Include(o => o.Store)
+                    .ThenInclude(od => od.Warranties)
                 .FirstOrDefaultAsync();
 
-            if (order == null)
-                return NotFound();
+            if (order == null) return NotFound();
 
             return View(order);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelOrder(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -66,17 +69,19 @@ namespace WebBanDienThoai.Controllers
             var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
             if (order == null) return NotFound();
 
+            // Chỉ cho huỷ khi chưa giao
             if (order.Status == OrderStatus.ChoXacNhan || order.Status == OrderStatus.DangXuLy)
             {
                 order.Status = OrderStatus.DaHuy;
                 _context.Update(order);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
 
-            return RedirectToAction("Details", new { id });
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmReceived(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -89,13 +94,14 @@ namespace WebBanDienThoai.Controllers
             {
                 order.Status = OrderStatus.HoanTat;
                 _context.Update(order);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
 
-            return RedirectToAction("Details", new { id });
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReturnOrder(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -104,14 +110,15 @@ namespace WebBanDienThoai.Controllers
             var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
             if (order == null) return NotFound();
 
+            // Chỉ cho trả hàng khi đã hoàn tất
             if (order.Status == OrderStatus.HoanTat)
             {
                 order.Status = OrderStatus.TraHang;
                 _context.Update(order);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
 
-            return RedirectToAction("Details", new { id });
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

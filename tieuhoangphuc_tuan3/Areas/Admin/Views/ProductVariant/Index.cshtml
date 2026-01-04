@@ -6,67 +6,85 @@
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h2>Phiên bản của sản phẩm: @ViewBag.ProductName</h2>
+<h2>Phiên bản của sản phẩm: <span class="text-primary">@ViewBag.ProductName</span></h2>
 
-<div class="mb-3">
-    <a asp-area="Admin"
-       asp-controller="Product"
-       asp-action="Index"
-       class="btn btn-secondary">
+<div class="mb-3 d-flex gap-2">
+    <a asp-area="Admin" asp-controller="Product" asp-action="Index" class="btn btn-secondary">
         ← Quay lại danh sách sản phẩm
     </a>
 
-    <a asp-area="Admin"
-       asp-controller="ProductVariant"
-       asp-action="Create"
-       asp-route-productId="@ViewBag.ProductId"
-       class="btn btn-primary">
+    <a asp-area="Admin" asp-controller="ProductVariant" asp-action="Create"
+       asp-route-productId="@ViewBag.ProductId" class="btn btn-primary">
         + Thêm phiên bản
     </a>
 </div>
 
-<table class="table table-bordered table-striped">
+<table class="table table-bordered table-striped align-middle">
     <thead>
         <tr>
-            <th style="width: 15%;">Màu sắc</th>
-            <th style="width: 15%;">Dung lượng</th>
-            <th style="width: 15%;">RAM</th>
-            <th style="width: 20%;">Dung lượng còn lại (khả dụng)</th>
-            <th style="width: 15%;">Giá</th>
-            <th style="width: 10%;">Tồn kho</th>
-            <th style="width: 10%;">Hành động</th>
+            <th style="width:90px;">Ảnh</th>
+            <th style="width:180px;">SKU</th>
+            <th style="width:120px;">Màu sắc</th>
+            <th style="width:120px;">Dung lượng</th>
+            <th style="width:90px;">RAM</th>
+            <th style="width:200px;">Dung lượng còn lại</th>
+            <th style="width:140px;">Giá</th>
+            <th style="width:90px;">Tồn kho</th>
+            <th style="width:120px;">Trạng thái</th>
+            <th style="width:140px;">Hành động</th>
         </tr>
     </thead>
+
     <tbody>
         @if (Model != null && Model.Any())
         {
             foreach (var item in Model)
             {
+                var inStock = item.Stock > 0;
+
                 <tr>
+                    <td>
+                        <img src="@(string.IsNullOrWhiteSpace(item.ImageUrl) ? "/images/no-image.png" : item.ImageUrl)"
+                             style="width:60px;height:60px;object-fit:cover;border:1px solid #ddd;border-radius:6px;"
+                             alt="variant-img" />
+                    </td>
+
+                    <td>
+                        <span class="text-danger fw-semibold" id="sku_@item.Id">
+                            @(!string.IsNullOrWhiteSpace(item.Sku) ? item.Sku : "—")
+                        </span>
+                    </td>
+
                     <td>@item.Color</td>
                     <td>@item.Storage</td>
                     <td>@item.Ram</td>
                     <td>@item.StorageAvailable</td>
+
                     <td>@String.Format("{0:N0} ₫", item.Price)</td>
-                    <td>@item.Stock</td>
+
+                    <td class="text-center">@item.Stock</td>
+
+                    <td class="text-center">
+                        @if (inStock)
+                        {
+                            <span class="badge bg-success">Còn hàng</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Hết hàng</span>
+                        }
+                    </td>
+
                     <td>
-                        <a asp-area="Admin"
-                           asp-controller="ProductVariant"
-                           asp-action="Edit"
-                           asp-route-id="@item.Id"
-                           class="btn btn-sm btn-warning">
+                        <a asp-area="Admin" asp-controller="ProductVariant" asp-action="Edit"
+                           asp-route-id="@item.Id" class="btn btn-sm btn-warning">
                             Sửa
                         </a>
 
-                        <form asp-area="Admin"
-                              asp-controller="ProductVariant"
-                              asp-action="Delete"
-                              asp-route-id="@item.Id"
-                              method="post"
-                              style="display:inline;">
+                        <form asp-area="Admin" asp-controller="ProductVariant" asp-action="Delete"
+                              asp-route-id="@item.Id" method="post" style="display:inline;">
                             @Html.AntiForgeryToken()
-                            <button type="submit"
-                                    class="btn btn-sm btn-danger"
+                            <button type="submit" class="btn btn-sm btn-danger"
                                     onclick="return confirm('Bạn có chắc chắn muốn xóa phiên bản này không?');">
                                 Xóa
                             </button>
@@ -78,9 +96,7 @@
         else
         {
             <tr>
-                <td colspan="7" class="text-center">
-                    Chưa có phiên bản nào cho sản phẩm này.
-                </td>
+                <td colspan="10" class="text-center">Chưa có phiên bản nào cho sản phẩm này.</td>
             </tr>
         }
     </tbody>

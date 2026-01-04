@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebBanDienThoai.Models
 {
@@ -6,38 +7,42 @@ namespace WebBanDienThoai.Models
     {
         public int Id { get; set; }
 
-        [Required]
-        [StringLength(200)]
+        [Required, StringLength(200)]
         [Display(Name = "Tên cửa hàng")]
-        public string Name { get; set; }           // Ví dụ: TGDD 289 Hai Bà Trưng
+        public string Name { get; set; } = "";
 
-        [Required]
-        [StringLength(255)]
+        [Required, StringLength(255)]
         [Display(Name = "Địa chỉ (số nhà, đường)")]
-        public string Address { get; set; }        // Số nhà, tên đường
+        public string Address { get; set; } = "";
 
         [StringLength(100)]
         [Display(Name = "Phường/Xã")]
-        public string Ward { get; set; }
+        public string? Ward { get; set; }
 
-        [StringLength(100)]
+        // ✅ Dùng FK thay vì string
+        [Required]
+        [Display(Name = "Tỉnh/TP")]
+        public int ProvinceId { get; set; }
+
+        [ForeignKey(nameof(ProvinceId))]
+        public Province? Province { get; set; }
+
+        [Required]
         [Display(Name = "Quận/Huyện")]
-        public string District { get; set; }
+        public int DistrictId { get; set; }
 
-        [StringLength(100)]
-        [Display(Name = "Tỉnh/Thành")]
-        public string Province { get; set; }
+        [ForeignKey(nameof(DistrictId))]
+        public District? District { get; set; }
 
         [StringLength(20)]
         [Display(Name = "Số điện thoại")]
-        public string PhoneNumber { get; set; }
+        public string? PhoneNumber { get; set; }
 
         [StringLength(100)]
         [Display(Name = "Giờ mở cửa")]
-        public string OpenHours { get; set; }      // Ví dụ: "8:00 - 21:30"
+        public string? OpenHours { get; set; }
 
         [Display(Name = "Đang hoạt động")]
         public bool IsActive { get; set; } = true;
-
     }
 }

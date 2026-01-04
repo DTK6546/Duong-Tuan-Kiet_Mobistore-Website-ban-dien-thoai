@@ -1,0 +1,41 @@
+﻿@model WebBanDienThoai.Models.Province
+
+@{
+    ViewData["Title"] = "Sửa Tỉnh/TP";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2>Sửa Tỉnh/TP</h2>
+
+<a asp-area="Admin" asp-controller="Province" asp-action="Index" class="btn btn-secondary mb-3">
+    ← Quay lại
+</a>
+
+<form asp-area="Admin" asp-controller="Province" asp-action="Edit" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="mb-3">
+        <label class="form-label">Mã</label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Tên</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="text-danger mb-2">
+        @Html.ValidationSummary(excludePropertyErrors: true)
+    </div>
+
+    <button type="submit" class="btn btn-success">Cập nhật</button>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -30,6 +30,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProductVariant> ProductVariants { get; set; }
     public DbSet<Store> Stores { get; set; }
     public DbSet<CouponUsage> CouponUsages { get; set; }
+    public DbSet<ShippingRate> ShippingRates { get; set; }
+    public DbSet<Province> Provinces { get; set; }
+    public DbSet<District> Districts { get; set; }
+    public DbSet<ProductRatingImage> ProductRatingImages { get; set; }
+    public DbSet<ProductRatingVote> ProductRatingVotes { get; set; }
+    public DbSet<ProductRatingReport> ProductRatingReports { get; set; }
+    public DbSet<ProductQuestion> ProductQuestions { get; set; }
+    public DbSet<ProductQuestionReply> ProductQuestionReplies { get; set; }
+    public DbSet<ProductFaq> ProductFaqs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -58,6 +68,71 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithMany()
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // ✅ 1 user chỉ vote 1 lần / 1 rating
+        modelBuilder.Entity<ProductRatingVote>()
+            .HasIndex(v => new { v.ProductRatingId, v.UserId })
+            .IsUnique();
+
+        // ✅ 1 user chỉ report 1 lần / 1 rating (tuỳ bạn)
+        modelBuilder.Entity<ProductRatingReport>()
+            .HasIndex(r => new { r.ProductRatingId, r.UserId })
+            .IsUnique();
+
+        // ✅ 1 user chỉ đánh giá 1 lần / 1 sản phẩm (đúng logic bạn đang dùng update)
+        modelBuilder.Entity<ProductRating>()
+            .HasIndex(r => new { r.ProductId, r.UserId })
+            .IsUnique();
+
+        modelBuilder.Entity<ProductRatingImage>()
+            .HasOne(x => x.ProductRating)
+            .WithMany(r => r.Images)
+            .HasForeignKey(x => x.ProductRatingId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductRatingVote>()
+            .HasOne(x => x.ProductRating)
+            .WithMany(r => r.Votes)
+            .HasForeignKey(x => x.ProductRatingId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductRatingReport>()
+            .HasOne(x => x.ProductRating)
+            .WithMany(r => r.Reports)
+            .HasForeignKey(x => x.ProductRatingId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductQuestion>()
+    .HasOne(x => x.User)
+    .WithMany()
+    .HasForeignKey(x => x.UserId)
+    .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductQuestionReply>()
+            .HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductQuestionReply>()
+            .HasOne(x => x.ProductQuestion)
+            .WithMany(q => q.Replies)
+            .HasForeignKey(x => x.ProductQuestionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductFaq>()
+            .HasOne(x => x.Product)
+            .WithMany()
+            .HasForeignKey(x => x.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // index để load nhanh theo sản phẩm
+        modelBuilder.Entity<ProductQuestion>()
+            .HasIndex(x => new { x.ProductId, x.CreatedAt });
+
+        modelBuilder.Entity<ProductFaq>()
+            .HasIndex(x => new { x.ProductId, x.IsActive, x.SortOrder });
+
     }
 
 

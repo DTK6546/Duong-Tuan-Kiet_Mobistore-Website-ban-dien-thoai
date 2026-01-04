@@ -1,0 +1,121 @@
+﻿@model List<WebBanDienThoai.Models.ShippingRate>
+
+@{
+    ViewData["Title"] = "Phí vận chuyển";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var province = (ViewBag.ProvinceCode as string) ?? "";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Phí vận chuyển (Shipping Rates)</h2>
+
+    <a asp-area="Admin" asp-controller="ShippingRate" asp-action="Create"
+       class="btn btn-primary">
+        + Thêm cấu hình
+    </a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <input name="provinceCode" value="@province" class="form-control"
+               placeholder="Lọc theo ProvinceCode (VD: HCM, HN)" />
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-outline-secondary w-100" type="submit">Lọc</button>
+    </div>
+    <div class="col-md-2">
+        <a class="btn btn-outline-dark w-100"
+           asp-area="Admin" asp-controller="ShippingRate" asp-action="Index">
+            Reset
+        </a>
+    </div>
+</form>
+
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
+        <tr>
+            <th style="width:110px">Tỉnh/TP</th>
+            <th style="width:160px">Quận/Huyện</th>
+
+            <th style="width:140px">Phí tiêu chuẩn</th>
+            <th style="width:120px">ETA (TC)</th>
+
+            <th style="width:140px">Phí nhanh</th>
+            <th style="width:120px">ETA (Nhanh)</th>
+
+            <th style="width:160px">Free ship từ</th>
+
+            <th style="width:180px" class="text-end">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model == null || !Model.Any())
+        {
+            <tr>
+                <td colspan="8" class="text-center text-muted">Chưa có dữ liệu.</td>
+            </tr>
+        }
+        else
+        {
+            foreach (var x in Model)
+            {
+                <tr>
+                    <td><b>@x.ProvinceCode</b></td>
+
+                    <td>
+                        @if (string.IsNullOrEmpty(x.DistrictCode))
+                        {
+                            <span class="badge bg-info text-dark">Toàn tỉnh</span>
+                        }
+                        else
+                        {
+                            @x.DistrictCode
+                        }
+                    </td>
+
+                    <td>@String.Format("{0:N0}", x.Fee) đ</td>
+                    <td>@x.MinDays - @x.MaxDays</td>
+
+                    <td>@String.Format("{0:N0}", x.ExpressFee) đ</td>
+                    <td>@x.ExpressMinDays - @x.ExpressMaxDays</td>
+
+                    <td>
+                        @if (x.FreeShipMinOrder == null)
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                        else
+                        {
+                            @String.Format("{0:N0}", x.FreeShipMinOrder) @:đ
+                        }
+                    </td>
+
+                    <td class="text-end">
+                        <a asp-area="Admin" asp-controller="ShippingRate" asp-action="Edit" asp-route-id="@x.Id"
+                           class="btn btn-sm btn-warning">
+                            Sửa
+                        </a>
+
+                        <form asp-area="Admin" asp-controller="ShippingRate" asp-action="Delete"
+                              asp-route-id="@x.Id"
+                              method="post"
+                              class="d-inline"
+                              onsubmit="return confirm('Xóa cấu hình này?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<div class="alert alert-info mt-3">
+    <div class="fw-semibold mb-1">Gợi ý:</div>
+    <ul class="mb-0">
+        <li><b>Toàn tỉnh</b> dùng làm cấu hình mặc định nếu không có cấu hình theo Quận/Huyện.</li>
+        <li>Hệ thống sẽ ưu tiên cấu hình theo <b>Quận/Huyện</b> trước, nếu không có sẽ dùng <b>Toàn tỉnh</b>.</li>
+        <li><b>Free ship từ</b>: nếu đơn hàng >= giá trị này thì phí ship = 0.</li>
+    </ul>
+</div>

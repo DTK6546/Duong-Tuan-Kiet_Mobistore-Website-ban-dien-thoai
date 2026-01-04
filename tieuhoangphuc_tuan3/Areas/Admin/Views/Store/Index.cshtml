@@ -2,54 +2,129 @@
 
 @{
     ViewData["Title"] = "Quản lý cửa hàng";
-    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"; 
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h2>Quản lý cửa hàng</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Quản lý cửa hàng</h2>
 
-<p>
     <a asp-area="Admin" asp-controller="Store" asp-action="Add" class="btn btn-primary">
-        Thêm cửa hàng
+        + Thêm cửa hàng
     </a>
-</p>
+</div>
 
-<table class="table table-bordered table-striped">
-    <thead>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
         <tr>
-            <th>Tên cửa hàng</th>
+            <th style="width:260px;">Cửa hàng</th>
             <th>Địa chỉ</th>
-            <th>Tỉnh/Thành</th>
-            <th>Số điện thoại</th>
-            <th>Giờ mở cửa</th>
-            <th>Trạng thái</th>
-            <th style="width: 150px;">Thao tác</th>
+            <th style="width:180px;">Khu vực</th>
+            <th style="width:140px;">SĐT</th>
+            <th style="width:140px;">Giờ mở cửa</th>
+            <th style="width:130px;">Trạng thái</th>
+            <th style="width:180px;" class="text-end">Thao tác</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
+        @if (Model == null || !Model.Any())
         {
             <tr>
-                <td>@item.Name</td>
-                <td>@item.Address, @item.Ward, @item.District</td>
-                <td>@item.Province</td>
-                <td>@item.PhoneNumber</td>
-                <td>@item.OpenHours</td>
-                <td>
-                    @(item.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")
-                </td>
-                <td>
-                    <a asp-area="Admin" asp-controller="Store" asp-action="Update" asp-route-id="@item.Id"
-                       class="btn btn-sm btn-warning">
-                        Sửa
-                    </a>
-
-                    <form asp-area="Admin" asp-controller="Store" asp-action="Delete" asp-route-id="@item.Id"
-                          method="post" style="display:inline;"
-                          onsubmit="return confirm('Bạn có chắc muốn xóa cửa hàng này không?');">
-                        <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
-                    </form>
-                </td>
+                <td colspan="7" class="text-center text-muted">Chưa có dữ liệu.</td>
             </tr>
+        }
+        else
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <div class="fw-semibold">@item.Name</div>
+                        <div class="text-muted small">ID: @item.Id</div>
+                    </td>
+
+                    <td>
+                        <div>@item.Address</div>
+                        <div class="text-muted small">
+                            @if (!string.IsNullOrWhiteSpace(item.Ward))
+                            {
+                                @item.Ward @:, 
+                            }
+                            @item.District?.Name
+                        </div>
+                    </td>
+
+                    <td>
+                        <div>@item.Province?.Name</div>
+                        <div class="text-muted small">@item.District?.Name</div>
+                    </td>
+
+                    <td>
+                        @if (string.IsNullOrWhiteSpace(item.PhoneNumber))
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                        else
+                        {
+                            @item.PhoneNumber
+                        }
+                    </td>
+
+                    <td>
+                        @if (string.IsNullOrWhiteSpace(item.OpenHours))
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                        else
+                        {
+                            @item.OpenHours
+                        }
+                    </td>
+
+                    <td>
+                        @if (item.IsActive)
+                        {
+                            <span class="badge bg-success">Đang hoạt động</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Ngừng hoạt động</span>
+                        }
+                    </td>
+
+                    <td class="text-end">
+                        <a asp-area="Admin" asp-controller="Store" asp-action="Update" asp-route-id="@item.Id"
+                           class="btn btn-sm btn-warning">
+                            Sửa
+                        </a>
+
+                        <form asp-area="Admin" asp-controller="Store" asp-action="Delete" asp-route-id="@item.Id"
+                              method="post" class="d-inline"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa cửa hàng này không?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                Xóa
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </table>
+
+<div class="alert alert-info mt-3 mb-0">
+    <div class="fw-semibold mb-1">Gợi ý:</div>
+    <ul class="mb-0">
+        <li>Hãy dùng <b>Tỉnh/TP</b> và <b>Quận/Huyện</b> từ bảng dữ liệu (Province/District) để tránh nhập sai.</li>
+        <li>Để làm chức năng <b>Nhận tại cửa hàng</b>, bước tiếp theo là thêm bảng <b>StoreInventory</b> (tồn kho theo chi nhánh).</li>
+    </ul>
+</div>

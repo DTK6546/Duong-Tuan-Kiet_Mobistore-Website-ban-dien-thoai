@@ -29,6 +29,12 @@ namespace WebBanDienThoai.Models
         public string? Ram { get; set; }               // RAM theo biến thể
         public string? StorageAvailable { get; set; }  // Dung lượng còn lại (khả dụng)
 
+        [StringLength(50)]
+        public string? Sku { get; set; }
+
+        [StringLength(500)]
+        public string? ImageUrl { get; set; }
+
         // 🔹 Map cho code phía trên: dùng Storage như Capacity
         [NotMapped]
         public string Capacity => Storage;

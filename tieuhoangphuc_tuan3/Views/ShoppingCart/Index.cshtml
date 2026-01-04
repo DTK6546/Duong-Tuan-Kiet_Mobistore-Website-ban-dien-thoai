@@ -21,27 +21,24 @@
 @{
     ViewData["Title"] = "Giỏ hàng của bạn";
 
-    // ⭐ Tạm tính = (giá SP + tổng giá các gói bảo hành / 1 SP) * số lượng
     decimal subtotal = Model.Items.Sum(i =>
     {
         var warrantyPerItem = i.Warranties?.Sum(w => w.Price) ?? 0;
         return (i.Price + warrantyPerItem) * i.Quantity;
     });
 
-    // Giảm giá từ mã coupon
     decimal discount = Model.DiscountAmount;
     if (discount < 0) { discount = 0; }
 
-    // Thành tiền sau khi trừ giảm giá (CHƯA VAT)
     decimal priceAfterDiscount = subtotal - discount;
     if (priceAfterDiscount < 0) { priceAfterDiscount = 0; }
 
-    // VAT 10% tính trên giá sau giảm
     decimal vatRate = 0.10m;
     decimal vatAmount = Math.Round(priceAfterDiscount * vatRate, 0);
 
-    // TỔNG CỘNG = sau giảm + VAT
-    decimal finalTotal = priceAfterDiscount + vatAmount;
+    decimal shippingFee = 0;
+    decimal finalTotal = priceAfterDiscount + vatAmount + shippingFee;
+
     var vi = CultureInfo.GetCultureInfo("vi-VN");
 }
 
@@ -59,7 +56,7 @@
     else
     {
         <div class="row">
-            <!-- CỘT TRÁI: Danh sách sản phẩm + gợi ý -->
+            <!-- CỘT TRÁI -->
             <div class="col-md-8">
                 <table class="table table-bordered align-middle text-center">
                     <thead class="table-dark">
@@ -74,7 +71,6 @@
                     <tbody>
                         @foreach (var item in Model.Items)
                         {
-                            // ⭐ Lấy giá bảo hành / 1 sản phẩm
                             var warrantyPerItem = item.Warranties?.Sum(w => w.Price) ?? 0;
 
                             <tr>
@@ -85,7 +81,6 @@
                                     <strong>@item.Name</strong>
                                     <p class="text-muted m-0">Mã SP: @item.ProductId</p>
 
-                                    @* ⭐ KHU VỰC CHỌN GÓI BẢO HÀNH *@
                                     @{
                                         var allWarrantyOptions = ViewBag.WarrantyOptions as List<WarrantyOption>;
                                         var optionsForProduct = allWarrantyOptions?
@@ -163,7 +158,6 @@
                                         <button class="btn btn-outline-secondary btn-sm quantity-btn" type="button">+</button>
                                     </div>
 
-                                    @* ⭐ Thông tin tồn kho / cảnh báo *@
                                     @{
                                         var remaining = item.AvailableStock - item.Quantity;
                                     }
@@ -199,7 +193,7 @@
                     </tbody>
                 </table>
 
-                <!-- GỢI Ý SẢN PHẨM Ở NGAY DƯỚI BẢNG GIỎ HÀNG -->
+                <!-- GỢI Ý SẢN PHẨM -->
                 <div class="mt-5">
                     <h4 class="fw-semibold mb-3">
                         <i class="bi bi-star-half text-warning"></i> Có thể bạn cũng thích
@@ -230,7 +224,7 @@
                 </div>
             </div>
 
-            <!-- CỘT PHẢI: Sidebar gọn (1 card duy nhất) -->
+            <!-- CỘT PHẢI -->
             <div class="col-md-4">
                 @{
                     var currentUser = ViewBag.CurrentUser as ApplicationUser;
@@ -295,6 +289,49 @@
                             </label>
                         </div>
 
+                        <!-- ✅ PANEL SHIP -->
+                        <div id="shippingPanel" class="mt-3 border rounded p-2">
+                            <div class="fw-semibold mb-2">
+                                <i class="bi bi-truck me-1"></i> Giao đến
+                            </div>
+
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <select class="form-select form-select-sm" id="shipProvince">
+                                        <option value="">-- Chọn Tỉnh/TP --</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <select class="form-select form-select-sm" id="shipDistrict" disabled>
+                                        <option value="">-- Chọn Quận/Huyện (hoặc để Toàn tỉnh) --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- ✅ thêm phương thức giao -->
+                            <div class="mt-2">
+                                <label class="small fw-semibold mb-1">Phương thức</label>
+                                <select id="shipMethodSelect" class="form-select form-select-sm">
+                                    <option value="standard" selected>Tiêu chuẩn</option>
+                                    <option value="express">Nhanh</option>
+                                </select>
+                            </div>
+
+                            <div class="mt-2 small">
+                                <div>Phí ship: <b id="shipFee">—</b></div>
+                                <div>Giao dự kiến: <b id="shipEta">—</b></div>
+                            </div>
+
+                            <small class="text-muted d-block mt-1">
+                                Hệ thống sẽ nhớ lựa chọn Tỉnh/Quận cho lần sau.
+                            </small>
+
+                            <small class="text-muted d-block">
+                                <span class="fw-semibold">Chính sách:</span> Miễn phí ship theo điều kiện • Cho kiểm tra hàng khi nhận (tuỳ shop) • Đổi trả theo quy định.
+                            </small>
+                        </div>
+
+                        <!-- PANEL PICKUP -->
                         <div id="storePanel" class="mt-3 border rounded p-2 d-none">
                             <label for="StoreId" class="form-label mb-1">Chọn cửa hàng</label>
                             <select name="StoreId" id="StoreId" class="form-control form-control-sm">
@@ -308,7 +345,7 @@
                                 }
                             </select>
                             <small class="text-muted d-block mt-1">
-                                Sau này có thể hiển thị thêm địa chỉ, giờ mở cửa theo cửa hàng đã chọn.
+                                Nhận tại cửa hàng thì phí ship = 0.
                             </small>
                         </div>
                     </div>
@@ -316,7 +353,6 @@
                     <!-- TÓM TẮT ĐƠN HÀNG -->
                     <h6 class="border-bottom pb-2 mt-3 mb-2">Tóm tắt đơn hàng</h6>
 
-                    <!-- Thông báo mã giảm giá -->
                     @if (TempData["CouponSuccess"] != null)
                     {
                         <div class="alert alert-success py-1 mb-2 small">
@@ -330,7 +366,6 @@
                         </div>
                     }
 
-                    <!-- Form nhập mã giảm giá -->
                     <form id="ApplyCouponForm"
                           asp-action="ApplyCoupon"
                           asp-controller="ShoppingCart"
@@ -353,7 +388,6 @@
                         </small>
                     </form>
 
-                    @* ✅ Danh sách mã có thể dùng *@
                     @if (ViewBag.AvailableCoupons != null && (ViewBag.AvailableCoupons as List<Coupon>)?.Any() == true)
                     {
                         <div class="mt-2 mb-2">
@@ -361,18 +395,24 @@
                             <div class="list-group mt-2">
                                 @foreach (var c in ViewBag.AvailableCoupons as List<Coupon>)
                                 {
+                                    var remain = c.Quantity - c.CurrentUsage;
                                     <button type="button"
-                                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center coupon-btn py-1"
+                                            class="list-group-item list-group-item-action coupon-btn py-2"
                                             data-code="@c.Code">
-                                        <span class="small">
-                                            <strong>@c.Code</strong> -
-                                            @(c.DiscountPercent > 0
-                                                                            ? $"{c.DiscountPercent}%"
-                                                                            : $"{c.DiscountAmount.GetValueOrDefault().ToString("N0", vi)} VNĐ")
-                            </span>
-                            <span class="badge bg-primary">Chọn</span>
-                        </button>
-                                                }
+                                        <div class="d-flex justify-content-between">
+                                            <div class="small">
+                                                <strong>@c.Code</strong> -
+                                                @(c.DiscountPercent > 0 ? $"{c.DiscountPercent}%" : $"{c.DiscountAmount.GetValueOrDefault().ToString("N0", vi)} VNĐ")
+                                                <div class="text-muted" style="font-size: 12px;">
+                                                    Đơn tối thiểu: @c.MinOrderValue.ToString("N0", vi) •
+                                                    Còn: @(remain > 0 ? remain : 0) lượt •
+                                                    @c.StartDate.ToString("dd/MM") - @c.EndDate.ToString("dd/MM")
+                                                </div>
+                                            </div>
+                                            <span class="badge bg-primary align-self-start">Chọn</span>
+                                        </div>
+                                    </button>
+                                }
                             </div>
                         </div>
                     }
@@ -384,7 +424,6 @@
                         </div>
                     }
 
-                    <!-- Tạm tính / Giảm giá / VAT / Tổng cộng -->
                     <div class="d-flex justify-content-between small">
                         <span>Tạm tính</span>
                         <strong class="subtotal-amount">@subtotal.ToString("N0") VNĐ</strong>
@@ -416,7 +455,7 @@
 
                     <div class="d-flex justify-content-between small">
                         <span>Phí vận chuyển</span>
-                        <strong>Miễn phí</strong>
+                        <strong class="ship-fee-amount">0 VNĐ</strong>
                     </div>
 
                     <hr />
@@ -426,30 +465,52 @@
                         <strong class="final-total">@finalTotal.ToString("N0") VNĐ</strong>
                     </div>
 
-                    <!-- MoMo Payment Form -->
+                    <!-- MoMo -->
                     <form method="POST" asp-action="CreatePaymentMomo" asp-controller="Payment" class="mt-2">
+                        @Html.AntiForgeryToken()
                         <input type="hidden" name="Amount" class="payment-amount" value="@finalTotal" />
                         <input type="hidden" name="OrderId" value="@Guid.NewGuid().ToString()" />
-                        <input type="hidden" name="OrderInformation" value="Thanh toán Momo cho đơn hàng tại WebBanDienThoai" />
+                        <input type="hidden" name="OrderInfo" value="Thanh toan Momo cho don hang tai WebBanDienThoai" />
                         <input type="hidden" name="FullName" value="@User.Identity.Name" />
+
+                        <!-- ✅ ship info -->
+                        <input type="hidden" name="deliveryMethod" id="momoDeliveryMethod" />
+                        <input type="hidden" name="storeId" id="momoStoreId" />
+
+                        <input type="hidden" name="provinceCode" id="momoProvince" />
+                        <input type="hidden" name="districtCode" id="momoDistrict" />
+                        <input type="hidden" name="shippingFee" id="momoShipFee" />
+                        <input type="hidden" name="shipMethod" id="momoShipMethod" />
+
+                        <!-- ✅ pass address/notes -->
+                        <input type="hidden" name="ShippingAddress" id="momoAddress" />
+                        <input type="hidden" name="Notes" id="momoNotes" />
 
                         <button class="btn btn-danger w-100 btn-sm" type="submit">
                             🚀 Tiến hành thanh toán Momo
                         </button>
                     </form>
 
-                    <!-- VNPay Payment Form -->
+                    <!-- VNPay -->
                     <form method="POST"
                           asp-action="PaymentVNPay"
                           asp-controller="Payment"
                           class="mt-2"
                           id="vnpayForm">
-                        <!-- tổng tiền đã có sẵn, updateTotal() sẽ cập nhật giá trị -->
-                        <input type="hidden" name="Amount" class="payment-amount" value="@finalTotal" />
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="amount" class="payment-amount" value="@finalTotal" />
 
-                        <!-- 2 hidden để truyền phương thức nhận hàng + cửa hàng -->
                         <input type="hidden" name="deliveryMethod" id="vnpDeliveryMethod" />
                         <input type="hidden" name="storeId" id="vnpStoreId" />
+
+                        <input type="hidden" name="provinceCode" id="vnpProvince" />
+                        <input type="hidden" name="districtCode" id="vnpDistrict" />
+                        <input type="hidden" name="shippingFee" id="vnpShipFee" />
+                        <input type="hidden" name="shipMethod" id="vnpShipMethod" />
+
+                        <!-- ✅ pass address/notes -->
+                        <input type="hidden" name="ShippingAddress" id="vnpAddress" />
+                        <input type="hidden" name="Notes" id="vnpNotes" />
 
                         <button class="btn btn-primary w-100 btn-sm" type="button" onclick="submitVNPay()">
                             🏦 Thanh toán bằng VNPay
@@ -470,153 +531,274 @@
 
 @section Scripts {
     <script>
-        // Lấy discount từ server (cố định theo cart hiện tại)
+        // discount cố định từ server
         var discountFromServer = @discount;
 
-        // Base URL của PayPal action
         const paypalBaseUrl = '@Url.Action("Paypal", "Payment")';
 
-        // ⭐ Ẩn/hiện panel chọn cửa hàng theo phương thức nhận hàng
-        function toggleStorePanel() {
-            var method = document.querySelector("input[name='DeliveryMethod']:checked");
-            var panel = document.getElementById("storePanel");
-            if (!panel) return;
+        // ====== GLOBAL: Shipping ======
+        let currentShippingFee = 0;
+        let currentProvinceCode = "";
+        let currentDistrictCode = "";
+        let currentShipMethod = "standard";
 
-            if (method && method.value === "PickupAtStore") {
-                panel.classList.remove("d-none");
-            } else {
-                panel.classList.add("d-none");
-            }
-        }
+        const LS_PROV = "ship_province_code";
+        const LS_DIST = "ship_district_code";
+        const LS_METHOD = "ship_method";
 
-        // ⭐ Hàm tính lại tiền + cập nhật các form thanh toán (Momo, VNPay, PayPal)
-        function updateTotal() {
+        function computeSubtotal() {
             let subtotal = 0;
             document.querySelectorAll(".quantity-input").forEach(input => {
                 const quantity = parseInt(input.value, 10) || 0;
                 const unitPrice = parseFloat(input.getAttribute("data-unit-price")) || 0;
                 const warrantyPrice = parseFloat(input.getAttribute("data-warranty-price")) || 0;
-
                 subtotal += quantity * (unitPrice + warrantyPrice);
             });
+            return subtotal;
+        }
 
-            // Cập nhật tạm tính
-            const subtotalElement = document.querySelector(".subtotal-amount");
-            if (subtotalElement) {
-                subtotalElement.textContent = subtotal.toLocaleString('vi-VN') + ' VNĐ';
-            }
+        function setShipUI(fee, etaText) {
+            const feeEl = document.getElementById("shipFee");
+            const etaEl = document.getElementById("shipEta");
+            if (feeEl) feeEl.textContent = (fee ?? 0).toLocaleString('vi-VN') + " VNĐ";
+            if (etaEl) etaEl.textContent = etaText || "—";
+        }
 
-            // discountFromServer = số tiền giảm (VNĐ) đã áp dụng từ server
-            let priceAfterDiscount = subtotal - discountFromServer;
-            if (priceAfterDiscount < 0) priceAfterDiscount = 0;
+        function saveShipSelection() {
+            localStorage.setItem(LS_PROV, currentProvinceCode || "");
+            localStorage.setItem(LS_DIST, currentDistrictCode || "");
+            localStorage.setItem(LS_METHOD, currentShipMethod || "standard");
+        }
 
-            // VAT 10% trên giá sau giảm
-            let vatRate = 0.10;
-            let vatAmount = Math.round(priceAfterDiscount * vatRate);
+        function loadShipSelection() {
+            return {
+                prov: localStorage.getItem(LS_PROV) || "",
+                dist: localStorage.getItem(LS_DIST) || "",
+                method: localStorage.getItem(LS_METHOD) || "standard"
+            };
+        }
 
-            // Tổng cộng = sau giảm + VAT
-            let totalWithVat = priceAfterDiscount + vatAmount;
+        async function fetchJson(url) {
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return await res.json();
+        }
 
-            // Cập nhật "Thành tiền (chưa VAT)"
-            const beforeTaxElement = document.querySelector(".before-tax-amount");
-            if (beforeTaxElement) {
-                beforeTaxElement.textContent = priceAfterDiscount.toLocaleString('vi-VN') + ' VNĐ';
-            }
+        async function loadProvinces(selectedCode) {
+            const provSel = document.getElementById("shipProvince");
+            if (!provSel) return;
 
-            // Cập nhật "VAT"
-            const vatElement = document.querySelector(".vat-amount");
-            if (vatElement) {
-                vatElement.textContent = vatAmount.toLocaleString('vi-VN') + ' VNĐ';
-            }
+            provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
 
-            // Cập nhật "Tổng cộng"
-            const finalTotalElement = document.querySelector(".final-total");
-            if (finalTotalElement) {
-                finalTotalElement.textContent = totalWithVat.toLocaleString('vi-VN') + ' VNĐ';
-            }
+            const list = await fetchJson("/Shipping/Provinces");
+            list.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.code;
+                opt.textContent = p.name + ` (${p.code})`;
+                if (selectedCode && selectedCode === p.code) opt.selected = true;
+                provSel.appendChild(opt);
+            });
+        }
 
-            // Cập nhật lại hidden Amount cho các form thanh toán (Momo + VNPay)
-            document.querySelectorAll(".payment-amount").forEach(input => {
-                input.value = totalWithVat;
+        async function loadDistricts(provinceCode, selectedDistrict) {
+            const distSel = document.getElementById("shipDistrict");
+            if (!distSel) return;
+
+            distSel.innerHTML = `<option value="">-- Chọn Quận/Huyện (hoặc để Toàn tỉnh) --</option>`;
+            distSel.disabled = true;
+
+            if (!provinceCode) return;
+
+            const list = await fetchJson(`/Shipping/Districts?provinceCode=${encodeURIComponent(provinceCode)}`);
+            list.forEach(d => {
+                const opt = document.createElement("option");
+                opt.value = d.code;
+                opt.textContent = d.name + ` (${d.code})`;
+                if (selectedDistrict && selectedDistrict === d.code) opt.selected = true;
+                distSel.appendChild(opt);
             });
 
-            // ⭐ Cập nhật link PayPal (amount + DeliveryMethod + StoreId)
+            distSel.disabled = false;
+        }
+
+        async function quoteShipping(provinceCode, districtCode) {
+            if (!provinceCode) {
+                currentShippingFee = 0;
+                setShipUI(null, "—");
+                updateTotal();
+                return;
+            }
+
+            const orderValueAfterDiscount = Math.max(0, computeSubtotal() - (discountFromServer || 0));
+
+            const q = new URLSearchParams();
+            q.set("provinceCode", provinceCode);
+            if (districtCode) q.set("districtCode", districtCode);
+
+            q.set("method", currentShipMethod || "standard");
+            q.set("orderValue", orderValueAfterDiscount);
+
+            const data = await fetchJson(`/Shipping/Quote?${q.toString()}`);
+
+            if (data && data.ok === false) {
+                currentShippingFee = 0;
+                setShipUI(0, data.message || "—");
+                updateTotal();
+                return;
+            }
+
+            const fee = Number(data.fee || 0);
+            currentShippingFee = fee;
+
+            let etaText = "—";
+            if (data.etaFrom && data.etaTo) {
+                etaText = `${data.etaFrom} - ${data.etaTo}`;
+            } else if (data.minDays != null && data.maxDays != null) {
+                etaText = (data.minDays === 0 && data.maxDays === 0)
+                    ? "—"
+                    : `${data.minDays}-${data.maxDays} ngày`;
+            }
+
+            setShipUI(fee, etaText);
+            updateTotal();
+        }
+
+        // ====== Toggle panels ======
+        function togglePanels() {
+            var method = document.querySelector("input[name='DeliveryMethod']:checked");
+            var storePanel = document.getElementById("storePanel");
+            var shipPanel = document.getElementById("shippingPanel");
+
+            if (!method) return;
+
+            if (method.value === "PickupAtStore") {
+                if (storePanel) storePanel.classList.remove("d-none");
+                if (shipPanel) shipPanel.classList.add("d-none");
+
+                currentShippingFee = 0;
+                updateTotal();
+            } else {
+                if (storePanel) storePanel.classList.add("d-none");
+                if (shipPanel) shipPanel.classList.remove("d-none");
+
+                if (currentProvinceCode) {
+                    quoteShipping(currentProvinceCode, currentDistrictCode);
+                } else {
+                    currentShippingFee = 0;
+                    updateTotal();
+                }
+            }
+        }
+
+        // ====== Tổng tiền ======
+        function updateTotal() {
+            const subtotal = computeSubtotal();
+
+            const subtotalElement = document.querySelector(".subtotal-amount");
+            if (subtotalElement) subtotalElement.textContent = subtotal.toLocaleString('vi-VN') + ' VNĐ';
+
+            let priceAfterDiscount = subtotal - (discountFromServer || 0);
+            if (priceAfterDiscount < 0) priceAfterDiscount = 0;
+
+            let vatAmount = Math.round(priceAfterDiscount * 0.10);
+
+            const methodEl = document.querySelector("input[name='DeliveryMethod']:checked");
+            const method = methodEl ? methodEl.value : "ShipToHome";
+            const shipFee = (method === "ShipToHome") ? (currentShippingFee || 0) : 0;
+
+            let total = priceAfterDiscount + vatAmount + shipFee;
+
+            const beforeTaxElement = document.querySelector(".before-tax-amount");
+            if (beforeTaxElement) beforeTaxElement.textContent = priceAfterDiscount.toLocaleString('vi-VN') + ' VNĐ';
+
+            const vatElement = document.querySelector(".vat-amount");
+            if (vatElement) vatElement.textContent = vatAmount.toLocaleString('vi-VN') + ' VNĐ';
+
+            const shipEl = document.querySelector(".ship-fee-amount");
+            if (shipEl) shipEl.textContent = shipFee.toLocaleString('vi-VN') + ' VNĐ';
+
+            const finalTotalElement = document.querySelector(".final-total");
+            if (finalTotalElement) finalTotalElement.textContent = total.toLocaleString('vi-VN') + ' VNĐ';
+
+            // update hidden Amount for payment forms
+            document.querySelectorAll(".payment-amount").forEach(input => {
+                input.value = total;
+            });
+
+            const prov = (method === "ShipToHome") ? (currentProvinceCode || "") : "";
+            const dist = (method === "ShipToHome") ? (currentDistrictCode || "") : "";
+
+            // VNPay hidden
+            document.getElementById("vnpProvince") && (document.getElementById("vnpProvince").value = prov);
+            document.getElementById("vnpDistrict") && (document.getElementById("vnpDistrict").value = dist);
+            document.getElementById("vnpShipFee") && (document.getElementById("vnpShipFee").value = shipFee);
+            document.getElementById("vnpShipMethod") && (document.getElementById("vnpShipMethod").value = currentShipMethod);
+
+            // MoMo hidden
+            document.getElementById("momoProvince") && (document.getElementById("momoProvince").value = prov);
+            document.getElementById("momoDistrict") && (document.getElementById("momoDistrict").value = dist);
+            document.getElementById("momoShipFee") && (document.getElementById("momoShipFee").value = shipFee);
+            document.getElementById("momoShipMethod") && (document.getElementById("momoShipMethod").value = currentShipMethod);
+
+            // delivery method/store for momo
+            document.getElementById("momoDeliveryMethod") && (document.getElementById("momoDeliveryMethod").value = method);
+            const storeSelect = document.getElementById("StoreId");
+            const storeId = storeSelect ? storeSelect.value : "";
+            document.getElementById("momoStoreId") && (document.getElementById("momoStoreId").value = storeId);
+
+            // vnp delivery/store
+            document.getElementById("vnpDeliveryMethod") && (document.getElementById("vnpDeliveryMethod").value = method);
+            document.getElementById("vnpStoreId") && (document.getElementById("vnpStoreId").value = storeId);
+
+            // ✅ Update PayPal URL
             const paypalBtn = document.getElementById("paypalBtn");
             if (paypalBtn) {
                 const url = new URL(paypalBaseUrl, window.location.origin);
+                url.searchParams.set("amount", total);
 
-                // amount
-                url.searchParams.set("amount", totalWithVat);
-
-                // phương thức nhận hàng
-                const methodEl = document.querySelector("input[name='DeliveryMethod']:checked");
-                const method = methodEl ? methodEl.value : "ShipToHome";
                 url.searchParams.set("deliveryMethod", method);
+                if (storeId) url.searchParams.set("storeId", storeId);
 
-                // cửa hàng
-                const storeSelect = document.getElementById("StoreId");
-                const storeId = storeSelect ? storeSelect.value : "";
-                if (storeId) {
-                    url.searchParams.set("storeId", storeId);
-                }
+                if (prov) url.searchParams.set("provinceCode", prov);
+                if (dist) url.searchParams.set("districtCode", dist);
+                url.searchParams.set("shippingFee", shipFee);
+
+                url.searchParams.set("shipMethod", currentShipMethod);
 
                 paypalBtn.href = url.toString();
             }
         }
 
-        // ⭐ Hàm submit dành riêng cho VNPay
+        // ===== VNPay Submit =====
         function submitVNPay() {
-            // Đảm bảo tổng tiền đã cập nhật mới nhất
             updateTotal();
 
-            // Lấy phương thức nhận hàng hiện tại
-            const methodEl = document.querySelector("input[name='DeliveryMethod']:checked");
-            const method = methodEl ? methodEl.value : "ShipToHome";
-            const deliveryHidden = document.getElementById("vnpDeliveryMethod");
-            if (deliveryHidden) {
-                deliveryHidden.value = method; // "ShipToHome" hoặc "PickupAtStore"
-            }
-
-            // Lấy cửa hàng (nếu có)
-            const storeSelect = document.getElementById("StoreId");
-            const storeHidden = document.getElementById("vnpStoreId");
-            if (storeHidden) {
-                storeHidden.value = storeSelect ? storeSelect.value : "";
-            }
-
-            // Submit form VNPay
             const form = document.getElementById("vnpayForm");
-            if (form) {
-                form.submit();
-            }
+            if (form) form.submit();
         }
+        window.submitVNPay = submitVNPay;
 
-        document.addEventListener("DOMContentLoaded", function () {
-            // ✅ Click mã trong danh sách -> tự điền + submit
+        document.addEventListener("DOMContentLoaded", async function () {
+            // coupon quick pick
             document.querySelectorAll(".coupon-btn").forEach(btn => {
                 btn.addEventListener("click", function () {
                     const code = this.getAttribute("data-code");
                     const input = document.getElementById("CouponCodeInput");
                     const form = document.getElementById("ApplyCouponForm");
-
-                    if (input) {
-                        input.value = code;
-                    }
-                    if (form) {
-                        form.submit();
-                    }
+                    if (input) input.value = code;
+                    if (form) form.submit();
                 });
             });
 
-            // Gắn sự kiện change cho radio DeliveryMethod
+            // delivery method change
             document.querySelectorAll("input[name='DeliveryMethod']").forEach(function (el) {
                 el.addEventListener("change", function () {
-                    toggleStorePanel();
-                    updateTotal(); // cập nhật lại tổng + PayPal URL
+                    togglePanels();
+                    updateTotal();
                 });
             });
 
-            // Gắn sự kiện change cho dropdown cửa hàng
+            // store change
             const storeSelect = document.getElementById("StoreId");
             if (storeSelect) {
                 storeSelect.addEventListener("change", function () {
@@ -624,7 +806,7 @@
                 });
             }
 
-            // Nút +/- số lượng
+            // qty +/- buttons
             document.querySelectorAll(".quantity-btn").forEach(button => {
                 button.addEventListener("click", function () {
                     let input = this.parentElement.querySelector(".quantity-input");
@@ -637,20 +819,78 @@
                         input.value = value - 1;
                     }
 
-                    updateTotal();
+                    // đổi số lượng => quote lại ship để free-ship đúng
+                    if (currentProvinceCode) quoteShipping(currentProvinceCode, currentDistrictCode);
+                    else updateTotal();
                 });
             });
 
-            // Gọi lần đầu khi load trang
-            toggleStorePanel();
+            // ship method init + bind
+            const shipMethodSelect = document.getElementById("shipMethodSelect");
+            if (shipMethodSelect) {
+                shipMethodSelect.addEventListener("change", async function () {
+                    currentShipMethod = this.value || "standard";
+                    saveShipSelection();
+                    if (currentProvinceCode) await quoteShipping(currentProvinceCode, currentDistrictCode);
+                    else updateTotal();
+                });
+            }
+
+            // ===== init shipping dropdowns + remember =====
+            try {
+                const saved = loadShipSelection();
+
+                currentShipMethod = saved.method || "standard";
+                if (shipMethodSelect) shipMethodSelect.value = currentShipMethod;
+
+                await loadProvinces(saved.prov);
+
+                const provSel = document.getElementById("shipProvince");
+                const distSel = document.getElementById("shipDistrict");
+
+                if (provSel) {
+                    provSel.addEventListener("change", async function () {
+                        currentProvinceCode = this.value || "";
+                        currentDistrictCode = "";
+                        saveShipSelection();
+
+                        await loadDistricts(currentProvinceCode, "");
+                        await quoteShipping(currentProvinceCode, "");
+                    });
+                }
+
+                if (distSel) {
+                    distSel.addEventListener("change", async function () {
+                        currentDistrictCode = this.value || "";
+                        saveShipSelection();
+                        await quoteShipping(currentProvinceCode, currentDistrictCode);
+                    });
+                }
+
+                currentProvinceCode = saved.prov || "";
+                currentDistrictCode = saved.dist || "";
+
+                if (currentProvinceCode) {
+                    await loadDistricts(currentProvinceCode, currentDistrictCode);
+                    await quoteShipping(currentProvinceCode, currentDistrictCode);
+                } else {
+                    setShipUI(null, "—");
+                }
+            } catch (e) {
+                console.warn("Shipping init error:", e);
+            }
+
+            togglePanels();
             updateTotal();
         });
 
         window.onload = function () {
             var adBanner = document.querySelector('.carousel');
-            if (adBanner) {
-                adBanner.style.display = 'none';
-            }
+            if (adBanner) adBanner.style.display = 'none';
         };
     </script>
+
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

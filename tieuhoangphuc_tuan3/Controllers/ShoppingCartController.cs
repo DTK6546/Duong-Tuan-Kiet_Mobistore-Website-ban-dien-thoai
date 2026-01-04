@@ -29,36 +29,69 @@ namespace WebBanDienThoai.Controllers
 
         // ================== CHECKOUT ==================
 
-        public IActionResult Checkout()
+        [Authorize]
+        public async Task<IActionResult> Checkout()
         {
-            // View Checkout hiện đang dùng Order, phần hiển thị tạm thời bạn giữ nguyên
-            return View(new Order());
+            var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
+            if (cart.Items == null || !cart.Items.Any()) return RedirectToAction("Index");
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            ViewBag.Cart = cart;
+            ViewBag.CurrentUser = user;
+
+            ViewBag.Stores = await _context.Stores
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.Province).ThenBy(s => s.District).ThenBy(s => s.Name)
+                .ToListAsync();
+
+            return View(new Order { ShippingAddress = user.Address ?? "" });
         }
 
+        [Authorize]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Checkout(Order order)
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart");
-
-            if (cart == null || !cart.Items.Any())
-                return RedirectToAction("Index");
+            if (cart == null || !cart.Items.Any()) return RedirectToAction("Index");
 
             var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return RedirectToAction("Login", "Account");
+            if (user == null) return Challenge();
 
-            // Lấy phương thức nhận hàng
+            // nhận từ form
             var deliveryMethod = Request.Form["DeliveryMethod"].ToString();
             var storeIdStr = Request.Form["StoreId"].ToString();
 
-            order.DeliveryMethod = deliveryMethod == "PickupAtStore"
-                                   ? DeliveryMethod.PickupAtStore
-                                   : DeliveryMethod.ShipToHome;
+            var provinceCode = Request.Form["ProvinceCode"].ToString();
+            var districtCode = Request.Form["DistrictCode"].ToString();
 
-            if (int.TryParse(storeIdStr, out int storeId))
+            var shipMethod = Request.Form["ShipMethod"].ToString(); // ✅ standard/express
+
+            order.DeliveryMethod = deliveryMethod == "PickupAtStore"
+                ? DeliveryMethod.PickupAtStore
+                : DeliveryMethod.ShipToHome;
+
+            if (order.DeliveryMethod == DeliveryMethod.PickupAtStore)
+            {
+                if (!int.TryParse(storeIdStr, out var storeId))
+                {
+                    TempData["PaymentError"] = "Vui lòng chọn cửa hàng nhận.";
+                    return RedirectToAction("Checkout");
+                }
                 order.StoreId = storeId;
 
-            // Tính tổng
+                // pickup => ship = 0, clear province/district
+                provinceCode = "";
+                districtCode = "";
+            }
+            else
+            {
+                order.StoreId = null;
+            }
+
+            // subtotal (có bảo hành)
             decimal subtotal = cart.Items.Sum(i =>
             {
                 decimal warrantyPerItem = i.Warranties?.Sum(w => w.Price) ?? 0m;
@@ -66,25 +99,35 @@ namespace WebBanDienThoai.Controllers
             });
 
             decimal discount = cart.DiscountAmount < 0 ? 0 : cart.DiscountAmount;
-            decimal priceAfterDiscount = Math.Max(0, subtotal - discount);
+            decimal afterDiscount = Math.Max(0, subtotal - discount);
+            decimal vatAmount = Math.Round(afterDiscount * 0.10m, 0);
 
-            decimal vatAmount = Math.Round(priceAfterDiscount * 0.10m, 0);
-            decimal finalTotal = priceAfterDiscount + vatAmount;
+            // ✅ shippingFee tính lại từ DB (KHÔNG tin hidden input)
+            decimal shippingFee = 0m;
+            if (order.DeliveryMethod == DeliveryMethod.ShipToHome)
+            {
+                shippingFee = await CalculateShippingFeeFromDbAsync(provinceCode, districtCode, shipMethod, afterDiscount);
+            }
+
+            decimal finalTotal = afterDiscount + vatAmount + shippingFee;
 
             order.UserId = user.Id;
             order.OrderDate = DateTime.UtcNow;
-            order.TotalPrice = finalTotal;
+
             order.Subtotal = subtotal;
             order.DiscountAmount = discount;
             order.VatAmount = vatAmount;
+
+            order.ShippingFee = shippingFee;
+            order.ProvinceCode = provinceCode ?? "";
+            order.DistrictCode = districtCode ?? "";
+
             order.CouponCode = cart.CouponCode;
             order.TotalPrice = finalTotal;
 
-            // ⭐ LƯU ORDER TRƯỚC
             _context.Orders.Add(order);
-            await _context.SaveChangesAsync(); // Order.Id được tạo TẠI ĐÂY
+            await _context.SaveChangesAsync();
 
-            // ⭐ GIỜ mới lưu chi tiết đơn hàng
             foreach (var item in cart.Items)
             {
                 var orderDetail = new OrderDetail
@@ -100,7 +143,6 @@ namespace WebBanDienThoai.Controllers
                 _context.OrderDetails.Add(orderDetail);
                 await _context.SaveChangesAsync();
 
-                // Lưu bảo hành
                 if (item.Warranties != null)
                 {
                     foreach (var w in item.Warranties)
@@ -118,14 +160,10 @@ namespace WebBanDienThoai.Controllers
                 }
             }
 
-            // Cập nhật lượt dùng mã giảm giá (nếu có)
             if (!string.IsNullOrEmpty(cart.CouponCode))
-            {
                 UpdateCouponUsageAfterOrder(cart.CouponCode, user.Id);
-            }
 
             HttpContext.Session.Remove("Cart");
-
             return View("OrderCompleted", order.Id);
         }
 
@@ -216,6 +254,70 @@ namespace WebBanDienThoai.Controllers
             return RedirectToAction("Display", "Product", new { id = productId });
         }
 
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> BuyNow(int productId, int quantity, int? variantId)
+        {
+            if (quantity <= 0) quantity = 1;
+
+            var product = await _productRepository.GetByIdAsync(productId);
+            if (product == null) return NotFound();
+
+            // ✅ Tuỳ bạn: Mua ngay thường nên reset giỏ
+            var cart = new ShoppingCart();
+            // Nếu muốn GIỮ giỏ cũ thì dùng:
+            // var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
+
+            string name = product.Name;
+            decimal price = product.DiscountedPrice;
+            string imageUrl = product.ImageUrl;
+            int stock;
+
+            if (variantId.HasValue)
+            {
+                var variant = await _context.ProductVariants
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(v => v.Id == variantId.Value);
+
+                if (variant == null) return NotFound();
+
+                name = $"{product.Name} ({variant.Capacity}, {variant.Color})";
+                price = variant.DiscountedPrice;
+                stock = variant.Stock;
+            }
+            else
+            {
+                stock = product.Quantity;
+            }
+
+            if (stock <= 0)
+            {
+                TempData["PaymentError"] = $"Sản phẩm \"{name}\" hiện đã hết hàng.";
+                return RedirectToAction("Display", "Product", new { id = productId });
+            }
+
+            if (quantity > stock) quantity = stock;
+
+            cart.Items.Add(new CartItem
+            {
+                ProductId = product.Id,
+                VariantId = variantId,
+                Name = name,
+                Price = price,
+                Quantity = quantity,
+                ImageUrl = imageUrl,
+                AvailableStock = stock
+            });
+
+            // Reset coupon nếu bạn muốn (mua ngay thường không nên giữ coupon cũ)
+            cart.CouponCode = null;
+            cart.DiscountAmount = 0;
+
+            HttpContext.Session.SetObjectAsJson("Cart", cart);
+
+            // ✅ Chuyển thẳng qua giỏ hàng để thanh toán
+            return RedirectToAction("Checkout");
+        }
 
         // ================== APPLY COUPON ==================
 
@@ -376,20 +478,35 @@ namespace WebBanDienThoai.Controllers
             // 🔹 Lấy giỏ hàng từ Session (nếu trống thì tạo mới)
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
 
-            // 🔹 Cập nhật tồn kho mới nhất cho từng sản phẩm
+            // 🔹 Cập nhật tồn kho mới nhất cho từng sản phẩm (đúng cả biến thể)
             foreach (var item in cart.Items)
             {
-                var product = _context.Products.FirstOrDefault(p => p.Id == item.ProductId);
-                if (product != null)
-                {
-                    int stock = product.Quantity;
-                    item.AvailableStock = stock;
+                int stock = 0;
 
-                    if (item.Quantity > stock)
-                    {
-                        item.Quantity = stock;
-                        TempData["PaymentError"] = $"Số lượng sản phẩm \"{product.Name}\" trong giỏ đã được giảm theo tồn kho hiện tại ({stock}).";
-                    }
+                if (item.VariantId.HasValue)
+                {
+                    var variant = await _context.ProductVariants
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(v => v.Id == item.VariantId.Value);
+
+                    stock = variant?.Stock ?? 0;
+                }
+                else
+                {
+                    var product = await _context.Products
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
+                    stock = product?.Quantity ?? 0;
+                }
+
+                item.AvailableStock = stock;
+
+                if (item.Quantity > stock)
+                {
+                    item.Quantity = stock;
+                    TempData["PaymentError"] =
+                        $"Số lượng sản phẩm \"{item.Name}\" trong giỏ đã được giảm theo tồn kho hiện tại ({stock}).";
                 }
             }
             HttpContext.Session.SetObjectAsJson("Cart", cart);
@@ -535,7 +652,8 @@ namespace WebBanDienThoai.Controllers
         public IActionResult RemoveWarranty(int productId, int? variantId, int warrantyId)
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
-            var item = cart.Items.FirstOrDefault(i => i.ProductId == productId);
+            var item = cart.Items.FirstOrDefault(i =>
+    i.ProductId == productId && i.VariantId == variantId);
 
             if (item == null)
                 return NotFound();
@@ -598,6 +716,31 @@ namespace WebBanDienThoai.Controllers
                 HttpContext.Session.SetObjectAsJson("Cart", cart);
             }
             return RedirectToAction("Index");
+        }
+
+        private async Task<decimal> CalculateShippingFeeFromDbAsync(string prov, string? dist, string shipMethod, decimal afterDiscount)
+        {
+            if (string.IsNullOrWhiteSpace(prov)) return 0m;
+
+            prov = prov.Trim().ToUpper();
+            dist = string.IsNullOrWhiteSpace(dist) ? null : dist.Trim().ToUpper();
+            shipMethod = (shipMethod ?? "standard").Trim().ToLower();
+
+            var rate = await _context.ShippingRates
+                .AsNoTracking()
+                .Where(x => x.ProvinceCode == prov && (x.DistrictCode == dist || x.DistrictCode == null))
+                .OrderByDescending(x => x.DistrictCode != null)
+                .FirstOrDefaultAsync();
+
+            if (rate == null) return 0m;
+
+            bool isExpress = shipMethod == "express" || shipMethod == "nhanh";
+            decimal fee = isExpress ? rate.ExpressFee : rate.Fee;
+
+            if (rate.FreeShipMinOrder != null && afterDiscount >= rate.FreeShipMinOrder.Value)
+                fee = 0m;
+
+            return fee;
         }
 
     }

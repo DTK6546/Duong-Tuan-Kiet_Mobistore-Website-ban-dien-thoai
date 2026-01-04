@@ -381,6 +381,34 @@ namespace WebBanDienThoai.Migrations
                     b.ToTable("CouponUsages");
                 });
 
+            modelBuilder.Entity("WebBanDienThoai.Models.District", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ProvinceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProvinceId");
+
+                    b.ToTable("Districts");
+                });
+
             modelBuilder.Entity("WebBanDienThoai.Models.MomoInfoModel", b =>
                 {
                     b.Property<int>("Id")
@@ -476,6 +504,10 @@ namespace WebBanDienThoai.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("DistrictCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Notes")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -483,9 +515,16 @@ namespace WebBanDienThoai.Migrations
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ProvinceCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ShippingFee")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -644,6 +683,46 @@ namespace WebBanDienThoai.Migrations
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductFaq", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "IsActive", "SortOrder");
+
+                    b.ToTable("ProductFaqs");
+                });
+
             modelBuilder.Entity("WebBanDienThoai.Models.ProductImage", b =>
                 {
                     b.Property<int>("Id")
@@ -666,6 +745,76 @@ namespace WebBanDienThoai.Migrations
                     b.ToTable("ProductImages");
                 });
 
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasMaxLength(800)
+                        .HasColumnType("nvarchar(800)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProductId", "CreatedAt");
+
+                    b.ToTable("ProductQuestions");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductQuestionReply", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProductQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductQuestionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ProductQuestionReplies");
+                });
+
             modelBuilder.Entity("WebBanDienThoai.Models.ProductRating", b =>
                 {
                     b.Property<int>("Id")
@@ -682,6 +831,12 @@ namespace WebBanDienThoai.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DislikeCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LikeCount")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
@@ -697,11 +852,37 @@ namespace WebBanDienThoai.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
-
                     b.HasIndex("UserId");
 
+                    b.HasIndex("ProductId", "UserId")
+                        .IsUnique();
+
                     b.ToTable("ProductRatings");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductRatingImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProductRatingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductRatingId");
+
+                    b.ToTable("ProductRatingImages");
                 });
 
             modelBuilder.Entity("WebBanDienThoai.Models.ProductRatingReply", b =>
@@ -736,6 +917,70 @@ namespace WebBanDienThoai.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ProductRatingReplies");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductRatingReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProductRatingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProductRatingId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ProductRatingReports");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductRatingVote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsLike")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductRatingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProductRatingId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ProductRatingVotes");
                 });
 
             modelBuilder.Entity("WebBanDienThoai.Models.ProductSpecs", b =>
@@ -899,6 +1144,10 @@ namespace WebBanDienThoai.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -907,6 +1156,10 @@ namespace WebBanDienThoai.Migrations
 
                     b.Property<string>("Ram")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("Stock")
                         .HasColumnType("int");
@@ -926,6 +1179,70 @@ namespace WebBanDienThoai.Migrations
                     b.ToTable("ProductVariants");
                 });
 
+            modelBuilder.Entity("WebBanDienThoai.Models.Province", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Provinces");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ShippingRate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DistrictCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ExpressFee")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ExpressMaxDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExpressMinDays")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Fee")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("FreeShipMinOrder")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("MaxDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProvinceCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShippingRates");
+                });
+
             modelBuilder.Entity("WebBanDienThoai.Models.Store", b =>
                 {
                     b.Property<int>("Id")
@@ -939,10 +1256,8 @@ namespace WebBanDienThoai.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("District")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<int>("DistrictId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -953,26 +1268,25 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("OpenHours")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PhoneNumber")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("Province")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<int>("ProvinceId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Ward")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DistrictId");
+
+                    b.HasIndex("ProvinceId");
 
                     b.ToTable("Stores");
                 });
@@ -1137,6 +1451,17 @@ namespace WebBanDienThoai.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("WebBanDienThoai.Models.District", b =>
+                {
+                    b.HasOne("WebBanDienThoai.Models.Province", "Province")
+                        .WithMany("Districts")
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Province");
+                });
+
             modelBuilder.Entity("WebBanDienThoai.Models.MomoInfoModel", b =>
                 {
                     b.HasOne("WebBanDienThoai.Models.Order", "Order")
@@ -1221,6 +1546,16 @@ namespace WebBanDienThoai.Migrations
                     b.Navigation("SubCategory");
                 });
 
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductFaq", b =>
+                {
+                    b.HasOne("WebBanDienThoai.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("WebBanDienThoai.Models.ProductImage", b =>
                 {
                     b.HasOne("WebBanDienThoai.Models.Product", "Product")
@@ -1230,6 +1565,44 @@ namespace WebBanDienThoai.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductQuestion", b =>
+                {
+                    b.HasOne("WebBanDienThoai.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebBanDienThoai.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductQuestionReply", b =>
+                {
+                    b.HasOne("WebBanDienThoai.Models.ProductQuestion", "ProductQuestion")
+                        .WithMany("Replies")
+                        .HasForeignKey("ProductQuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WebBanDienThoai.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProductQuestion");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebBanDienThoai.Models.ProductRating", b =>
@@ -1251,6 +1624,17 @@ namespace WebBanDienThoai.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductRatingImage", b =>
+                {
+                    b.HasOne("WebBanDienThoai.Models.ProductRating", "ProductRating")
+                        .WithMany("Images")
+                        .HasForeignKey("ProductRatingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProductRating");
+                });
+
             modelBuilder.Entity("WebBanDienThoai.Models.ProductRatingReply", b =>
                 {
                     b.HasOne("WebBanDienThoai.Models.ProductRating", "ProductRating")
@@ -1263,6 +1647,44 @@ namespace WebBanDienThoai.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProductRating");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductRatingReport", b =>
+                {
+                    b.HasOne("WebBanDienThoai.Models.ProductRating", "ProductRating")
+                        .WithMany("Reports")
+                        .HasForeignKey("ProductRatingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WebBanDienThoai.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductRating");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductRatingVote", b =>
+                {
+                    b.HasOne("WebBanDienThoai.Models.ProductRating", "ProductRating")
+                        .WithMany("Votes")
+                        .HasForeignKey("ProductRatingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WebBanDienThoai.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ProductRating");
@@ -1290,6 +1712,25 @@ namespace WebBanDienThoai.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.Store", b =>
+                {
+                    b.HasOne("WebBanDienThoai.Models.District", "District")
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebBanDienThoai.Models.Province", "Province")
+                        .WithMany()
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("District");
+
+                    b.Navigation("Province");
                 });
 
             modelBuilder.Entity("WebBanDienThoai.Models.SubCategory", b =>
@@ -1357,9 +1798,25 @@ namespace WebBanDienThoai.Migrations
                     b.Navigation("Variants");
                 });
 
-            modelBuilder.Entity("WebBanDienThoai.Models.ProductRating", b =>
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductQuestion", b =>
                 {
                     b.Navigation("Replies");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.ProductRating", b =>
+                {
+                    b.Navigation("Images");
+
+                    b.Navigation("Replies");
+
+                    b.Navigation("Reports");
+
+                    b.Navigation("Votes");
+                });
+
+            modelBuilder.Entity("WebBanDienThoai.Models.Province", b =>
+                {
+                    b.Navigation("Districts");
                 });
 
             modelBuilder.Entity("WebBanDienThoai.Models.SubCategory", b =>

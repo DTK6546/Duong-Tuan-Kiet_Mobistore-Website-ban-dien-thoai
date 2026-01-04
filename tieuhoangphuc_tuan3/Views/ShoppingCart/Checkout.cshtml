@@ -1,0 +1,566 @@
+﻿@model WebBanDienThoai.Models.Order
+@using WebBanDienThoai.Models
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Thanh toán";
+
+    var cart = ViewBag.Cart as ShoppingCart ?? new ShoppingCart();
+    var stores = ViewBag.Stores as List<Store> ?? new List<Store>();
+    var user = ViewBag.CurrentUser as ApplicationUser;
+
+    decimal subtotal = cart.Items.Sum(i =>
+    {
+        decimal w = i.Warranties?.Sum(x => x.Price) ?? 0m;
+        return (i.Price + w) * i.Quantity;
+    });
+
+    decimal discount = cart.DiscountAmount < 0 ? 0 : cart.DiscountAmount;
+    decimal afterDiscount = Math.Max(0, subtotal - discount);
+    decimal vat = Math.Round(afterDiscount * 0.10m, 0);
+}
+
+<div class="container my-4">
+    <div class="row g-4">
+
+        <!-- LEFT: FORM -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Checkout 1 bước</h5>
+                </div>
+
+                <div class="card-body">
+
+                    @if (TempData["PaymentError"] != null)
+                    {
+                        <div class="alert alert-danger">@TempData["PaymentError"]</div>
+                    }
+
+                    @if (TempData["CouponError"] != null)
+                    {
+                        <div class="alert alert-warning">@TempData["CouponError"]</div>
+                    }
+
+                    <form id="checkoutForm" method="post" asp-action="Checkout" asp-controller="ShoppingCart">
+                        @Html.AntiForgeryToken()
+
+                        <!-- ========================= -->
+                        <!-- Hidden for Order POST (ShoppingCart/Checkout) -->
+                        <!-- ========================= -->
+                        <input type="hidden" name="DeliveryMethod" id="DeliveryMethod" value="ShipToHome" />
+                        <input type="hidden" name="StoreId" id="StoreIdHidden" value="" />
+                        <input type="hidden" name="ProvinceCode" id="ProvinceCodeHidden" value="" />
+                        <input type="hidden" name="DistrictCode" id="DistrictCodeHidden" value="" />
+                        <input type="hidden" name="ShippingFee" id="ShippingFeeHidden" value="0" />
+
+                        <!-- ✅ ship method -->
+                        <input type="hidden" name="ShipMethod" id="ShipMethodHidden" value="standard" />
+
+                        <!-- amount dùng để bind (VNPay action có amount param) -->
+                        <input type="hidden" name="amount" id="AmountHidden" value="0" />
+
+                        <!-- ========================= -->
+                        <!-- Hidden for PaymentController params (camelCase) -->
+                        <!-- ========================= -->
+                        <input type="hidden" name="deliveryMethod" id="deliveryMethod" value="ShipToHome" />
+                        <input type="hidden" name="storeId" id="storeId" value="" />
+                        <input type="hidden" name="provinceCode" id="provinceCode" value="" />
+                        <input type="hidden" name="districtCode" id="districtCode" value="" />
+                        <input type="hidden" name="shippingFee" id="shippingFee" value="0" />
+
+                        <!-- ✅ ship method camelCase -->
+                        <input type="hidden" name="shipMethod" id="shipMethod" value="standard" />
+
+                        <!-- ========================= -->
+                        <!-- Hidden tối thiểu cho MoMo (OrderInfoModel) -->
+                        <!-- ========================= -->
+                        <input type="hidden" name="Amount" id="MomoAmount" value="0" />
+                        <input type="hidden" name="OrderInfo" id="MomoOrderInfo" value="Thanh toan don hang tai MobiStore" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Họ và tên</label>
+                            <input class="form-control" value="@(user?.FullName ?? "")" readonly />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Số điện thoại</label>
+                            <input class="form-control" value="@(user?.PhoneNumber ?? "")" readonly />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ShippingAddress" class="form-label">Địa chỉ nhận hàng</label>
+                            <textarea asp-for="ShippingAddress"
+                                      class="form-control"
+                                      rows="2"
+                                      placeholder="Nhập địa chỉ giao hàng..."></textarea>
+                            <span asp-validation-for="ShippingAddress" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Ghi chú</label>
+                            <textarea asp-for="Notes" class="form-control" rows="2"
+                                      placeholder="Ví dụ: gọi trước khi giao..."></textarea>
+                        </div>
+
+                        <hr />
+
+                        <div class="fw-semibold mb-2">Phương thức nhận hàng</div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="DeliveryMethodRadio" id="ShipToHomeRadio" value="ShipToHome" checked>
+                            <label class="form-check-label" for="ShipToHomeRadio">Giao tận nhà</label>
+                        </div>
+
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="radio" name="DeliveryMethodRadio" id="PickupAtStoreRadio" value="PickupAtStore">
+                            <label class="form-check-label" for="PickupAtStoreRadio">Nhận tại cửa hàng</label>
+                        </div>
+
+                        <!-- SHIP -->
+                        <div id="shipBox" class="mt-3">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Tỉnh/TP</label>
+                                    <select id="shipProvince" class="form-select">
+                                        <option value="">-- Chọn Tỉnh/TP --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Quận/Huyện</label>
+                                    <select id="shipDistrict" class="form-select" disabled>
+                                        <option value="">-- Toàn tỉnh --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- ✅ ship method select -->
+                            <div class="mt-2">
+                                <label class="form-label">Phương thức giao</label>
+                                <select id="shipMethodSelect" class="form-select">
+                                    <option value="standard" selected>Tiêu chuẩn</option>
+                                    <option value="express">Nhanh</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">
+                                    Nhanh sẽ có phí cao hơn, giao sớm hơn (nếu có cấu hình).
+                                </small>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-2">
+                                <div>Phí ship:</div>
+                                <div class="fw-semibold" id="shipFeeText">—</div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <div>Dự kiến:</div>
+                                <div class="text-muted" id="shipEtaText">—</div>
+                            </div>
+                        </div>
+
+                        <!-- PICKUP -->
+                        <div id="pickupBox" class="mt-3" style="display:none;">
+                            <label class="form-label">Chọn cửa hàng nhận</label>
+                            <select id="storeSelect" class="form-select">
+                                <option value="">-- Chọn cửa hàng --</option>
+                                @foreach (var s in stores)
+                                {
+                                    <option value="@s.Id">@s.Name - @s.Province, @s.District</option>
+                                }
+                            </select>
+                            <small class="text-muted">Nhận tại cửa hàng thì phí ship = 0.</small>
+                        </div>
+
+                        <hr />
+
+                        <div class="fw-semibold mb-2">Phương thức thanh toán</div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payCod" value="COD" checked>
+                            <label class="form-check-label" for="payCod">COD (Thanh toán khi nhận hàng)</label>
+                        </div>
+
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payVnpay" value="VNPAY">
+                            <label class="form-check-label" for="payVnpay">VNPay</label>
+                        </div>
+
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payMomo" value="MOMO">
+                            <label class="form-check-label" for="payMomo">MoMo</label>
+                        </div>
+
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payPaypal" value="PAYPAL">
+                            <label class="form-check-label" for="payPaypal">PayPal</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger w-100 py-2 mt-3">
+                            Thanh toán
+                        </button>
+
+                        <div class="text-muted small mt-2">
+                            VNPay/MoMo/PayPal sẽ chuyển sang cổng thanh toán. COD sẽ tạo đơn ngay.
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: SUMMARY -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Tóm tắt đơn hàng</h5>
+                </div>
+
+                <div class="card-body">
+
+                    @if (cart.Items == null || !cart.Items.Any())
+                    {
+                        <div class="alert alert-info mb-0">
+                            Giỏ hàng đang trống. Vui lòng quay lại giỏ hàng để thêm sản phẩm.
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var item in cart.Items)
+                        {
+                            <div class="d-flex gap-3 py-2 border-bottom">
+                                <img src="@item.ImageUrl" style="width:70px;height:70px;object-fit:cover;border-radius:8px;" />
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">@item.Name</div>
+                                    <div class="text-muted small">SL: @item.Quantity</div>
+
+                                    @if (item.Warranties != null && item.Warranties.Any())
+                                    {
+                                        <div class="text-muted small mt-1">
+                                            BH:
+                                            <ul class="mb-0 ps-3">
+                                                @foreach (var w in item.Warranties)
+                                                {
+                                                    <li>@w.Name (+@w.Price.ToString("N0") đ)</li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="text-end fw-semibold">@item.Price.ToString("N0") đ</div>
+                            </div>
+                        }
+
+                        <div class="pt-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Tạm tính</span>
+                                <span id="sumSubtotal">@subtotal.ToString("N0") đ</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Giảm giá</span>
+                                <span id="sumDiscount">-@discount.ToString("N0") đ</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>VAT (10%)</span>
+                                <span id="sumVat">@vat.ToString("N0") đ</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Phí ship</span>
+                                <span id="sumShip">0 đ</span>
+                            </div>
+
+                            <hr />
+
+                            <div class="d-flex justify-content-between fs-5 fw-bold">
+                                <span>Tổng</span>
+                                <span id="sumTotal">0 đ</span>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <a asp-action="Index" asp-controller="ShoppingCart" class="btn btn-outline-secondary w-100 mt-3">
+                Quay lại giỏ hàng
+            </a>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // ===== server totals =====
+            const subtotal = @subtotal;
+            const discount = @discount;
+            const vat = @vat;
+
+            // ✅ để Quote free-ship theo orderValue
+            const orderValueAfterDiscount = Math.max(0, subtotal - discount);
+
+            // ===== summary elements =====
+            const shipFeeText = document.getElementById('shipFeeText');
+            const shipEtaText = document.getElementById('shipEtaText');
+            const sumShip = document.getElementById('sumShip');
+            const sumTotal = document.getElementById('sumTotal');
+
+            // ===== hidden (Order POST) =====
+            const DeliveryMethodHidden = document.getElementById('DeliveryMethod');
+            const StoreIdHidden = document.getElementById('StoreIdHidden');
+            const ProvinceCodeHidden = document.getElementById('ProvinceCodeHidden');
+            const DistrictCodeHidden = document.getElementById('DistrictCodeHidden');
+            const ShippingFeeHidden = document.getElementById('ShippingFeeHidden');
+            const ShipMethodHidden = document.getElementById('ShipMethodHidden');
+            const AmountHidden = document.getElementById('AmountHidden');
+
+            // ===== hidden (PaymentController camelCase) =====
+            const deliveryMethod2 = document.getElementById('deliveryMethod');
+            const storeId2 = document.getElementById('storeId');
+            const province2 = document.getElementById('provinceCode');
+            const district2 = document.getElementById('districtCode');
+            const shippingFee2 = document.getElementById('shippingFee');
+            const shipMethod2 = document.getElementById('shipMethod');
+
+            // ===== MoMo model hidden =====
+            const momoAmount = document.getElementById('MomoAmount');
+
+            function money(v) { return Number(v || 0).toLocaleString('vi-VN') + ' đ'; }
+
+            function syncForPayment() {
+                deliveryMethod2.value = DeliveryMethodHidden.value || "ShipToHome";
+                storeId2.value = StoreIdHidden.value || "";
+                province2.value = ProvinceCodeHidden.value || "";
+                district2.value = DistrictCodeHidden.value || "";
+                shippingFee2.value = ShippingFeeHidden.value || "0";
+                shipMethod2.value = ShipMethodHidden.value || "standard";
+            }
+
+            function recalcTotal() {
+                const ship = Number(ShippingFeeHidden.value || 0);
+                const total = Math.max(0, subtotal - discount) + vat + ship;
+
+                if (sumShip) sumShip.textContent = money(ship);
+                if (sumTotal) sumTotal.textContent = money(total);
+
+                AmountHidden.value = total;            // VNPay
+                momoAmount.value = Math.round(total);  // MoMo thường dùng long
+
+                syncForPayment();
+            }
+
+            // ===== delivery toggle =====
+            const shipRadio = document.getElementById('ShipToHomeRadio');
+            const pickupRadio = document.getElementById('PickupAtStoreRadio');
+            const shipBox = document.getElementById('shipBox');
+            const pickupBox = document.getElementById('pickupBox');
+            const storeSelect = document.getElementById('storeSelect');
+
+            function toggleDelivery() {
+                if (pickupRadio.checked) {
+                    DeliveryMethodHidden.value = "PickupAtStore";
+                    shipBox.style.display = 'none';
+                    pickupBox.style.display = 'block';
+
+                    // pickup => ship = 0, clear prov/dist
+                    ShippingFeeHidden.value = 0;
+                    ProvinceCodeHidden.value = "";
+                    DistrictCodeHidden.value = "";
+
+                    if (shipFeeText) shipFeeText.textContent = "0 đ";
+                    if (shipEtaText) shipEtaText.textContent = "—";
+
+                    StoreIdHidden.value = storeSelect.value || "";
+                } else {
+                    DeliveryMethodHidden.value = "ShipToHome";
+                    shipBox.style.display = 'block';
+                    pickupBox.style.display = 'none';
+                    StoreIdHidden.value = "";
+                }
+
+                recalcTotal();
+            }
+
+            shipRadio?.addEventListener('change', toggleDelivery);
+            pickupRadio?.addEventListener('change', toggleDelivery);
+            storeSelect?.addEventListener('change', () => {
+                StoreIdHidden.value = storeSelect.value || "";
+                syncForPayment();
+            });
+
+            // ===== ship method change =====
+            const shipMethodSelect = document.getElementById('shipMethodSelect');
+            shipMethodSelect?.addEventListener('change', async () => {
+                ShipMethodHidden.value = shipMethodSelect.value || "standard";
+                syncForPayment();
+
+                if (DeliveryMethodHidden.value === "ShipToHome") {
+                    const prov = provSel.value || "";
+                    const dist = distSel.value || "";
+                    if (prov) await quote(prov, dist);
+                    else recalcTotal();
+                } else {
+                    recalcTotal();
+                }
+            });
+
+            // ===== shipping province/district quote =====
+            const provSel = document.getElementById('shipProvince');
+            const distSel = document.getElementById('shipDistrict');
+
+            async function loadProvinces() {
+                const res = await fetch('/Shipping/Provinces');
+                const data = await res.json();
+
+                provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
+                data.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.code;
+                    opt.textContent = p.name;
+                    provSel.appendChild(opt);
+                });
+            }
+
+            async function loadDistricts(provinceCode) {
+                distSel.disabled = true;
+                distSel.innerHTML = `<option value="">-- Toàn tỉnh --</option>`;
+
+                if (!provinceCode) return;
+
+                const res = await fetch('/Shipping/Districts?provinceCode=' + encodeURIComponent(provinceCode));
+                const data = await res.json();
+
+                data.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.code;
+                    opt.textContent = d.name;
+                    distSel.appendChild(opt);
+                });
+
+                distSel.disabled = false;
+            }
+
+            async function quote(provinceCode, districtCode) {
+                if (!provinceCode) {
+                    ShippingFeeHidden.value = 0;
+                    ProvinceCodeHidden.value = "";
+                    DistrictCodeHidden.value = "";
+
+                    if (shipFeeText) shipFeeText.textContent = "—";
+                    if (shipEtaText) shipEtaText.textContent = "—";
+
+                    recalcTotal();
+                    return;
+                }
+
+                const method = ShipMethodHidden.value || "standard";
+
+                const url = '/Shipping/Quote?provinceCode=' + encodeURIComponent(provinceCode)
+                    + '&districtCode=' + encodeURIComponent(districtCode || '')
+                    + '&method=' + encodeURIComponent(method)
+                    + '&orderValue=' + encodeURIComponent(orderValueAfterDiscount);
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data && data.ok === false) {
+                    ShippingFeeHidden.value = 0;
+                    if (shipFeeText) shipFeeText.textContent = "0 đ";
+                    if (shipEtaText) shipEtaText.textContent = data.message || "—";
+                    recalcTotal();
+                    return;
+                }
+
+                ProvinceCodeHidden.value = provinceCode;
+                DistrictCodeHidden.value = districtCode || "";
+                ShippingFeeHidden.value = data.fee || 0;
+
+                if (shipFeeText) shipFeeText.textContent = money(data.fee || 0);
+                if (shipEtaText) shipEtaText.textContent = (data.etaFrom && data.etaTo) ? (data.etaFrom + " - " + data.etaTo) : "—";
+
+                recalcTotal();
+            }
+
+            if (provSel && distSel) {
+                loadProvinces().then(() => recalcTotal());
+
+                provSel.addEventListener('change', async () => {
+                    await loadDistricts(provSel.value);
+                    distSel.value = "";
+                    await quote(provSel.value, "");
+                });
+
+                distSel.addEventListener('change', async () => {
+                    await quote(provSel.value, distSel.value);
+                });
+            } else {
+                recalcTotal();
+            }
+
+            // ===== payment routing (1 submit) =====
+            const form = document.getElementById('checkoutForm');
+
+            form.addEventListener('submit', function (e) {
+
+                // pickup store required
+                if (DeliveryMethodHidden.value === "PickupAtStore" && !StoreIdHidden.value) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn cửa hàng nhận.');
+                    return;
+                }
+
+                // ship => require province
+                if (DeliveryMethodHidden.value === "ShipToHome" && !ProvinceCodeHidden.value) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn Tỉnh/TP để tính phí ship.');
+                    return;
+                }
+
+                // luôn sync & recalc trước khi submit
+                recalcTotal();
+
+                const pay = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
+
+                if (pay === "COD") {
+                    form.action = '/ShoppingCart/Checkout';
+                    form.method = 'post';
+                    return;
+                }
+
+                if (pay === "VNPAY") {
+                    form.action = '/Payment/PaymentVNPay';
+                    form.method = 'post';
+                    return;
+                }
+
+                if (pay === "MOMO") {
+                    form.action = '/Payment/CreatePaymentMomo';
+                    form.method = 'post';
+                    return;
+                }
+
+                if (pay === "PAYPAL") {
+                    e.preventDefault();
+
+                    const qs = new URLSearchParams({
+                        amount: AmountHidden.value,
+                        deliveryMethod: DeliveryMethodHidden.value,
+                        storeId: StoreIdHidden.value,
+                        provinceCode: ProvinceCodeHidden.value,
+                        districtCode: DistrictCodeHidden.value,
+                        shippingFee: ShippingFeeHidden.value,
+                        shipMethod: ShipMethodHidden.value
+                    });
+
+                    window.location.href = '/Payment/Paypal?' + qs.toString();
+                    return;
+                }
+            });
+
+            // init
+            toggleDelivery();
+            recalcTotal();
+        });
+    </script>
+}

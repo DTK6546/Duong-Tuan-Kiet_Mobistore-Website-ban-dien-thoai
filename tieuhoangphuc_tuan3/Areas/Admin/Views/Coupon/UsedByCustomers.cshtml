@@ -19,8 +19,8 @@
         @foreach (var usage in Model)
         {
             <tr>
-                <td>@usage.User.FullName</td>
-                <td>@usage.User.Email</td>
+                <td>@(usage.User?.FullName ?? usage.User?.UserName ?? "N/A")</td>
+                <td>@(usage.User?.Email ?? "N/A")</td>
                 <td>@usage.UsedAt.ToString("dd/MM/yyyy HH:mm")</td>
             </tr>
         }

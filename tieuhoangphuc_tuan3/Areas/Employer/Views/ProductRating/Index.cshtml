@@ -1,15 +1,20 @@
 ﻿@model List<WebBanDienThoai.Models.ProductRating>
+@using WebBanDienThoai.Models
+@using System.Linq
+
 @{
     Layout = "~/Areas/Employer/Views/Shared/_EmployerLayout.cshtml";
     ViewData["Title"] = "Quản lý đánh giá sản phẩm";
 
-    var products = ViewBag.Products as List<WebBanDienThoai.Models.Product> ?? new();
+    var products = ViewBag.Products as List<Product> ?? new();
     int totalCount = ViewBag.TotalCount ?? 0;
     int pageSize = ViewBag.PageSize ?? 5;
     int currentPage = ViewBag.CurrentPage ?? 1;
+
     string search = ViewBag.Search as string ?? "";
     int productId = ViewBag.ProductId ?? 0;
     int star = ViewBag.Star ?? 0;
+
     int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
     int editingReplyId = 0;
@@ -17,143 +22,381 @@
     {
         int.TryParse(Context.Request.Query["editingReplyId"], out editingReplyId);
     }
+
+    string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "U";
+        name = name.Trim();
+        return name.Substring(0, 1).ToUpper();
+    }
 }
 
 <div class="container py-4">
-    <h2 class="mb-4 fw-bold">Quản lý đánh giá sản phẩm</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Quản lý đánh giá sản phẩm</h2>
+            <div class="text-muted small">Xem đánh giá, ảnh, vote, báo cáo và phản hồi khách hàng.</div>
+        </div>
+        <span class="badge bg-dark px-3 py-2">Tổng: @totalCount đánh giá</span>
+    </div>
 
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        <div class="alert alert-success alert-dismissible fade show rounded-4" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     }
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        <div class="alert alert-danger alert-dismissible fade show rounded-4" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     }
 
-    <!-- FILTER BAR -->
-    <div class="bg-white p-3 rounded-4 shadow-sm mb-4">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-lg-3 col-md-4">
-                <label class="form-label mb-1">Tìm kiếm</label>
-                <input name="search" class="form-control" value="@search" placeholder="Tên SP, người đánh giá, bình luận..." />
+    <!-- FILTER -->
+    <div class="bg-white p-4 rounded-4 shadow-sm mb-4 border">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-bold small text-uppercase text-muted">Tìm kiếm</label>
+                <input name="search" class="form-control bg-light" value="@search"
+                       placeholder="Tên SP, người đánh giá, bình luận..." />
             </div>
-            <div class="col-lg-3 col-md-4">
-                <label class="form-label mb-1">Sản phẩm</label>
-                <select name="productId" class="form-select">
-                    <option value="0">Tất cả</option>
+
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-bold small text-uppercase text-muted">Sản phẩm</label>
+                <select name="productId" class="form-select bg-light">
+                    @if (productId == 0)
+                    {
+                        <option value="0" selected="selected">Tất cả</option>
+                    }
+                    else
+                    {
+                        <option value="0">Tất cả</option>
+                    }
+
                     @foreach (var p in products)
+                    {
+                        if (p.Id == productId)
                         {
-                            @:<option value="@p.Id"@(p.Id == productId ? " selected" : "")>@p.Name</option>
+                            <option value="@p.Id" selected="selected">@p.Name</option>
                         }
+                        else
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    }
                 </select>
             </div>
-            <div class="col-lg-2 col-md-4">
-                <label class="form-label mb-1">Số sao</label>
-                <select name="star" class="form-select">
-                    <option value="0">Tất cả</option>
-                    @for (int i = 1; i <= 5; i++)
+
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label fw-bold small text-uppercase text-muted">Số sao</label>
+                <select name="star" class="form-select bg-light">
+                    @if (star == 0)
+                    {
+                        <option value="0" selected="selected">Tất cả</option>
+                    }
+                    else
+                    {
+                        <option value="0">Tất cả</option>
+                    }
+
+                    @for (int i = 5; i >= 1; i--)
+                    {
+                        if (star == i)
                         {
-                            @:<option value="@i"@(star == i ? " selected" : "")>@i sao</option>
+                            <option value="@i" selected="selected">@i sao</option>
                         }
+                        else
+                        {
+                            <option value="@i">@i sao</option>
+                        }
+                    }
                 </select>
             </div>
-            <div class="col-lg-2 col-md-4">
-                <button class="btn btn-primary w-100" type="submit">
-                    <i class="bi bi-search"></i> Lọc / Tìm kiếm
-                </button>
+
+            <div class="col-lg-2 col-md-6">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary w-100 fw-bold" type="submit">
+                        <i class="bi bi-funnel me-1"></i> Lọc
+                    </button>
+                    <a href="@Url.Action("Index")" class="btn btn-outline-secondary" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
             </div>
         </form>
     </div>
 
-    <!-- DANH SÁCH ĐÁNH GIÁ -->
-    @if (Model.Any())
+    <!-- LIST -->
+    @if (Model != null && Model.Any())
     {
-        @foreach (var r in Model)
+        foreach (var r in Model)
         {
-            <div class="bg-white shadow-sm rounded-4 p-4 mb-4">
-                <div class="d-flex flex-wrap align-items-center mb-2">
-                    <span class="badge bg-primary me-2 mb-2">@r.Product?.Name</span>
-                    <span class="fw-semibold me-3 mb-2">@r.User?.FullName</span>
-                    <span class="text-warning me-2 mb-2" style="font-size:1.1rem">
-                        @for (int i = 1; i <= 5; i++)
-                        {
-                            <i class="bi @(i <= r.Stars ? "bi-star-fill" : "bi-star")"></i>
-                        }
-                        <span class="ms-1 fw-normal text-dark">@r.Stars ⭐</span>
-                    </span>
-                    <span class="text-muted mb-2" style="font-size:90%">
-                        @r.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                    </span>
-                </div>
-                <div class="mb-3" style="font-size:1.08rem;">@r.Comment</div>
-                <div class="bg-light rounded-3 p-3">
-                    <div class="fw-semibold mb-2">Phản hồi của Admin/Nhân viên</div>
-                    @foreach (var reply in r.Replies.OrderBy(x => x.CreatedAt))
-{
-    <div class="mb-2">
-        <span class="badge bg-info text-dark me-2" style="vertical-align: top;">@(reply.User?.FullName ?? "Admin/Staff")</span>
-        <span style="word-break: break-word;">
-            @if (editingReplyId == reply.Id)
-            {
-                <!-- Form sửa inline -->
-                <form asp-action="EditReply" method="post" class="d-inline" style="width: 50%;">
-                    <input type="hidden" name="id" value="@reply.Id" />
-                    <input type="hidden" name="search" value="@search" />
-                    <input type="hidden" name="productId" value="@productId" />
-                    <input type="hidden" name="star" value="@star" />
-                    <input type="hidden" name="page" value="@currentPage" />
-                    <input name="content" class="form-control d-inline-block" value="@reply.Content" style="width: 65%; display:inline;" />
-                    <button class="btn btn-success btn-sm ms-1" type="submit">Lưu</button>
-                    <a href="@Url.Action("Index", new { search, productId, star, page = currentPage })" class="btn btn-secondary btn-sm ms-1">Hủy</a>
-                </form>
-            }
-            else
-            {
-                @reply.Content
-                <span class="text-muted ms-2" style="font-size:90%">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-            }
-        </span>
-        <span class="float-end ms-2">
-            @if (editingReplyId != reply.Id)
-            {
-                <a href="@Url.Action("Index", new { search, productId, star, page = currentPage, editingReplyId = reply.Id })" class="btn btn-sm btn-warning ms-2">Sửa</a>
-            }
-            <form asp-action="DeleteReply" asp-route-id="@reply.Id" method="post" style="display:inline;">
-                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Xóa phản hồi này?')">Xóa</button>
-            </form>
-        </span>
-    </div>
-}
+            var productName = r.Product?.Name ?? "Sản phẩm";
+            var userName = r.User?.FullName ?? r.User?.UserName ?? "Người dùng";
+            var comment = string.IsNullOrWhiteSpace(r.Comment) ? "Không có nhận xét." : r.Comment.Trim();
 
+            var replies = r.Replies ?? new List<ProductRatingReply>();
+            var images = r.Images ?? new List<ProductRatingImage>();
+            var votes = r.Votes ?? new List<ProductRatingVote>();
+            var reports = r.Reports ?? new List<ProductRatingReport>();
 
-                    <form asp-action="AddReply" method="post" class="mt-2">
-                        <input type="hidden" name="ratingId" value="@r.Id" />
-                        <div class="input-group">
-                            <input name="content" class="form-control" placeholder="Thêm phản hồi..." autocomplete="off" />
-                            <button class="btn btn-primary" type="submit">Phản hồi</button>
+            var likes = votes.Count(v => v.IsLike);
+            var dislikes = votes.Count(v => !v.IsLike);
+
+            var reportCollapseId = $"reportCollapse_{r.Id}";
+            var lightboxModalId = $"lightbox_{r.Id}";
+            <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                <div class="card-body p-4">
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <div class="rounded-circle bg-secondary text-white fw-bold d-flex align-items-center justify-content-center"
+                                 style="width:40px;height:40px;">
+                                @Initials(userName)
+                            </div>
+
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 ms-2">
+                                <i class="bi bi-phone me-1"></i> @productName
+                            </span>
+
+                            <span class="fw-semibold ms-1">@userName</span>
+
+                            @if (r.IsVerifiedPurchase)
+                            {
+                                <span class="badge bg-success text-white px-2 py-1 small shadow-sm"
+                                      title="Người dùng này đã mua và nhận hàng thành công">
+                                    <i class="bi bi-patch-check-fill me-1"></i> Đã mua hàng
+                                </span>
+                            }
                         </div>
-                    </form>
+
+                        <div class="text-end">
+                            <div class="text-warning fs-5">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="bi @(i <= r.Stars ? "bi-star-fill" : "bi-star")"></i>
+                                }
+                            </div>
+                            <small class="text-muted">@r.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                        </div>
+                    </div>
+
+                    <!-- Comment -->
+                    <div class="p-3 bg-light rounded-3 mb-3 border-start border-4 border-primary">
+                        <div class="mb-0 text-dark" style="white-space:pre-line;">“@comment”</div>
+                    </div>
+
+                    <!-- Images -->
+                    @if (images.Any())
+                    {
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            @foreach (var img in images.OrderBy(x => x.CreatedAt))
+                            {
+                                <img src="@img.Url"
+                                     class="rounded shadow-sm rating-thumb"
+                                     style="width:110px;height:110px;object-fit:cover;cursor:pointer;"
+                                     data-bs-toggle="modal"
+                                     data-bs-target="#@lightboxModalId"
+                                     data-img="@img.Url" />
+                            }
+                        </div>
+
+                        <!-- Lightbox -->
+                        <div class="modal fade" id="@lightboxModalId" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                <div class="modal-content rounded-4 overflow-hidden">
+                                    <div class="modal-body p-0 bg-dark">
+                                        <img id="lightboxImg_@r.Id" src="" style="width:100%;max-height:80vh;object-fit:contain;" />
+                                    </div>
+                                    <div class="modal-footer justify-content-between">
+                                        <small class="text-muted">Ảnh đánh giá</small>
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Votes + Reports count -->
+                    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                        <span class="btn btn-outline-success btn-sm px-3 py-1">
+                            <i class="bi bi-hand-thumbs-up-fill me-1"></i> @likes
+                        </span>
+                        <span class="btn btn-outline-danger btn-sm px-3 py-1">
+                            <i class="bi bi-hand-thumbs-down-fill me-1"></i> @dislikes
+                        </span>
+
+                        <button class="btn btn-outline-secondary btn-sm px-3 py-1 ms-2"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#@reportCollapseId"
+                                aria-expanded="false">
+                            <i class="bi bi-flag-fill me-1"></i> Báo cáo: @reports.Count
+                        </button>
+
+                        @if (reports.Any())
+                        {
+                            <span class="badge bg-danger">Có báo cáo</span>
+                        }
+                    </div>
+
+                    <!-- Reports detail -->
+                    <div class="collapse mb-3" id="@reportCollapseId">
+                        <div class="p-3 rounded-3 border" style="background:#fff5f5;">
+                            <div class="fw-bold text-danger mb-2">
+                                <i class="bi bi-flag-fill me-1"></i> Danh sách báo cáo
+                            </div>
+
+                            @if (!reports.Any())
+                            {
+                                <div class="text-muted small fst-italic">Chưa có báo cáo nào.</div>
+                            }
+                            else
+                            {
+                                @foreach (var rep in reports.OrderByDescending(x => x.CreatedAt))
+                                {
+                                    <div class="mb-2 pb-2 border-bottom">
+                                        <div class="small text-muted">
+                                            @(rep.User?.FullName ?? rep.User?.UserName ?? rep.UserId)
+                                            • @rep.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                        </div>
+                                        <div>@rep.Reason</div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Replies -->
+                    <div class="ms-md-4 p-3 rounded-4" style="background:#f8f9fa; border:1px dashed #dee2e6;">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <div class="fw-bold text-secondary">
+                                <i class="bi bi-reply-all-fill me-2"></i>Phản hồi điều hành
+                            </div>
+                            <span class="small text-muted">@replies.Count phản hồi</span>
+                        </div>
+
+                        @if (!replies.Any())
+                        {
+                            <div class="text-muted small fst-italic">Chưa có phản hồi nào.</div>
+                        }
+                        else
+                        {
+                            @foreach (var reply in replies.OrderBy(x => x.CreatedAt))
+                            {
+                                <div class="d-flex gap-3 mb-3 pb-2 border-bottom border-white">
+                                    <div class="avatar-sm bg-info text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width:35px;height:35px;">
+                                        <i class="bi bi-person-badge"></i>
+                                    </div>
+
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between flex-wrap gap-2">
+                                            <span class="fw-bold text-info">@(reply.User?.FullName ?? reply.User?.UserName ?? "Admin/Staff")</span>
+                                            <small class="text-muted">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </div>
+
+                                        @if (editingReplyId == reply.Id)
+                                        {
+                                            <form asp-action="EditReply" method="post" class="mt-2">
+                                                <input type="hidden" name="id" value="@reply.Id" />
+                                                <input type="hidden" name="search" value="@search" />
+                                                <input type="hidden" name="productId" value="@productId" />
+                                                <input type="hidden" name="star" value="@star" />
+                                                <input type="hidden" name="page" value="@currentPage" />
+
+                                                <div class="input-group">
+                                                    <input name="content" class="form-control" value="@reply.Content" required />
+                                                    <button class="btn btn-success" type="submit">Lưu</button>
+                                                    <a href="@Url.Action("Index", new { search, productId, star, page = currentPage })"
+                                                       class="btn btn-secondary text-white">Hủy</a>
+                                                </div>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <div class="mt-1 text-secondary" style="white-space:pre-line;">@reply.Content</div>
+
+                                            <div class="mt-2">
+                                                <a href="@Url.Action("Index", new { search, productId, star, page = currentPage, editingReplyId = reply.Id })"
+                                                   class="btn btn-sm btn-warning me-2">
+                                                    Sửa
+                                                </a>
+
+                                                <form asp-action="DeleteReply" method="post" class="d-inline">
+                                                    <input type="hidden" name="id" value="@reply.Id" />
+                                                    <input type="hidden" name="search" value="@search" />
+                                                    <input type="hidden" name="productId" value="@productId" />
+                                                    <input type="hidden" name="star" value="@star" />
+                                                    <input type="hidden" name="page" value="@currentPage" />
+                                                    <button type="submit" class="btn btn-sm btn-danger"
+                                                            onclick="return confirm('Xóa phản hồi này?')">
+                                                        Xóa
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+
+                        <!-- Add reply -->
+                        <form asp-action="AddReply" method="post" class="mt-2">
+                            <input type="hidden" name="ratingId" value="@r.Id" />
+                            <input type="hidden" name="search" value="@search" />
+                            <input type="hidden" name="productId" value="@productId" />
+                            <input type="hidden" name="star" value="@star" />
+                            <input type="hidden" name="page" value="@currentPage" />
+
+                            <div class="input-group">
+                                <input name="content" class="form-control" placeholder="Thêm phản hồi..." autocomplete="off" required />
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="bi bi-send me-1"></i> Phản hồi
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
                 </div>
             </div>
+
+            <script>
+                (function () {
+                    // lightbox per rating
+                    document.querySelectorAll('#@lightboxModalId .modal-body img').forEach(function(){});
+                    document.querySelectorAll('[data-bs-target="#@lightboxModalId"]').forEach(function (el) {
+                        el.addEventListener('click', function () {
+                            var url = this.getAttribute('data-img');
+                            var img = document.getElementById('lightboxImg_@r.Id');
+                            if (img) img.src = url;
+                        });
+                    });
+                })();
+            </script>
         }
     }
     else
     {
-        <div class="alert alert-info text-center">Không có đánh giá nào phù hợp!</div>
+        <div class="alert alert-info text-center rounded-4">Không có đánh giá nào phù hợp!</div>
     }
 
-    <!-- PHÂN TRANG -->
+    <!-- PAGINATION -->
     @if (totalPages > 1)
     {
         <nav aria-label="pagination" class="d-flex justify-content-center my-4">
-            <ul class="pagination pagination-lg">
+            <ul class="pagination pagination-lg shadow-sm">
                 <li class="page-item @(currentPage == 1 ? "disabled" : "")">
                     <a class="page-link" href="@Url.Action("Index", new { search, productId, star, page = currentPage - 1 })">«</a>
                 </li>
+
                 @for (int i = 1; i <= totalPages; i++)
                 {
-                    if (i == currentPage || (i <= 2 || i > totalPages - 2 || Math.Abs(i - currentPage) <= 1))
+                    if (i == currentPage || i == 1 || i == totalPages || Math.Abs(i - currentPage) <= 1)
                     {
                         <li class="page-item @(i == currentPage ? "active" : "")">
                             <a class="page-link" href="@Url.Action("Index", new { search, productId, star, page = i })">@i</a>
@@ -164,6 +407,7 @@
                         <li class="page-item disabled"><span class="page-link">…</span></li>
                     }
                 }
+
                 <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
                     <a class="page-link" href="@Url.Action("Index", new { search, productId, star, page = currentPage + 1 })">»</a>
                 </li>
@@ -179,15 +423,18 @@
         min-width: 42px;
         text-align: center;
     }
+
+    .bg-light {
+        background: #f8f9fb !important;
+    }
+
+    .rounded-4 {
+        border-radius: 1.2rem !important;
+    }
+
     .badge.bg-primary, .badge.bg-info {
         font-size: 1rem;
         padding: .4em 1.1em .45em 1.1em;
         border-radius: 1.2rem;
-    }
-    .bg-light {
-        background: #f8f9fb !important;
-    }
-    .rounded-4 {
-        border-radius: 1.2rem !important;
     }
 </style>

@@ -1,0 +1,50 @@
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@model WebBanDienThoai.Models.District
+
+@{
+    ViewData["Title"] = "Thêm Quận/Huyện";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var provinces = ViewBag.Provinces as SelectList;
+}
+
+<h2>Thêm Quận/Huyện</h2>
+
+<a asp-area="Admin" asp-controller="District" asp-action="Index" class="btn btn-secondary mb-3">
+    ← Quay lại
+</a>
+
+<form asp-area="Admin" asp-controller="District" asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label class="form-label">Tỉnh/TP</label>
+        <select asp-for="ProvinceId" class="form-select" asp-items="provinces">
+            <option value="">-- Chọn tỉnh --</option>
+        </select>
+        <span asp-validation-for="ProvinceId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Mã Quận/Huyện (VD: Q1, Q7, HBT...)</label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Tên Quận/Huyện</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="text-danger mb-2">
+        @Html.ValidationSummary(excludePropertyErrors: true)
+    </div>
+
+    <button type="submit" class="btn btn-success">Lưu</button>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

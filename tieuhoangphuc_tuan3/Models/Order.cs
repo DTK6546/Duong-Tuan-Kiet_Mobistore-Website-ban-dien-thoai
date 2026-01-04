@@ -24,7 +24,9 @@ namespace WebBanDienThoai.Models
         public DeliveryMethod DeliveryMethod { get; set; } = DeliveryMethod.ShipToHome;
         public int? StoreId { get; set; }
         public Store? Store { get; set; }
-
+        public string ProvinceCode { get; set; }
+        public string DistrictCode { get; set; }
+        public decimal ShippingFee { get; set; }
         [ForeignKey("UserId")]
         [ValidateNever]
         public ApplicationUser ApplicationUser { get; set; }

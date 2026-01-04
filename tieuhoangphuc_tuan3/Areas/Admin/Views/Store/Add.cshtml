@@ -1,58 +1,73 @@
-﻿@model WebBanDienThoai.Models.Store
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@model WebBanDienThoai.Models.Store
 
 @{
     ViewData["Title"] = "Thêm cửa hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var provinces = ViewBag.Provinces as SelectList;
+    var districts = ViewBag.Districts as SelectList;
 }
 
 <h2>Thêm cửa hàng</h2>
 
 <form asp-area="Admin" asp-controller="Store" asp-action="Add" method="post">
-    <div class="form-group">
-        <label asp-for="Name"></label>
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label"></label>
         <input asp-for="Name" class="form-control" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
 
-    <div class="form-group">
-        <label asp-for="Address"></label>
+    <div class="mb-3">
+        <label asp-for="Address" class="form-label"></label>
         <input asp-for="Address" class="form-control" />
         <span asp-validation-for="Address" class="text-danger"></span>
     </div>
 
-    <div class="form-group">
-        <label asp-for="Ward"></label>
+    <div class="mb-3">
+        <label asp-for="Ward" class="form-label"></label>
         <input asp-for="Ward" class="form-control" />
         <span asp-validation-for="Ward" class="text-danger"></span>
     </div>
 
-    <div class="form-group">
-        <label asp-for="District"></label>
-        <input asp-for="District" class="form-control" />
-        <span asp-validation-for="District" class="text-danger"></span>
+    <div class="row g-2">
+        <div class="col-md-6 mb-3">
+            <label asp-for="ProvinceId" class="form-label"></label>
+            <select asp-for="ProvinceId" class="form-select" asp-items="provinces" id="provinceSelect">
+                <option value="">-- Chọn tỉnh --</option>
+            </select>
+            <span asp-validation-for="ProvinceId" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label asp-for="DistrictId" class="form-label"></label>
+            <select asp-for="DistrictId" class="form-select" asp-items="districts" id="districtSelect">
+                <option value="">-- Chọn quận/huyện --</option>
+            </select>
+            <span asp-validation-for="DistrictId" class="text-danger"></span>
+        </div>
     </div>
 
-    <div class="form-group">
-        <label asp-for="Province"></label>
-        <input asp-for="Province" class="form-control" />
-        <span asp-validation-for="Province" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="PhoneNumber"></label>
+    <div class="mb-3">
+        <label asp-for="PhoneNumber" class="form-label"></label>
         <input asp-for="PhoneNumber" class="form-control" />
         <span asp-validation-for="PhoneNumber" class="text-danger"></span>
     </div>
 
-    <div class="form-group">
-        <label asp-for="OpenHours"></label>
+    <div class="mb-3">
+        <label asp-for="OpenHours" class="form-label"></label>
         <input asp-for="OpenHours" class="form-control" placeholder="Ví dụ: 8:00 - 21:30" />
         <span asp-validation-for="OpenHours" class="text-danger"></span>
     </div>
 
-    <div class="form-group form-check">
+    <div class="form-check mb-3">
         <input asp-for="IsActive" class="form-check-input" />
         <label asp-for="IsActive" class="form-check-label"></label>
+    </div>
+
+    <div class="text-danger mb-2">
+        @Html.ValidationSummary(excludePropertyErrors: true)
     </div>
 
     <button type="submit" class="btn btn-success">Lưu</button>
@@ -63,4 +78,38 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const province = document.getElementById('provinceSelect');
+            const district = document.getElementById('districtSelect');
+            if (!province || !district) return;
+
+            async function loadDistricts() {
+                const pid = parseInt(province.value || '0');
+                district.innerHTML = `<option value="">-- Chọn quận/huyện --</option>`;
+                if (!pid) return;
+
+                const url = '@Url.Action("DistrictsByProvince", "Store", new { area = "Admin" })'
+                    + '?provinceId=' + encodeURIComponent(pid);
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                data.forEach(x => {
+                    const opt = document.createElement('option');
+                    opt.value = x.id;
+                    opt.textContent = x.name;
+                    district.appendChild(opt);
+                });
+            }
+
+            province.addEventListener('change', function () {
+                district.value = '';
+                loadDistricts();
+            });
+
+            loadDistricts();
+        });
+    </script>
 }

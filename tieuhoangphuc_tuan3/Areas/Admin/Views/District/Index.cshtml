@@ -1,0 +1,77 @@
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@model List<WebBanDienThoai.Models.District>
+
+@{
+    ViewData["Title"] = "Quản lý Quận/Huyện";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    var provinceId = ViewBag.ProvinceId as int?;
+    var provinces = ViewBag.Provinces as SelectList;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Quản lý Quận/Huyện</h2>
+    <a asp-area="Admin" asp-controller="District" asp-action="Create" class="btn btn-primary">
+        + Thêm Quận/Huyện
+    </a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-5">
+        <select name="provinceId" class="form-select">
+            <option value="">-- Lọc theo Tỉnh/TP --</option>
+            @if (provinces != null)
+            {
+                foreach (var opt in provinces)
+                {
+                    <option value="@opt.Value" selected="@(opt.Selected ? "selected" : null)">@opt.Text</option>
+                }
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-secondary w-100">Lọc</button>
+    </div>
+    <div class="col-md-2">
+        <a asp-area="Admin" asp-controller="District" asp-action="Index" class="btn btn-outline-dark w-100">Reset</a>
+    </div>
+</form>
+
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
+        <tr>
+            <th style="width:220px">Tỉnh/TP</th>
+            <th style="width:140px">Code</th>
+            <th>Tên Quận/Huyện</th>
+            <th style="width:180px" class="text-end">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model == null || !Model.Any())
+        {
+            <tr><td colspan="4" class="text-center text-muted">Chưa có dữ liệu.</td></tr>
+        }
+        else
+        {
+            foreach (var d in Model)
+            {
+                <tr>
+                    <td>@d.Province?.Name (@d.Province?.Code)</td>
+                    <td><b>@d.Code</b></td>
+                    <td>@d.Name</td>
+                    <td class="text-end">
+                        <a asp-area="Admin" asp-controller="District" asp-action="Edit" asp-route-id="@d.Id"
+                           class="btn btn-sm btn-warning">Sửa</a>
+
+                        <form asp-area="Admin" asp-controller="District" asp-action="Delete" asp-route-id="@d.Id"
+                              method="post" class="d-inline"
+                              onsubmit="return confirm('Xóa Quận/Huyện này?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
