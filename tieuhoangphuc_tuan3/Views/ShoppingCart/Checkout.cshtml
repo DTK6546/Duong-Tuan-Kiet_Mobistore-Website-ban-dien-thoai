@@ -20,14 +20,128 @@
     decimal vat = Math.Round(afterDiscount * 0.10m, 0);
 }
 
+<style>
+    /* ✅ Stepper Checkout */
+    .checkout-steps {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+        .checkout-steps .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 90px;
+            opacity: 0.55;
+        }
+
+            .checkout-steps .step.active {
+                opacity: 1;
+                font-weight: 700;
+            }
+
+            .checkout-steps .step.done {
+                opacity: 1;
+                font-weight: 600;
+            }
+
+        .checkout-steps .circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid #0ea5e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            color: #0ea5e9;
+            font-weight: 700;
+        }
+
+        .checkout-steps .step.active .circle {
+            background: #0ea5e9;
+            color: #fff;
+        }
+
+        .checkout-steps .step.done .circle {
+            background: #16a34a;
+            border-color: #16a34a;
+            color: #fff;
+        }
+
+        .checkout-steps .label {
+            margin-top: 6px;
+            font-size: 13px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .checkout-steps .line {
+            height: 2px;
+            width: 70px;
+            background: #e5e7eb;
+            margin-top: -18px;
+        }
+
+    media (max-width: 576px) {
+        .checkout-steps .line
+
+    {
+        width: 34px;
+    }
+
+    .checkout-steps .step {
+        min-width: 78px;
+    }
+
+    }
+
+    .checkout-steps .step {
+        min-width: 78px;
+    }
+
+    }
+</style>
+
 <div class="container my-4">
-    <div class="row g-4">
+
+    <!-- ✅ Stepper (MỤC 3) -->
+    <div class="checkout-steps">
+        <div class="step done">
+            <div class="circle"><i class="bi bi-check-lg"></i></div>
+            <div class="label">Giỏ hàng</div>
+        </div>
+        <div class="line"></div>
+        <div class="step done">
+            <div class="circle"><i class="bi bi-check-lg"></i></div>
+            <div class="label">Thông tin</div>
+        </div>
+        <div class="line"></div>
+        <div class="step active">
+            <div class="circle">3</div>
+            <div class="label">Thanh toán</div>
+        </div>
+        <div class="line"></div>
+        <div class="step">
+            <div class="circle">4</div>
+            <div class="label">Hoàn tất</div>
+        </div>
+    </div>
+
+    <div class="row g-4 align-items-stretch">
 
         <!-- LEFT: FORM -->
-        <div class="col-lg-7">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Checkout 1 bước</h5>
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0">Thanh toán</h5>
+                    <a asp-action="Index" asp-controller="ShoppingCart" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Quay lại giỏ
+                    </a>
                 </div>
 
                 <div class="card-body">
@@ -78,17 +192,18 @@
                         <input type="hidden" name="Amount" id="MomoAmount" value="0" />
                         <input type="hidden" name="OrderInfo" id="MomoOrderInfo" value="Thanh toan don hang tai MobiStore" />
 
-                        <div class="mb-3">
-                            <label class="form-label">Họ và tên</label>
-                            <input class="form-control" value="@(user?.FullName ?? "")" readonly />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Họ và tên</label>
+                                <input class="form-control" value="@(user?.FullName ?? "")" readonly />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Số điện thoại</label>
+                                <input class="form-control" value="@(user?.PhoneNumber ?? "")" readonly />
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Số điện thoại</label>
-                            <input class="form-control" value="@(user?.PhoneNumber ?? "")" readonly />
-                        </div>
-
-                        <div class="mb-3">
+                        <div class="mt-3">
                             <label asp-for="ShippingAddress" class="form-label">Địa chỉ nhận hàng</label>
                             <textarea asp-for="ShippingAddress"
                                       class="form-control"
@@ -97,7 +212,7 @@
                             <span asp-validation-for="ShippingAddress" class="text-danger"></span>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mt-3">
                             <label asp-for="Notes" class="form-label">Ghi chú</label>
                             <textarea asp-for="Notes" class="form-control" rows="2"
                                       placeholder="Ví dụ: gọi trước khi giao..."></textarea>
@@ -118,7 +233,7 @@
                         </div>
 
                         <!-- SHIP -->
-                        <div id="shipBox" class="mt-3">
+                        <div id="shipBox" class="mt-3 border rounded p-3 bg-light">
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <label class="form-label">Tỉnh/TP</label>
@@ -142,7 +257,7 @@
                                     <option value="express">Nhanh</option>
                                 </select>
                                 <small class="text-muted d-block mt-1">
-                                    Nhanh sẽ có phí cao hơn, giao sớm hơn (nếu có cấu hình).
+                                    Nhanh có thể phí cao hơn và giao sớm hơn (tuỳ cấu hình).
                                 </small>
                             </div>
 
@@ -157,7 +272,7 @@
                         </div>
 
                         <!-- PICKUP -->
-                        <div id="pickupBox" class="mt-3" style="display:none;">
+                        <div id="pickupBox" class="mt-3 border rounded p-3 bg-light" style="display:none;">
                             <label class="form-label">Chọn cửa hàng nhận</label>
                             <select id="storeSelect" class="form-select">
                                 <option value="">-- Chọn cửa hàng --</option>
@@ -194,7 +309,7 @@
                         </div>
 
                         <button type="submit" class="btn btn-danger w-100 py-2 mt-3">
-                            Thanh toán
+                            <i class="bi bi-shield-lock"></i> Thanh toán
                         </button>
 
                         <div class="text-muted small mt-2">
@@ -207,8 +322,8 @@
         </div>
 
         <!-- RIGHT: SUMMARY -->
-        <div class="col-lg-5">
-            <div class="card shadow-sm">
+        <div class="col-12 col-lg-5 d-flex flex-column">
+            <div class="card shadow-sm h-100 flex-grow-1">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Tóm tắt đơn hàng</h5>
                 </div>
@@ -225,6 +340,8 @@
                     {
                         @foreach (var item in cart.Items)
                         {
+                            var wTotal = item.Warranties?.Sum(x => x.Price) ?? 0m;
+
                             <div class="d-flex gap-3 py-2 border-bottom">
                                 <img src="@item.ImageUrl" style="width:70px;height:70px;object-fit:cover;border-radius:8px;" />
                                 <div class="flex-grow-1">
@@ -244,13 +361,19 @@
                                         </div>
                                     }
                                 </div>
-                                <div class="text-end fw-semibold">@item.Price.ToString("N0") đ</div>
+                                <div class="text-end">
+                                    <div class="fw-semibold">@item.Price.ToString("N0") đ</div>
+                                    @if (wTotal > 0)
+                                    {
+                                        <div class="small text-muted">+BH @wTotal.ToString("N0") đ</div>
+                                    }
+                                </div>
                             </div>
                         }
 
                         <div class="pt-3">
                             <div class="d-flex justify-content-between">
-                                <span>Tạm tính</span>
+                                <span>Tạm tính (chưa VAT)</span>
                                 <span id="sumSubtotal">@subtotal.ToString("N0") đ</span>
                             </div>
                             <div class="d-flex justify-content-between">
@@ -269,7 +392,7 @@
                             <hr />
 
                             <div class="d-flex justify-content-between fs-5 fw-bold">
-                                <span>Tổng</span>
+                                <span>Tổng cộng (đã gồm VAT)</span>
                                 <span id="sumTotal">0 đ</span>
                             </div>
                         </div>
@@ -477,7 +600,11 @@
                 ShippingFeeHidden.value = data.fee || 0;
 
                 if (shipFeeText) shipFeeText.textContent = money(data.fee || 0);
-                if (shipEtaText) shipEtaText.textContent = (data.etaFrom && data.etaTo) ? (data.etaFrom + " - " + data.etaTo) : "—";
+
+                let eta = "—";
+                if (data.etaFrom && data.etaTo) eta = data.etaFrom + " - " + data.etaTo;
+                else if (data.minDays != null && data.maxDays != null) eta = data.minDays + "-" + data.maxDays + " ngày";
+                if (shipEtaText) shipEtaText.textContent = eta;
 
                 recalcTotal();
             }

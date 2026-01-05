@@ -164,7 +164,28 @@ namespace WebBanDienThoai.Controllers
                 UpdateCouponUsageAfterOrder(cart.CouponCode, user.Id);
 
             HttpContext.Session.Remove("Cart");
-            return View("OrderCompleted", order.Id);
+            return RedirectToAction("OrderCompleted", new { id = order.Id });
+        }
+
+        [Authorize]
+        public async Task<IActionResult> OrderCompleted(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var order = await _context.Orders
+                .AsNoTracking()
+                .Where(o => o.Id == id && o.UserId == user.Id)
+                .Include(o => o.Store)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Warranties)
+                .FirstOrDefaultAsync();
+
+            if (order == null) return NotFound();
+
+            return View(order); // trả về Views/ShoppingCart/OrderCompleted.cshtml
         }
 
         // ================== GET CART COUNT (AJAX) ==================
@@ -743,5 +764,100 @@ namespace WebBanDienThoai.Controllers
             return fee;
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateCartQuantities([FromBody] List<CartQuantityUpdateDto> items)
+        {
+            var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
+
+            if (cart.Items == null || !cart.Items.Any())
+                return Json(new { success = false, message = "Giỏ hàng đang trống." });
+
+            if (items == null || items.Count == 0)
+                return Json(new { success = false, message = "Không có dữ liệu cập nhật." });
+
+            bool hadCoupon = !string.IsNullOrEmpty(cart.CouponCode) && cart.DiscountAmount > 0;
+            bool changedQty = false;
+            string? warning = null;
+
+            foreach (var u in items)
+            {
+                var cartItem = cart.Items.FirstOrDefault(i => i.ProductId == u.ProductId && i.VariantId == u.VariantId);
+                if (cartItem == null) continue;
+
+                // lấy tồn kho mới nhất
+                int stock = 0;
+                if (u.VariantId.HasValue)
+                {
+                    var variant = await _context.ProductVariants
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(v => v.Id == u.VariantId.Value);
+                    stock = variant?.Stock ?? 0;
+                }
+                else
+                {
+                    var product = await _context.Products
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Id == u.ProductId);
+                    stock = product?.Quantity ?? 0;
+                }
+
+                cartItem.AvailableStock = stock;
+
+                // hết hàng => remove khỏi giỏ
+                if (stock <= 0)
+                {
+                    cart.Items.Remove(cartItem);
+                    changedQty = true;
+                    continue;
+                }
+
+                int newQty = u.Quantity;
+                if (newQty < 1) newQty = 1;
+                if (newQty > stock)
+                {
+                    newQty = stock;
+                    warning = $"Một số sản phẩm đã được giảm số lượng theo tồn kho hiện tại ({stock}).";
+                }
+
+                if (cartItem.Quantity != newQty)
+                {
+                    cartItem.Quantity = newQty;
+                    changedQty = true;
+                }
+            }
+
+            // Nếu có mã giảm giá và người dùng thay đổi số lượng => xoá mã để tránh lệch tiền
+            if (hadCoupon && changedQty)
+            {
+                cart.CouponCode = null;
+                cart.DiscountAmount = 0;
+            }
+
+            HttpContext.Session.SetObjectAsJson("Cart", cart);
+
+            var msg = changedQty ? "Đã cập nhật giỏ hàng." : "Không có thay đổi.";
+            if (hadCoupon && changedQty)
+                msg += " (Mã giảm giá đã được gỡ, vui lòng áp lại.)";
+
+            if (!string.IsNullOrEmpty(warning))
+                msg += " " + warning;
+
+            return Json(new
+            {
+                success = true,
+                message = msg,
+                count = cart.Items.Count
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ClearCart()
+        {
+            HttpContext.Session.Remove("Cart");
+            TempData["SuccessMessage"] = "Đã xóa toàn bộ giỏ hàng.";
+            return RedirectToAction("Index");
+        }
     }
 }

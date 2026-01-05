@@ -1,0 +1,154 @@
+﻿@model WebBanDienThoai.Models.Order
+@using System.Globalization
+@using WebBanDienThoai.Models
+
+@{
+    ViewData["Title"] = "Hoàn tất đơn hàng";
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    var code = $"DH-{Model.Id}";
+
+    string statusText = Model.Status.ToString();
+    string deliveryText = Model.DeliveryMethod == DeliveryMethod.PickupAtStore ? "Nhận tại cửa hàng" : "Giao tận nơi";
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+
+                    <div class="text-center mb-4">
+                        <div style="font-size:56px;">✅</div>
+                        <h3 class="fw-bold mb-1">Đặt hàng thành công!</h3>
+                        <div class="text-muted">Cảm ơn bạn đã mua hàng tại Mobistore.</div>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <div class="fw-semibold">Mã đơn hàng</div>
+                        <div class="fs-5 fw-bold">@code</div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="fw-semibold mb-2">Thông tin đơn</div>
+                                <div class="small">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Trạng thái</span>
+                                        <span class="fw-semibold">@statusText</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <span>Ngày đặt</span>
+                                        <span class="fw-semibold">@Model.OrderDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <span>Nhận hàng</span>
+                                        <span class="fw-semibold">@deliveryText</span>
+                                    </div>
+
+                                    @if (Model.DeliveryMethod == DeliveryMethod.PickupAtStore)
+                                    {
+                                        <div class="mt-2">
+                                            <div class="text-muted">Cửa hàng nhận</div>
+                                            <div class="fw-semibold">
+                                                @(Model.Store != null ? $"{Model.Store.Name} - {Model.Store.Province}, {Model.Store.District}" : "—")
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="mt-2">
+                                            <div class="text-muted">Địa chỉ nhận</div>
+                                            <div class="fw-semibold">@Model.ShippingAddress</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="fw-semibold mb-2">Thanh toán</div>
+                                <div class="small">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Tạm tính</span>
+                                        <span class="fw-semibold">@Model.Subtotal.ToString("N0", vi) VNĐ</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <span>Giảm giá</span>
+                                        <span class="fw-semibold">-@Model.DiscountAmount.ToString("N0", vi) VNĐ</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <span>VAT</span>
+                                        <span class="fw-semibold">@Model.VatAmount.ToString("N0", vi) VNĐ</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <span>Phí ship</span>
+                                        <span class="fw-semibold">@Model.ShippingFee.ToString("N0", vi) VNĐ</span>
+                                    </div>
+
+                                    <hr class="my-2" />
+
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">Tổng cộng</span>
+                                        <span class="fw-bold text-danger">@Model.TotalPrice.ToString("N0", vi) VNĐ</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="fw-semibold mb-2">Sản phẩm</div>
+
+                    @if (Model.OrderDetails != null && Model.OrderDetails.Any())
+                    {
+                        foreach (var d in Model.OrderDetails)
+                        {
+                            <div class="d-flex justify-content-between border-bottom py-2 small">
+                                <div>
+                                    <div class="fw-semibold">@d.ProductName</div>
+                                    <div class="text-muted">SL: @d.Quantity</div>
+
+                                    @if (d.Warranties != null && d.Warranties.Any())
+                                    {
+                                        <div class="text-muted mt-1">
+                                            BH:
+                                            <ul class="mb-0 ps-3">
+                                                @foreach (var w in d.Warranties)
+                                                {
+                                                    <li>@w.Name (+@w.Price.ToString("N0", vi) VNĐ)</li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="fw-semibold">@d.Price.ToString("N0", vi) VNĐ</div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted small">Không có chi tiết sản phẩm.</div>
+                    }
+
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">⬅ Về trang chủ</a>
+
+                        <a class="btn btn-primary" asp-controller="Product" asp-action="Index">🛍 Tiếp tục mua sắm</a>
+
+                        <a class="btn btn-outline-primary ms-auto"
+                           asp-controller="Order" asp-action="Details" asp-route-id="@Model.Id">
+                            📄 Xem chi tiết đơn
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
