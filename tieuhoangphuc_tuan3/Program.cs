@@ -6,6 +6,7 @@ using WebBanDienThoai.Repositories;
 using WebBanDienThoai.Services;
 using WebBanDienThoai.Services.Momo;
 using WebBanDienThoai.Services.SignalR;
+using Rotativa.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -63,6 +64,7 @@ builder.Services.AddScoped<ICategoryRepository, EFCategoryRepository>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.Configure<PayPalSettings>(builder.Configuration.GetSection("PayPal"));
 var app = builder.Build();
+RotativaConfiguration.Setup(app.Environment.WebRootPath, "Rotativa");
 
 
 // Configure the HTTP request pipeline.

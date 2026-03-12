@@ -224,6 +224,19 @@
                     <i class="bi bi-arrow-left"></i> Quay lại
                 </a>
 
+                @if (Model.Status == OrderStatus.DaGiao || Model.Status == OrderStatus.HoanTat)
+                {
+                    <a href="@Url.Action("Invoice", "Order", new { id = Model.Id })"
+                       class="btn btn-success rounded-pill px-4">
+                        <i class="bi bi-receipt"></i> Xuất hóa đơn
+                    </a>
+
+                    <a href="/Order/ExportInvoicePdf/@Model.Id"
+                       class="btn btn-dark rounded-pill px-4">
+                        <i class="bi bi-file-earmark-pdf"></i> Tải PDF
+                    </a>
+                }
+
                 @if (canCancel)
                 {
                     <form asp-action="CancelOrder" method="post" class="d-inline"

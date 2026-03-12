@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebBanDienThoai.Models;
+using Rotativa.AspNetCore;
 
 namespace WebBanDienThoai.Controllers
 {
@@ -119,6 +120,49 @@ namespace WebBanDienThoai.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        public async Task<IActionResult> Invoice(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var order = await _context.Orders
+                .Where(o => o.Id == id && o.UserId == user.Id)
+                .Include(o => o.ApplicationUser)
+                .Include(o => o.Store)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Warranties)
+                .FirstOrDefaultAsync();
+
+            if (order == null) return NotFound();
+
+            return View(order);
+        }
+
+        public async Task<IActionResult> ExportInvoicePdf(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var order = await _context.Orders
+                .Where(o => o.Id == id && o.UserId == user.Id)
+                .Include(o => o.ApplicationUser)
+                .Include(o => o.Store)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Warranties)
+                .FirstOrDefaultAsync();
+
+            if (order == null) return NotFound();
+
+            return new ViewAsPdf("Invoice", order)
+            {
+                FileName = $"HoaDon_{order.Id}.pdf"
+            };
         }
     }
 }
