@@ -1,46 +1,124 @@
 ﻿@model IEnumerable<WebBanDienThoai.Models.News>
+
 @{
     ViewData["Title"] = "Tin tức điện thoại";
 }
 
 <div class="container mt-4 mb-5">
+
     <h2 class="mb-4 fw-bold text-primary">
         <i class="bi bi-newspaper"></i> Tin tức công nghệ
     </h2>
+
+    <!-- SEARCH -->
+    <form method="get" class="mb-4">
+        <div class="input-group">
+
+            <input type="text"
+                   name="search"
+                   value="@ViewBag.Search"
+                   class="form-control"
+                   placeholder="Tìm kiếm tin tức..." />
+
+            <button class="btn btn-primary">
+                <i class="bi bi-search"></i>
+            </button>
+
+        </div>
+    </form>
+
     <div class="row g-4">
+
         @foreach (var n in Model)
         {
             <div class="col-12 col-md-6 col-lg-4 d-flex align-items-stretch">
+
                 <div class="card news-card h-100 shadow-sm border-0">
-                    <a asp-action="Detail" asp-route-id="@n.Id" class="text-decoration-none text-dark">
-                        @if (!string.IsNullOrEmpty(n.ImageUrl))
-                        {
-                            <div class="overflow-hidden rounded-top news-img-container">
-                                <img src="@n.ImageUrl" class="card-img-top news-img" alt="@n.Title" />
-                            </div>
-                        }
+
+                    <a asp-action="Detail"
+                       asp-route-id="@n.Id"
+                       class="text-decoration-none text-dark">
+
+                        <div class="position-relative">
+
+                            @if (!string.IsNullOrEmpty(n.ImageUrl))
+                            {
+                                <div class="overflow-hidden rounded-top news-img-container">
+
+                                    <img src="@n.ImageUrl"
+                                         loading="lazy"
+                                         class="card-img-top news-img"
+                                         alt="@n.Title" />
+
+                                </div>
+                            }
+
+                            <!-- BADGE HOT -->
+                            @if (n.IsHot)
+                            {
+                                <span class="badge bg-danger position-absolute top-0 start-0 m-2">
+                                    🔥 HOT
+                                </span>
+                            }
+
+                            <!-- BADGE KHUYẾN MÃI -->
+                            @if (n.IsPromotion)
+                            {
+                                <span class="badge bg-success position-absolute top-0 end-0 m-2">
+                                    🎁 Khuyến mãi
+                                </span>
+                            }
+
+                        </div>
+
                         <div class="card-body">
-                            <h5 class="card-title fw-bold mb-2 news-title">@n.Title</h5>
+
+                            <h5 class="card-title fw-bold mb-2 news-title">
+                                @n.Title
+                            </h5>
+
                             <p class="card-text text-muted small news-summary">
                                 @n.Summary
                             </p>
+
                         </div>
+
                     </a>
+
                     <div class="card-footer bg-white border-0 d-flex justify-content-between align-items-center pt-0">
+
                         <span class="small text-muted">
-                            <i class="bi bi-clock"></i> @n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                            <i class="bi bi-clock"></i>
+                            @n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
                         </span>
-                        <a asp-action="Detail" asp-route-id="@n.Id" class="btn btn-outline-primary btn-sm px-3">
-                            Đọc tiếp <i class="bi bi-arrow-right"></i>
+
+                        <span class="small text-muted">
+                            <i class="bi bi-eye"></i>
+                            @n.Views
+                        </span>
+
+                        <a asp-action="Detail"
+                           asp-route-id="@n.Id"
+                           class="btn btn-outline-primary btn-sm px-3">
+
+                            Đọc tiếp
+                            <i class="bi bi-arrow-right"></i>
+
                         </a>
+
                     </div>
+
                 </div>
+
             </div>
         }
+
     </div>
+
 </div>
 
 <style>
+
     .news-card {
         border-radius: 18px;
         transition: transform .18s, box-shadow .18s;
@@ -49,7 +127,7 @@
 
         .news-card:hover {
             transform: translateY(-7px) scale(1.025);
-            box-shadow: 0 8px 32px rgba(44, 62, 80, 0.14) !important;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.14) !important;
             z-index: 3;
         }
 
@@ -84,7 +162,8 @@
         color: #656d77;
         line-height: 1.5;
     }
-    media (max-width: 768px) {
+
+    media (max-width:768px) {
         .news-title
 
     {
@@ -95,7 +174,8 @@
         min-height: unset;
     }
 
-    .news-img, .news-img-container {
+    .news-img,
+    .news-img-container {
         height: 150px !important;
     }
 

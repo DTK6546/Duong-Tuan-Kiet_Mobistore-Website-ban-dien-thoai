@@ -8,6 +8,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @RenderSection("Meta", required: false)
     <title>@ViewData["Title"] - Shop Điện Thoại</title>
 
     <!-- Bootstrap -->
@@ -19,8 +20,6 @@
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
     <!-- Custom CSS -->
-    <link href="~/css/site.css" rel="stylesheet" />
-
     <link href="~/css/site.css" rel="stylesheet" />
 
     <style>
@@ -87,6 +86,14 @@
                 color: #0284c7 !important;
                 border-bottom: 2px solid #0284c7;
             }
+
+        .row {
+            align-items: flex-start;
+        }
+
+        .col-lg-4 {
+            align-self: flex-start;
+        }
     </style>
 </head>
 

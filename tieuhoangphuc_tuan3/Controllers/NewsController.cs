@@ -21,11 +21,22 @@ namespace WebBanDienThoai.Controllers
         }
 
         // GET: /News
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string search)
         {
-            var news = await _context.News
+            var news = _context.News.AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                news = news.Where(n =>
+                    n.Title.Contains(search) ||
+                    n.Summary.Contains(search));
+            }
+
+            var list = await _context.News
                 .OrderByDescending(n => n.CreatedAt)
                 .ToListAsync();
+
+            ViewBag.Search = search;
 
             return View(news);
         }
@@ -34,10 +45,28 @@ namespace WebBanDienThoai.Controllers
         public async Task<IActionResult> Detail(int id)
         {
             var news = await _context.News
-        .Include(n => n.Coupon) // ⭐ load luôn Coupon nếu có
-        .FirstOrDefaultAsync(n => n.Id == id);
+                .Include(n => n.Coupon)
+                .FirstOrDefaultAsync(n => n.Id == id);
 
             if (news == null) return NotFound();
+
+            news.Views++;                 // ⭐ tăng lượt xem
+            await _context.SaveChangesAsync();
+
+            var relatedNews = await _context.News
+    .Where(n => n.Id != id)
+    .OrderByDescending(n => n.CreatedAt)
+    .Take(3)
+    .ToListAsync();
+
+            ViewBag.RelatedNews = relatedNews;
+
+            var hotNews = await _context.News
+                .OrderByDescending(n => n.Views)
+                .Take(5)
+                .ToListAsync();
+
+            ViewBag.HotNews = hotNews;
 
             var now = DateTime.Now;
 
