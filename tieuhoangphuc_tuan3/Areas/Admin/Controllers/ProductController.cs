@@ -97,7 +97,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 // Cập nhật ngày nhập hàng
                 product.LastImportDate = DateTime.Now;
 
-                // Lưu product trước để có Id
+                // Lưu product trước để có Id (Thuộc tính IsHot từ form sẽ tự động map vào đây)
                 await _productRepository.AddAsync(product);
 
                 // Lưu nhiều ảnh phụ
@@ -157,10 +157,10 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         public async Task<IActionResult> Display(int id)
         {
             var product = await _context.Products
-        .Include(p => p.Images)        // 🔹 lấy luôn ảnh phụ
-        .Include(p => p.Category)      // nếu cần
-        .Include(p => p.SubCategory)   // nếu cần
-        .FirstOrDefaultAsync(p => p.Id == id);
+                .Include(p => p.Images)        // 🔹 lấy luôn ảnh phụ
+                .Include(p => p.Category)      // nếu cần
+                .Include(p => p.SubCategory)   // nếu cần
+                .FirstOrDefaultAsync(p => p.Id == id);
             if (product == null)
                 return NotFound();
 
@@ -171,10 +171,10 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         public async Task<IActionResult> Update(int id)
         {
             var product = await _context.Products
-        .Include(p => p.Images)
-        .Include(p => p.Category)
-        .Include(p => p.SubCategory)
-        .FirstOrDefaultAsync(p => p.Id == id);
+                .Include(p => p.Images)
+                .Include(p => p.Category)
+                .Include(p => p.SubCategory)
+                .FirstOrDefaultAsync(p => p.Id == id);
             if (product == null)
                 return NotFound();
 
@@ -215,7 +215,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 else
                     product.DiscountedPrice = product.Price;
 
-                // Cập nhật dữ liệu
+                // Cập nhật dữ liệu cơ bản
                 existingProduct.Name = product.Name;
                 existingProduct.Price = product.Price;
                 existingProduct.Description = product.Description;
@@ -225,6 +225,9 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 existingProduct.ImageUrl = product.ImageUrl;
                 existingProduct.DiscountedPrice = product.DiscountedPrice;
                 existingProduct.ServiceCommitment = product.ServiceCommitment;
+
+                // ✨ ĐỒNG BỘ CHỨC NĂNG 1: CẬP NHẬT TRẠNG THÁI HOT/BEST-SELLER KHI SỬA
+                existingProduct.IsHot = product.IsHot;
 
                 // 🧭 Kiểm tra thay đổi số lượng → cập nhật ngày nhập
                 if (product.Quantity > existingProduct.Quantity)
@@ -343,6 +346,26 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
 
             TempData["SuccessMessage"] = "Sản phẩm và ảnh liên kết đã được xóa thành công!";
             return RedirectToAction(nameof(Index));
+        }
+
+        // =========================================================================
+        // ✨ CHỨC NĂNG 1.2: ACTION BẬT/TẮT NHANH TRẠNG THÁI HOT TỪ TRANG DANH SÁCH (AJAX)
+        // =========================================================================
+        [HttpPost]
+        [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employer)]
+        public async Task<IActionResult> ToggleHot(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy sản phẩm." });
+            }
+
+            product.IsHot = !product.IsHot; // Đảo ngược trạng thái true <-> false
+            _context.Products.Update(product);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, isHot = product.IsHot, message = "Đã cập nhật trạng thái nổi bật!" });
         }
 
         // 🖼️ Lưu ảnh

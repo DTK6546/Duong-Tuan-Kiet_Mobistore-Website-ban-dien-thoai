@@ -8,6 +8,15 @@ namespace WebBanDienThoai.Models
         ShipToHome = 0,     // Giao hàng tận nơi
         PickupAtStore = 1   // Nhận tại cửa hàng
     }
+
+    // ✨ BỔ SUNG TRẠNG THÁI THANH TOÁN
+    public enum PaymentStatus
+    {
+        ChuaThanhToan = 0,
+        DaThanhToan = 1,
+        ChoDoiSoat = 2
+    }
+
     public class Order
     {
         public int Id { get; set; }
@@ -27,6 +36,17 @@ namespace WebBanDienThoai.Models
         public string ProvinceCode { get; set; }
         public string DistrictCode { get; set; }
         public decimal ShippingFee { get; set; }
+
+        // =========================================================================
+        // ✨ CẬP NHẬT CHỨC NĂNG 2 & 3: LƯU PHƯƠNG THỨC COD / TRẢ GÓP 0%
+        // =========================================================================
+        public string PaymentMethod { get; set; } = "COD"; // "COD" hoặc "Installment"
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.ChuaThanhToan;
+
+        public string? InstallmentBank { get; set; }  // Ngân hàng trả góp (ví dụ: Techcombank)
+        public int? InstallmentMonths { get; set; }   // Kỳ hạn trả góp (ví dụ: 6, 12 tháng)
+        // =========================================================================
+
         [ForeignKey("UserId")]
         [ValidateNever]
         public ApplicationUser ApplicationUser { get; set; }

@@ -21,7 +21,6 @@
 }
 
 <style>
-    /* ✅ Stepper Checkout */
     .checkout-steps {
         display: flex;
         align-items: center;
@@ -87,70 +86,41 @@
             margin-top: -18px;
         }
 
-    media (max-width: 576px) {
-        .checkout-steps .line
+    @Html.Raw("@media") (max-width: 576px) {
+        .checkout-steps .line {
+            width: 34px;
+        }
 
-    {
-        width: 34px;
-    }
-
-    .checkout-steps .step {
-        min-width: 78px;
-    }
-
-    }
-
-    .checkout-steps .step {
-        min-width: 78px;
-    }
-
+        .checkout-steps .step {
+            min-width: 78px;
+        }
     }
 </style>
 
 <div class="container my-4">
-
-    <!-- ✅ Stepper (MỤC 3) -->
     <div class="checkout-steps">
-        <div class="step done">
-            <div class="circle"><i class="bi bi-check-lg"></i></div>
-            <div class="label">Giỏ hàng</div>
-        </div>
+        <div class="step done"><div class="circle"><i class="bi bi-check-lg"></i></div><div class="label">Giỏ hàng</div></div>
         <div class="line"></div>
-        <div class="step done">
-            <div class="circle"><i class="bi bi-check-lg"></i></div>
-            <div class="label">Thông tin</div>
-        </div>
+        <div class="step done"><div class="circle"><i class="bi bi-check-lg"></i></div><div class="label">Thông tin</div></div>
         <div class="line"></div>
-        <div class="step active">
-            <div class="circle">3</div>
-            <div class="label">Thanh toán</div>
-        </div>
+        <div class="step active"><div class="circle">3</div><div class="label">Thanh toán</div></div>
         <div class="line"></div>
-        <div class="step">
-            <div class="circle">4</div>
-            <div class="label">Hoàn tất</div>
-        </div>
+        <div class="step"><div class="circle">4</div><div class="label">Hoàn tất</div></div>
     </div>
 
     <div class="row g-4 align-items-stretch">
-
-        <!-- LEFT: FORM -->
         <div class="col-12 col-lg-7">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-white d-flex align-items-center justify-content-between">
                     <h5 class="mb-0">Thanh toán</h5>
-                    <a asp-action="Index" asp-controller="ShoppingCart" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Quay lại giỏ
-                    </a>
+                    <a asp-action="Index" asp-controller="ShoppingCart" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Quay lại giỏ</a>
                 </div>
 
                 <div class="card-body">
-
                     @if (TempData["PaymentError"] != null)
                     {
                         <div class="alert alert-danger">@TempData["PaymentError"]</div>
                     }
-
                     @if (TempData["CouponError"] != null)
                     {
                         <div class="alert alert-warning">@TempData["CouponError"]</div>
@@ -159,36 +129,21 @@
                     <form id="checkoutForm" method="post" asp-action="Checkout" asp-controller="ShoppingCart">
                         @Html.AntiForgeryToken()
 
-                        <!-- ========================= -->
-                        <!-- Hidden for Order POST (ShoppingCart/Checkout) -->
-                        <!-- ========================= -->
                         <input type="hidden" name="DeliveryMethod" id="DeliveryMethod" value="ShipToHome" />
                         <input type="hidden" name="StoreId" id="StoreIdHidden" value="" />
                         <input type="hidden" name="ProvinceCode" id="ProvinceCodeHidden" value="" />
                         <input type="hidden" name="DistrictCode" id="DistrictCodeHidden" value="" />
                         <input type="hidden" name="ShippingFee" id="ShippingFeeHidden" value="0" />
-
-                        <!-- ✅ ship method -->
                         <input type="hidden" name="ShipMethod" id="ShipMethodHidden" value="standard" />
-
-                        <!-- amount dùng để bind (VNPay action có amount param) -->
                         <input type="hidden" name="amount" id="AmountHidden" value="0" />
+                        <input type="hidden" name="PaymentMethod" id="PaymentMethodHidden" value="COD" />
 
-                        <!-- ========================= -->
-                        <!-- Hidden for PaymentController params (camelCase) -->
-                        <!-- ========================= -->
-                        <input type="hidden" name="deliveryMethod" id="deliveryMethod" value="ShipToHome" />
-                        <input type="hidden" name="storeId" id="storeId" value="" />
-                        <input type="hidden" name="provinceCode" id="provinceCode" value="" />
-                        <input type="hidden" name="districtCode" id="districtCode" value="" />
-                        <input type="hidden" name="shippingFee" id="shippingFee" value="0" />
-
-                        <!-- ✅ ship method camelCase -->
-                        <input type="hidden" name="shipMethod" id="shipMethod" value="standard" />
-
-                        <!-- ========================= -->
-                        <!-- Hidden tối thiểu cho MoMo (OrderInfoModel) -->
-                        <!-- ========================= -->
+                        <input type="hidden" name="deliveryMethod" id="deliveryMethodCamel" value="ShipToHome" />
+                        <input type="hidden" name="storeId" id="storeIdCamel" value="" />
+                        <input type="hidden" name="provinceCode" id="provinceCodeCamel" value="" />
+                        <input type="hidden" name="districtCode" id="districtCodeCamel" value="" />
+                        <input type="hidden" name="shippingFee" id="shippingFeeCamel" value="0" />
+                        <input type="hidden" name="shipMethod" id="shipMethodCamel" value="standard" />
                         <input type="hidden" name="Amount" id="MomoAmount" value="0" />
                         <input type="hidden" name="OrderInfo" id="MomoOrderInfo" value="Thanh toan don hang tai MobiStore" />
 
@@ -205,73 +160,48 @@
 
                         <div class="mt-3">
                             <label asp-for="ShippingAddress" class="form-label">Địa chỉ nhận hàng</label>
-                            <textarea asp-for="ShippingAddress"
-                                      class="form-control"
-                                      rows="2"
-                                      placeholder="Nhập địa chỉ giao hàng..."></textarea>
+                            <textarea asp-for="ShippingAddress" class="form-control" rows="2" placeholder="Nhập địa chỉ giao hàng..."></textarea>
                             <span asp-validation-for="ShippingAddress" class="text-danger"></span>
                         </div>
 
                         <div class="mt-3">
                             <label asp-for="Notes" class="form-label">Ghi chú</label>
-                            <textarea asp-for="Notes" class="form-control" rows="2"
-                                      placeholder="Ví dụ: gọi trước khi giao..."></textarea>
+                            <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Ví dụ: gọi trước khi giao..."></textarea>
                         </div>
 
                         <hr />
-
                         <div class="fw-semibold mb-2">Phương thức nhận hàng</div>
-
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="DeliveryMethodRadio" id="ShipToHomeRadio" value="ShipToHome" checked>
                             <label class="form-check-label" for="ShipToHomeRadio">Giao tận nhà</label>
                         </div>
-
                         <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="DeliveryMethodRadio" id="PickupAtStoreRadio" value="PickupAtStore">
                             <label class="form-check-label" for="PickupAtStoreRadio">Nhận tại cửa hàng</label>
                         </div>
 
-                        <!-- SHIP -->
                         <div id="shipBox" class="mt-3 border rounded p-3 bg-light">
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <label class="form-label">Tỉnh/TP</label>
-                                    <select id="shipProvince" class="form-select">
-                                        <option value="">-- Chọn Tỉnh/TP --</option>
-                                    </select>
+                                    <select id="shipProvince" class="form-select"><option value="">-- Chọn Tỉnh/TP --</option></select>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Quận/Huyện</label>
-                                    <select id="shipDistrict" class="form-select" disabled>
-                                        <option value="">-- Toàn tỉnh --</option>
-                                    </select>
+                                    <select id="shipDistrict" class="form-select" disabled><option value="">-- Toàn tỉnh --</option></select>
                                 </div>
                             </div>
-
-                            <!-- ✅ ship method select -->
                             <div class="mt-2">
                                 <label class="form-label">Phương thức giao</label>
                                 <select id="shipMethodSelect" class="form-select">
                                     <option value="standard" selected>Tiêu chuẩn</option>
                                     <option value="express">Nhanh</option>
                                 </select>
-                                <small class="text-muted d-block mt-1">
-                                    Nhanh có thể phí cao hơn và giao sớm hơn (tuỳ cấu hình).
-                                </small>
                             </div>
-
-                            <div class="d-flex justify-content-between mt-2">
-                                <div>Phí ship:</div>
-                                <div class="fw-semibold" id="shipFeeText">—</div>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <div>Dự kiến:</div>
-                                <div class="text-muted" id="shipEtaText">—</div>
-                            </div>
+                            <div class="d-flex justify-content-between mt-2"><div>Phí ship:</div><div class="fw-semibold" id="shipFeeText">—</div></div>
+                            <div class="d-flex justify-content-between"><div>Dự kiến:</div><div class="text-muted" id="shipEtaText">—</div></div>
                         </div>
 
-                        <!-- PICKUP -->
                         <div id="pickupBox" class="mt-3 border rounded p-3 bg-light" style="display:none;">
                             <label class="form-label">Chọn cửa hàng nhận</label>
                             <select id="storeSelect" class="form-select">
@@ -281,85 +211,88 @@
                                     <option value="@s.Id">@s.Name - @s.Province, @s.District</option>
                                 }
                             </select>
-                            <small class="text-muted">Nhận tại cửa hàng thì phí ship = 0.</small>
                         </div>
 
                         <hr />
-
                         <div class="fw-semibold mb-2">Phương thức thanh toán</div>
-
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payCod" value="COD" checked>
                             <label class="form-check-label" for="payCod">COD (Thanh toán khi nhận hàng)</label>
                         </div>
 
                         <div class="form-check mt-1">
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payInstallment" value="Installment">
+                            <label class="form-check-label text-danger fw-semibold" for="payInstallment">
+                                <span class="badge bg-danger me-1">HOT</span> Trả góp 0% lãi suất (Qua thẻ tín dụng)
+                            </label>
+                        </div>
+
+                        <div id="installmentBox" class="mt-2 border border-danger border-opacity-25 rounded p-3 bg-white shadow-sm" style="display: none;">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Ngân hàng liên kết</label>
+                                    <select name="InstallmentBank" id="InstallmentBank" class="form-select form-select-sm">
+                                        <option value="Vietcombank">Vietcombank</option>
+                                        <option value="Techcombank">Techcombank</option>
+                                        <option value="Sacombank">Sacombank</option>
+                                        <option value="ACB">ACB Bank</option>
+                                        <option value="VPBank">VPBank</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Kỳ hạn trả góp</label>
+                                    <select name="InstallmentMonths" id="InstallmentMonths" class="form-select form-select-sm">
+                                        <option value="3">3 tháng (0% lãi suất)</option>
+                                        <option value="6" selected>6 tháng (0% lãi suất)</option>
+                                        <option value="12">12 tháng (0% lãi suất)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-3 p-2 bg-light rounded text-center border">
+                                <div class="text-secondary small">Số tiền ước tính chi trả mỗi tháng:</div>
+                                <h5 class="text-danger fw-bold mb-0 mt-1" id="installmentMonthlyText">0 đ / tháng</h5>
+                            </div>
+                        </div>
+
+                        <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payVnpay" value="VNPAY">
                             <label class="form-check-label" for="payVnpay">VNPay</label>
                         </div>
-
                         <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payMomo" value="MOMO">
                             <label class="form-check-label" for="payMomo">MoMo</label>
                         </div>
-
                         <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payPaypal" value="PAYPAL">
                             <label class="form-check-label" for="payPaypal">PayPal</label>
                         </div>
 
                         <button type="submit" class="btn btn-danger w-100 py-2 mt-3">
-                            <i class="bi bi-shield-lock"></i> Thanh toán
+                            <i class="bi bi-shield-lock"></i> Đặt hàng an toàn
                         </button>
-
-                        <div class="text-muted small mt-2">
-                            VNPay/MoMo/PayPal sẽ chuyển sang cổng thanh toán. COD sẽ tạo đơn ngay.
-                        </div>
                     </form>
-
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT: SUMMARY -->
         <div class="col-12 col-lg-5 d-flex flex-column">
             <div class="card shadow-sm h-100 flex-grow-1">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Tóm tắt đơn hàng</h5>
-                </div>
-
+                <div class="card-header bg-white"><h5 class="mb-0">Tóm tắt đơn hàng</h5></div>
                 <div class="card-body">
-
                     @if (cart.Items == null || !cart.Items.Any())
                     {
-                        <div class="alert alert-info mb-0">
-                            Giỏ hàng đang trống. Vui lòng quay lại giỏ hàng để thêm sản phẩm.
-                        </div>
+                        <div class="alert alert-info mb-0">Giỏ hàng trống.</div>
                     }
                     else
                     {
                         @foreach (var item in cart.Items)
                         {
                             var wTotal = item.Warranties?.Sum(x => x.Price) ?? 0m;
-
                             <div class="d-flex gap-3 py-2 border-bottom">
                                 <img src="@item.ImageUrl" style="width:70px;height:70px;object-fit:cover;border-radius:8px;" />
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold">@item.Name</div>
                                     <div class="text-muted small">SL: @item.Quantity</div>
-
-                                    @if (item.Warranties != null && item.Warranties.Any())
-                                    {
-                                        <div class="text-muted small mt-1">
-                                            BH:
-                                            <ul class="mb-0 ps-3">
-                                                @foreach (var w in item.Warranties)
-                                                {
-                                                    <li>@w.Name (+@w.Price.ToString("N0") đ)</li>
-                                                }
-                                            </ul>
-                                        </div>
-                                    }
                                 </div>
                                 <div class="text-end">
                                     <div class="fw-semibold">@item.Price.ToString("N0") đ</div>
@@ -370,66 +303,33 @@
                                 </div>
                             </div>
                         }
-
                         <div class="pt-3">
-                            <div class="d-flex justify-content-between">
-                                <span>Tạm tính (chưa VAT)</span>
-                                <span id="sumSubtotal">@subtotal.ToString("N0") đ</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Giảm giá</span>
-                                <span id="sumDiscount">-@discount.ToString("N0") đ</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>VAT (10%)</span>
-                                <span id="sumVat">@vat.ToString("N0") đ</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Phí ship</span>
-                                <span id="sumShip">0 đ</span>
-                            </div>
-
-                            <hr />
-
-                            <div class="d-flex justify-content-between fs-5 fw-bold">
-                                <span>Tổng cộng (đã gồm VAT)</span>
-                                <span id="sumTotal">0 đ</span>
-                            </div>
+                            <div class="d-flex justify-content-between"><span>Tạm tính</span><span id="sumSubtotal">@subtotal.ToString("N0") đ</span></div>
+                            <div class="d-flex justify-content-between"><span>Giảm giá</span><span id="sumDiscount">-@discount.ToString("N0") đ</span></div>
+                            <div class="d-flex justify-content-between"><span>VAT (10%)</span><span id="sumVat">@vat.ToString("N0") đ</span></div>
+                            <div class="d-flex justify-content-between"><span>Phí ship</span><span id="sumShip">0 đ</span></div>
+                            <hr /><div class="d-flex justify-content-between fs-5 fw-bold"><span>Tổng cộng</span><span id="sumTotal">0 đ</span></div>
                         </div>
                     }
-
                 </div>
             </div>
-
-            <a asp-action="Index" asp-controller="ShoppingCart" class="btn btn-outline-secondary w-100 mt-3">
-                Quay lại giỏ hàng
-            </a>
         </div>
-
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-
-            // ===== server totals =====
-            const subtotal = @subtotal;
-            const discount = @discount;
-            const vat = @vat;
-
-            // ✅ để Quote free-ship theo orderValue
+            const subtotal = @subtotal; const discount = @discount; const vat = @vat;
             const orderValueAfterDiscount = Math.max(0, subtotal - discount);
 
-            // ===== summary elements =====
             const shipFeeText = document.getElementById('shipFeeText');
             const shipEtaText = document.getElementById('shipEtaText');
             const sumShip = document.getElementById('sumShip');
             const sumTotal = document.getElementById('sumTotal');
 
-            // ===== hidden (Order POST) =====
+            // Khai báo chuẩn nhóm PascalCase
             const DeliveryMethodHidden = document.getElementById('DeliveryMethod');
             const StoreIdHidden = document.getElementById('StoreIdHidden');
             const ProvinceCodeHidden = document.getElementById('ProvinceCodeHidden');
@@ -437,27 +337,30 @@
             const ShippingFeeHidden = document.getElementById('ShippingFeeHidden');
             const ShipMethodHidden = document.getElementById('ShipMethodHidden');
             const AmountHidden = document.getElementById('AmountHidden');
+            const PaymentMethodHidden = document.getElementById('PaymentMethodHidden');
 
-            // ===== hidden (PaymentController camelCase) =====
-            const deliveryMethod2 = document.getElementById('deliveryMethod');
-            const storeId2 = document.getElementById('storeId');
-            const province2 = document.getElementById('provinceCode');
-            const district2 = document.getElementById('districtCode');
-            const shippingFee2 = document.getElementById('shippingFee');
-            const shipMethod2 = document.getElementById('shipMethod');
-
-            // ===== MoMo model hidden =====
+            // Khai báo chuẩn nhóm camelCase (Đã kết nối với ID mới đổi)
+            const deliveryMethod2 = document.getElementById('deliveryMethodCamel');
+            const storeId2 = document.getElementById('storeIdCamel');
+            const province2 = document.getElementById('provinceCodeCamel');
+            const district2 = document.getElementById('districtCodeCamel');
+            const shippingFee2 = document.getElementById('shippingFeeCamel');
+            const shipMethod2 = document.getElementById('shipMethodCamel');
             const momoAmount = document.getElementById('MomoAmount');
+
+            const installmentBox = document.getElementById('installmentBox');
+            const installmentMonthsSelect = document.getElementById('InstallmentMonths');
+            const installmentMonthlyText = document.getElementById('installmentMonthlyText');
 
             function money(v) { return Number(v || 0).toLocaleString('vi-VN') + ' đ'; }
 
             function syncForPayment() {
-                deliveryMethod2.value = DeliveryMethodHidden.value || "ShipToHome";
-                storeId2.value = StoreIdHidden.value || "";
-                province2.value = ProvinceCodeHidden.value || "";
-                district2.value = DistrictCodeHidden.value || "";
-                shippingFee2.value = ShippingFeeHidden.value || "0";
-                shipMethod2.value = ShipMethodHidden.value || "standard";
+                if (deliveryMethod2) deliveryMethod2.value = DeliveryMethodHidden.value || "ShipToHome";
+                if (storeId2) storeId2.value = StoreIdHidden.value || "";
+                if (province2) province2.value = ProvinceCodeHidden.value || "";
+                if (district2) district2.value = DistrictCodeHidden.value || "";
+                if (shippingFee2) shippingFee2.value = ShippingFeeHidden.value || "0";
+                if (shipMethod2) shipMethod2.value = ShipMethodHidden.value || "standard";
             }
 
             function recalcTotal() {
@@ -467,13 +370,33 @@
                 if (sumShip) sumShip.textContent = money(ship);
                 if (sumTotal) sumTotal.textContent = money(total);
 
-                AmountHidden.value = total;            // VNPay
-                momoAmount.value = Math.round(total);  // MoMo thường dùng long
+                AmountHidden.value = total;
+                if (momoAmount) momoAmount.value = Math.round(total);
+
+                if (installmentMonthsSelect) {
+                    const months = parseInt(installmentMonthsSelect.value, 10) || 6;
+                    const monthlyPayment = Math.round(total / months);
+                    if (installmentMonthlyText) installmentMonthlyText.textContent = monthlyPayment.toLocaleString('vi-VN') + " đ / tháng";
+                }
 
                 syncForPayment();
             }
 
-            // ===== delivery toggle =====
+            document.querySelectorAll('input[name="PayMethod"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === "Installment") {
+                        installmentBox.style.display = 'block';
+                        PaymentMethodHidden.value = "Installment";
+                    } else {
+                        installmentBox.style.display = 'none';
+                        PaymentMethodHidden.value = this.value;
+                    }
+                    recalcTotal();
+                });
+            });
+
+            installmentMonthsSelect?.addEventListener('change', recalcTotal);
+
             const shipRadio = document.getElementById('ShipToHomeRadio');
             const pickupRadio = document.getElementById('PickupAtStoreRadio');
             const shipBox = document.getElementById('shipBox');
@@ -483,209 +406,133 @@
             function toggleDelivery() {
                 if (pickupRadio.checked) {
                     DeliveryMethodHidden.value = "PickupAtStore";
-                    shipBox.style.display = 'none';
-                    pickupBox.style.display = 'block';
-
-                    // pickup => ship = 0, clear prov/dist
-                    ShippingFeeHidden.value = 0;
-                    ProvinceCodeHidden.value = "";
-                    DistrictCodeHidden.value = "";
-
+                    shipBox.style.display = 'none'; pickupBox.style.display = 'block';
+                    ShippingFeeHidden.value = 0; ProvinceCodeHidden.value = ""; DistrictCodeHidden.value = "";
                     if (shipFeeText) shipFeeText.textContent = "0 đ";
                     if (shipEtaText) shipEtaText.textContent = "—";
-
                     StoreIdHidden.value = storeSelect.value || "";
                 } else {
                     DeliveryMethodHidden.value = "ShipToHome";
-                    shipBox.style.display = 'block';
-                    pickupBox.style.display = 'none';
+                    shipBox.style.display = 'block'; pickupBox.style.display = 'none';
                     StoreIdHidden.value = "";
                 }
-
                 recalcTotal();
             }
 
             shipRadio?.addEventListener('change', toggleDelivery);
             pickupRadio?.addEventListener('change', toggleDelivery);
             storeSelect?.addEventListener('change', () => {
-                StoreIdHidden.value = storeSelect.value || "";
-                syncForPayment();
+                StoreIdHidden.value = storeSelect.value || ""; syncForPayment();
             });
 
-            // ===== ship method change =====
             const shipMethodSelect = document.getElementById('shipMethodSelect');
             shipMethodSelect?.addEventListener('change', async () => {
-                ShipMethodHidden.value = shipMethodSelect.value || "standard";
-                syncForPayment();
-
+                ShipMethodHidden.value = shipMethodSelect.value || "standard"; syncForPayment();
                 if (DeliveryMethodHidden.value === "ShipToHome") {
-                    const prov = provSel.value || "";
-                    const dist = distSel.value || "";
-                    if (prov) await quote(prov, dist);
-                    else recalcTotal();
-                } else {
-                    recalcTotal();
-                }
+                    const prov = provSel.value || ""; const dist = distSel.value || "";
+                    if (prov) await quote(prov, dist); else recalcTotal();
+                } else { recalcTotal(); }
             });
 
-            // ===== shipping province/district quote =====
             const provSel = document.getElementById('shipProvince');
             const distSel = document.getElementById('shipDistrict');
 
             async function loadProvinces() {
-                const res = await fetch('/Shipping/Provinces');
-                const data = await res.json();
-
+                const res = await fetch('/Shipping/Provinces'); const data = await res.json();
                 provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
                 data.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.code;
-                    opt.textContent = p.name;
+                    const opt = document.createElement('option'); opt.value = p.code; opt.textContent = p.name;
                     provSel.appendChild(opt);
                 });
             }
 
             async function loadDistricts(provinceCode) {
-                distSel.disabled = true;
-                distSel.innerHTML = `<option value="">-- Toàn tỉnh --</option>`;
-
+                distSel.disabled = true; distSel.innerHTML = `<option value="">-- Toàn tỉnh --</option>`;
                 if (!provinceCode) return;
-
-                const res = await fetch('/Shipping/Districts?provinceCode=' + encodeURIComponent(provinceCode));
-                const data = await res.json();
-
+                const res = await fetch('/Shipping/Districts?provinceCode=' + provinceCode); const data = await res.json();
                 data.forEach(d => {
-                    const opt = document.createElement('option');
-                    opt.value = d.code;
-                    opt.textContent = d.name;
+                    const opt = document.createElement('option'); opt.value = d.code; opt.textContent = d.name;
                     distSel.appendChild(opt);
                 });
-
                 distSel.disabled = false;
             }
 
             async function quote(provinceCode, districtCode) {
+                // ✨ FIX LỖI ĐỒNG BỘ: Ép gán dữ liệu vào ô ẩn lập tức khi người dùng click chọn
+                ProvinceCodeHidden.value = provinceCode || "";
+                DistrictCodeHidden.value = districtCode || "";
+
                 if (!provinceCode) {
                     ShippingFeeHidden.value = 0;
-                    ProvinceCodeHidden.value = "";
-                    DistrictCodeHidden.value = "";
-
                     if (shipFeeText) shipFeeText.textContent = "—";
                     if (shipEtaText) shipEtaText.textContent = "—";
-
-                    recalcTotal();
-                    return;
+                    recalcTotal(); return;
                 }
-
                 const method = ShipMethodHidden.value || "standard";
-
-                const url = '/Shipping/Quote?provinceCode=' + encodeURIComponent(provinceCode)
-                    + '&districtCode=' + encodeURIComponent(districtCode || '')
-                    + '&method=' + encodeURIComponent(method)
-                    + '&orderValue=' + encodeURIComponent(orderValueAfterDiscount);
-
-                const res = await fetch(url);
+                const res = await fetch(`/Shipping/Quote?provinceCode=${provinceCode}&districtCode=${districtCode || ''}&method=${method}&orderValue=${orderValueAfterDiscount}`);
                 const data = await res.json();
-
                 if (data && data.ok === false) {
-                    ShippingFeeHidden.value = 0;
-                    if (shipFeeText) shipFeeText.textContent = "0 đ";
-                    if (shipEtaText) shipEtaText.textContent = data.message || "—";
-                    recalcTotal();
-                    return;
+                    ShippingFeeHidden.value = 0; if (shipFeeText) shipFeeText.textContent = "0 đ"; recalcTotal(); return;
                 }
 
-                ProvinceCodeHidden.value = provinceCode;
-                DistrictCodeHidden.value = districtCode || "";
                 ShippingFeeHidden.value = data.fee || 0;
-
                 if (shipFeeText) shipFeeText.textContent = money(data.fee || 0);
-
-                let eta = "—";
-                if (data.etaFrom && data.etaTo) eta = data.etaFrom + " - " + data.etaTo;
-                else if (data.minDays != null && data.maxDays != null) eta = data.minDays + "-" + data.maxDays + " ngày";
+                let eta = "—"; if (data.etaFrom && data.etaTo) eta = data.etaFrom + " - " + data.etaTo;
                 if (shipEtaText) shipEtaText.textContent = eta;
-
                 recalcTotal();
             }
 
             if (provSel && distSel) {
                 loadProvinces().then(() => recalcTotal());
-
                 provSel.addEventListener('change', async () => {
-                    await loadDistricts(provSel.value);
-                    distSel.value = "";
+                    ProvinceCodeHidden.value = provSel.value || "";
+                    await loadDistricts(provSel.value); distSel.value = "";
+                    DistrictCodeHidden.value = "";
                     await quote(provSel.value, "");
                 });
-
                 distSel.addEventListener('change', async () => {
+                    DistrictCodeHidden.value = distSel.value || "";
                     await quote(provSel.value, distSel.value);
                 });
-            } else {
-                recalcTotal();
-            }
+            } else { recalcTotal(); }
 
-            // ===== payment routing (1 submit) =====
             const form = document.getElementById('checkoutForm');
-
             form.addEventListener('submit', function (e) {
-
-                // pickup store required
                 if (DeliveryMethodHidden.value === "PickupAtStore" && !StoreIdHidden.value) {
-                    e.preventDefault();
-                    alert('Vui lòng chọn cửa hàng nhận.');
-                    return;
+                    e.preventDefault(); alert('Vui lòng chọn cửa hàng nhận.'); return;
                 }
 
-                // ship => require province
-                if (DeliveryMethodHidden.value === "ShipToHome" && !ProvinceCodeHidden.value) {
-                    e.preventDefault();
-                    alert('Vui lòng chọn Tỉnh/TP để tính phí ship.');
-                    return;
+                // Đồng bộ ép buộc dữ liệu lại một lần nữa trước khi bấm gửi đi
+                if (DeliveryMethodHidden.value === "ShipToHome") {
+                    ProvinceCodeHidden.value = provSel.value || "";
+                    DistrictCodeHidden.value = distSel.value || "";
+
+                    if (!ProvinceCodeHidden.value) {
+                        e.preventDefault(); alert('Vui lòng chọn Tỉnh/TP để tính phí ship.'); return;
+                    }
                 }
 
-                // luôn sync & recalc trước khi submit
                 recalcTotal();
-
                 const pay = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
 
-                if (pay === "COD") {
+                if (pay === "COD" || pay === "Installment") {
                     form.action = '/ShoppingCart/Checkout';
                     form.method = 'post';
                     return;
                 }
-
-                if (pay === "VNPAY") {
-                    form.action = '/Payment/PaymentVNPay';
-                    form.method = 'post';
-                    return;
-                }
-
-                if (pay === "MOMO") {
-                    form.action = '/Payment/CreatePaymentMomo';
-                    form.method = 'post';
-                    return;
-                }
-
+                if (pay === "VNPAY") { form.action = '/Payment/PaymentVNPay'; form.method = 'post'; return; }
+                if (pay === "MOMO") { form.action = '/Payment/CreatePaymentMomo'; form.method = 'post'; return; }
                 if (pay === "PAYPAL") {
                     e.preventDefault();
-
                     const qs = new URLSearchParams({
-                        amount: AmountHidden.value,
-                        deliveryMethod: DeliveryMethodHidden.value,
-                        storeId: StoreIdHidden.value,
-                        provinceCode: ProvinceCodeHidden.value,
-                        districtCode: DistrictCodeHidden.value,
-                        shippingFee: ShippingFeeHidden.value,
-                        shipMethod: ShipMethodHidden.value
+                        amount: AmountHidden.value, deliveryMethod: DeliveryMethodHidden.value, storeId: StoreIdHidden.value,
+                        provinceCode: ProvinceCodeHidden.value, districtCode: DistrictCodeHidden.value, shippingFee: ShippingFeeHidden.value, shipMethod: ShipMethodHidden.value
                     });
-
                     window.location.href = '/Payment/Paypal?' + qs.toString();
                     return;
                 }
             });
 
-            // init
             toggleDelivery();
             recalcTotal();
         });

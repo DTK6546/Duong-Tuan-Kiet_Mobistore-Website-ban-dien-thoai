@@ -57,6 +57,29 @@ namespace WebBanDienThoai.Controllers
                 Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             }).ToList();
 
+            var hotProductModels = products
+        .Where(p => p.IsHot)
+        .Take(8) // Lấy tối đa 8 sản phẩm nổi bật
+        .Select(p => new ProductWithSoldCount
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Price = p.Price,
+            Description = p.Description,
+            ImageUrl = p.ImageUrl,
+            Images = p.Images,
+            CategoryId = p.CategoryId,
+            Category = p.Category,
+            Rating = p.Rating,
+            DiscountPercent = p.DiscountPercent,
+            DiscountedPrice = p.DiscountedPrice,
+            SubCategoryId = p.SubCategoryId,
+            SubCategory = p.SubCategory,
+            SoldCount = soldDict.ContainsKey(p.Id) ? soldDict[p.Id] : 0,
+            Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
+        }).ToList();
+
+            ViewBag.HotProducts = hotProductModels;
             return View(model);
         }
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace WebBanDienThoai.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260612043559_123")]
+    partial class _123
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -329,7 +332,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal?>("DiscountAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("DiscountPercent")
@@ -342,7 +344,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("bit");
 
                     b.Property<decimal>("MinOrderValue")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Quantity")
@@ -420,7 +421,6 @@ namespace WebBanDienThoai.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("DatePaid")
@@ -514,18 +514,11 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("DistrictCode")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("InstallmentBank")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("InstallmentMonths")
-                        .HasColumnType("int");
 
                     b.Property<string>("Notes")
                         .IsRequired()
@@ -533,13 +526,6 @@ namespace WebBanDienThoai.Migrations
 
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PaymentStatus")
-                        .HasColumnType("int");
 
                     b.Property<string>("ProvinceCode")
                         .IsRequired()
@@ -550,7 +536,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("ShippingFee")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Status")
@@ -560,11 +545,9 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Subtotal")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalPrice")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("UserId")
@@ -572,7 +555,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("VatAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
@@ -596,7 +578,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
@@ -640,7 +621,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("WarrantyOptionId")
@@ -672,14 +652,10 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("DiscountedPrice")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsHot")
-                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastExportDate")
                         .HasColumnType("datetime2");
@@ -696,7 +672,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Quantity")
@@ -1186,7 +1161,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
@@ -1252,7 +1226,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("ExpressFee")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ExpressMaxDays")
@@ -1262,11 +1235,9 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Fee")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("FreeShipMinOrder")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("MaxDays")
@@ -1372,7 +1343,6 @@ namespace WebBanDienThoai.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
@@ -1761,13 +1731,13 @@ namespace WebBanDienThoai.Migrations
                     b.HasOne("WebBanDienThoai.Models.District", "District")
                         .WithMany()
                         .HasForeignKey("DistrictId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("WebBanDienThoai.Models.Province", "Province")
                         .WithMany()
                         .HasForeignKey("ProvinceId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("District");

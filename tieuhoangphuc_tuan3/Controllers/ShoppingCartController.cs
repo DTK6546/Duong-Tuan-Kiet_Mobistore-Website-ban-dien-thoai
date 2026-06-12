@@ -69,6 +69,8 @@ namespace WebBanDienThoai.Controllers
 
             var shipMethod = Request.Form["ShipMethod"].ToString(); // ✅ standard/express
 
+            var paymentMethod = Request.Form["PaymentMethod"].ToString(); // "COD" hoặc "Installment"
+
             order.DeliveryMethod = deliveryMethod == "PickupAtStore"
                 ? DeliveryMethod.PickupAtStore
                 : DeliveryMethod.ShipToHome;
@@ -125,6 +127,32 @@ namespace WebBanDienThoai.Controllers
             order.CouponCode = cart.CouponCode;
             order.TotalPrice = finalTotal;
 
+            // =========================================================================
+            // ✨ CHỨC NĂNG 2 & 3: XỬ LÝ THANH TOÁN COD & TRẢ GÓP 0% KÈM TRỪ TỒN KHO THỰC TẾ
+            // =========================================================================
+            if (paymentMethod == "Installment")
+            {
+                order.PaymentMethod = "Installment"; // Gán phương thức trả góp
+                order.PaymentStatus = PaymentStatus.ChuaThanhToan; // Hoặc Chờ đối soát tùy hệ thống của bạn
+
+                // Đón nhận kỳ hạn và ngân hàng trả góp từ Form
+                order.InstallmentBank = Request.Form["InstallmentBank"].ToString();
+                if (int.TryParse(Request.Form["InstallmentMonths"], out var months))
+                {
+                    order.InstallmentMonths = months;
+                }
+            }
+            else
+            {
+                // Mặc định hoặc chọn COD
+                order.PaymentMethod = "COD";
+                order.PaymentStatus = PaymentStatus.ChuaThanhToan; // COD nhận hàng mới trả tiền
+            }
+
+            // Set trạng thái đơn hàng khởi tạo ban đầu là Chờ xác nhận
+            order.Status = OrderStatus.ChoXacNhan;
+            // =========================================================================
+
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 
@@ -141,6 +169,29 @@ namespace WebBanDienThoai.Controllers
                 };
 
                 _context.OrderDetails.Add(orderDetail);
+                await _context.SaveChangesAsync();
+
+                // 🧭 TIẾN HÀNH TRỪ KHO THỰC TẾ KHI ĐẶT HÀNG THÀNH CÔNG
+                if (item.VariantId.HasValue)
+                {
+                    // Trừ kho của bảng biến thể (Dung lượng / Màu sắc)
+                    var variant = await _context.ProductVariants.FindAsync(item.VariantId.Value);
+                    if (variant != null)
+                    {
+                        variant.Stock = Math.Max(0, variant.Stock - item.Quantity);
+                        _context.ProductVariants.Update(variant);
+                    }
+                }
+                else
+                {
+                    // Trừ kho tổng của bảng Product chính
+                    var dbProduct = await _context.Products.FindAsync(item.ProductId);
+                    if (dbProduct != null)
+                    {
+                        dbProduct.Quantity = Math.Max(0, dbProduct.Quantity - item.Quantity);
+                        _context.Products.Update(dbProduct);
+                    }
+                }
                 await _context.SaveChangesAsync();
 
                 if (item.Warranties != null)
@@ -597,6 +648,9 @@ namespace WebBanDienThoai.Controllers
                 .ThenBy(s => s.Name)
                 .ToListAsync();
 
+            var saveLater = HttpContext.Session.GetObjectFromJson<ShoppingCart>("SaveLater") ?? new ShoppingCart();
+            ViewBag.SaveLaterItems = saveLater.Items;
+
             // 🔹 Trả view với giỏ hàng hiện tại
             return View(cart);
         }
@@ -857,6 +911,68 @@ namespace WebBanDienThoai.Controllers
         {
             HttpContext.Session.Remove("Cart");
             TempData["SuccessMessage"] = "Đã xóa toàn bộ giỏ hàng.";
+            return RedirectToAction("Index");
+        }
+
+        // =========================================================================
+        // ✨ CHỨC NĂNG: LƯU SẢN PHẨM LẠI ĐỂ MUA SAU (SAVE FOR LATER)
+        // =========================================================================
+        [Authorize]
+        public IActionResult SaveForLater(int productId, int? variantId)
+        {
+            var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
+            var saveLater = HttpContext.Session.GetObjectFromJson<ShoppingCart>("SaveLater") ?? new ShoppingCart();
+
+            // Tìm item đang có trong giỏ hàng chính
+            var item = cart.Items.FirstOrDefault(i => i.ProductId == productId && i.VariantId == variantId);
+            if (item != null)
+            {
+                // 1. Thêm vào danh sách lưu sau
+                saveLater.Items.Add(item);
+                // 2. Xóa khỏi giỏ hàng hiện tại
+                cart.Items.Remove(item);
+
+                // Reset lại mã giảm giá nếu giỏ hàng thay đổi để tránh lệch tiền
+                if (!string.IsNullOrEmpty(cart.CouponCode))
+                {
+                    cart.CouponCode = null;
+                    cart.DiscountAmount = 0;
+                }
+
+                // Cập nhật lại Session của cả 2 giỏ
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+                HttpContext.Session.SetObjectAsJson("SaveLater", saveLater);
+
+                TempData["SuccessMessage"] = $"Đã lưu sản phẩm '{item.Name}' để mua sau.";
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        // =========================================================================
+        // ✨ CHỨC NĂNG: CHUYỂN SẢN PHẨM ĐÃ LƯU TRỞ LẠI GIỎ HÀNG CHÍNH (MOVE BACK TO CART)
+        // =========================================================================
+        [Authorize]
+        public IActionResult MoveBackToCart(int productId, int? variantId)
+        {
+            var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
+            var saveLater = HttpContext.Session.GetObjectFromJson<ShoppingCart>("SaveLater") ?? new ShoppingCart();
+
+            // Tìm sản phẩm trong danh sách lưu sau
+            var item = saveLater.Items.FirstOrDefault(i => i.ProductId == productId && i.VariantId == variantId);
+            if (item != null)
+            {
+                // 1. Đẩy ngược lại vào giỏ hàng chính
+                cart.Items.Add(item);
+                // 2. Xóa khỏi danh sách lưu sau
+                saveLater.Items.Remove(item);
+
+                HttpContext.Session.SetObjectAsJson("Cart", cart);
+                HttpContext.Session.SetObjectAsJson("SaveLater", saveLater);
+
+                TempData["SuccessMessage"] = $"Đã chuyển '{item.Name}' trở lại giỏ hàng.";
+            }
+
             return RedirectToAction("Index");
         }
     }

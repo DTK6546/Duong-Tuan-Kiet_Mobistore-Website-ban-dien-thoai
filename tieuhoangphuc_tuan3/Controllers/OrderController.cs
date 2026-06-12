@@ -67,14 +67,45 @@ namespace WebBanDienThoai.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
+            // Include thêm cả OrderDetails để lấy danh sách sản phẩm cần trả kho
+            var order = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
+
             if (order == null) return NotFound();
 
-            // Chỉ cho huỷ khi chưa giao
+            // Chỉ cho huỷ khi đơn chưa đi giao
             if (order.Status == OrderStatus.ChoXacNhan || order.Status == OrderStatus.DangXuLy)
             {
                 order.Status = OrderStatus.DaHuy;
                 _context.Update(order);
+
+                // 🧭 HOÀN LẠI SỐ LƯỢNG SẢN PHẨM VÀO KHO KHI HỦY ĐƠN
+                if (order.OrderDetails != null)
+                {
+                    foreach (var detail in order.OrderDetails)
+                    {
+                        if (detail.VariantId.HasValue)
+                        {
+                            var variant = await _context.ProductVariants.FindAsync(detail.VariantId.Value);
+                            if (variant != null)
+                            {
+                                variant.Stock += detail.Quantity; // Cộng trả lại kho biến thể
+                                _context.ProductVariants.Update(variant);
+                            }
+                        }
+                        else
+                        {
+                            var dbProduct = await _context.Products.FindAsync(detail.ProductId);
+                            if (dbProduct != null)
+                            {
+                                dbProduct.Quantity += detail.Quantity; // Cộng trả lại kho sản phẩm chính
+                                _context.Products.Update(dbProduct);
+                            }
+                        }
+                    }
+                }
+
                 await _context.SaveChangesAsync();
             }
 

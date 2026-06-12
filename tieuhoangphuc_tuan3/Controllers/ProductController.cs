@@ -20,7 +20,6 @@ namespace WebBanDienThoai.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-
         public ProductController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IProductRepository productRepository, ICategoryRepository categoryRepository)
         {
             _context = context;
@@ -29,7 +28,9 @@ namespace WebBanDienThoai.Controllers
             _categoryRepository = categoryRepository;
         }
 
-        // Index với tìm kiếm nhanh
+        // =========================================================================
+        // 1) Index với tìm kiếm nhanh (Thanh Search góc màn hình)
+        // =========================================================================
         public async Task<IActionResult> Index(string query)
         {
             var products = await _productRepository.GetAllAsync();
@@ -44,10 +45,47 @@ namespace WebBanDienThoai.Controllers
             var categories = await _categoryRepository.GetAllAsync();
             ViewBag.Categories = categories.Where(c => c.Id != 16).ToList();
 
+            // ✨ ĐỒNG BỘ CHỨC NĂNG 1: Đẩy hàng Hot ra ViewBag đề phòng User xài thanh search nhanh
+            var hotProductsData = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.SubCategory)
+                .Include(p => p.Variants)
+                .Where(p => p.IsHot)
+                .Take(4)
+                .ToListAsync();
+
+            var hotProductIds = hotProductsData.Select(p => p.Id).ToList();
+            var hotSoldDict = await _context.OrderDetails
+                .Where(od => hotProductIds.Contains(od.ProductId) && od.Order.Status == OrderStatus.HoanTat)
+                .GroupBy(od => od.ProductId)
+                .Select(g => new { ProductId = g.Key, Sold = g.Sum(x => x.Quantity) })
+                .ToDictionaryAsync(g => g.ProductId, g => g.Sold);
+
+            ViewBag.HotProducts = hotProductsData.Select(p => new ProductWithSoldCount
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Description = p.Description,
+                ImageUrl = p.ImageUrl,
+                Images = p.Images,
+                CategoryId = p.CategoryId,
+                Category = p.Category,
+                Rating = p.Rating,
+                DiscountPercent = p.DiscountPercent,
+                DiscountedPrice = p.DiscountedPrice,
+                SubCategoryId = p.SubCategoryId,
+                SubCategory = p.SubCategory,
+                SoldCount = hotSoldDict.TryGetValue(p.Id, out var sold) ? sold : 0,
+                Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
+            }).ToList();
+
             return View(products);
         }
 
-        // Index với bộ lọc và phân trang
+        // =========================================================================
+        // 2) Index với bộ lọc Sidebar và phân trang (Hàm chính xử lý trang /Product)
+        // =========================================================================
         [HttpGet]
         public async Task<IActionResult> Index(int pageNumber = 1, int? categoryId = null, int? subCategoryId = null, decimal? minPrice = null, decimal? maxPrice = null, string query = "", string sortBy = "")
         {
@@ -97,7 +135,6 @@ namespace WebBanDienThoai.Controllers
                     break;
 
                 case "banchay":
-                    // Bán chạy: join sold count 1 lần (không N+1)
                     var soldQuery = _context.OrderDetails
                         .Where(od => od.Order.Status == OrderStatus.HoanTat)
                         .GroupBy(od => od.ProductId)
@@ -157,7 +194,7 @@ namespace WebBanDienThoai.Controllers
                 Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             }).ToList();
 
-            // ViewBag giữ nguyên như bạn đang dùng
+            // ViewBag giữ nguyên các bộ lọc hiện tại của bạn
             ViewBag.PageNumber = pageNumber;
             ViewBag.TotalPages = totalPages;
             ViewBag.Categories = (await _categoryRepository.GetAllAsync()).Where(c => c.Id != 16).ToList();
@@ -177,9 +214,46 @@ namespace WebBanDienThoai.Controllers
 
             ViewBag.SubCategories = subcats;
 
+            // =========================================================================
+            // ✨ CHỨC NĂNG 1: LẤY VÀ TRUYỀN DANH SÁCH HÀNG HOT VÀO TRANG PRODUCT/INDEX
+            // =========================================================================
+            var hotProductsData = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.SubCategory)
+                .Include(p => p.Variants)
+                .Where(p => p.IsHot) // Chỉ bốc các dòng máy được gạt nút Hot (IsHot = 1)
+                .Take(4)             // Hiện tối đa 4 máy trên thanh Banner VIP
+                .ToListAsync();
+
+            var hotProductIds = hotProductsData.Select(p => p.Id).ToList();
+            var hotSoldDict = await _context.OrderDetails
+                .Where(od => hotProductIds.Contains(od.ProductId) && od.Order.Status == OrderStatus.HoanTat)
+                .GroupBy(od => od.ProductId)
+                .Select(g => new { ProductId = g.Key, Sold = g.Sum(x => x.Quantity) })
+                .ToDictionaryAsync(g => g.ProductId, g => g.Sold);
+
+            ViewBag.HotProducts = hotProductsData.Select(p => new ProductWithSoldCount
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Description = p.Description,
+                ImageUrl = p.ImageUrl,
+                Images = p.Images,
+                CategoryId = p.CategoryId,
+                Category = p.Category,
+                Rating = p.Rating,
+                DiscountPercent = p.DiscountPercent,
+                DiscountedPrice = p.DiscountedPrice,
+                SubCategoryId = p.SubCategoryId,
+                SubCategory = p.SubCategory,
+                SoldCount = hotSoldDict.TryGetValue(p.Id, out var sold) ? sold : 0,
+                Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
+            }).ToList();
+            // =========================================================================
+
             return View(model);
         }
-
 
         [Authorize]
         public async Task<IActionResult> Buy(int id)
@@ -209,8 +283,9 @@ namespace WebBanDienThoai.Controllers
                 });
             }
 
-            HttpContext.Session.SetObjectAsJson("Cart", cart);
+            // Đồng bộ tồn kho: Nếu mua vượt quá số lượng hàng thì bạn có thể check thêm ở đây
 
+            HttpContext.Session.SetObjectAsJson("Cart", cart);
             return RedirectToAction("Index", "ShoppingCart");
         }
 
@@ -237,7 +312,7 @@ namespace WebBanDienThoai.Controllers
             if (product == null) return NotFound();
             product.Images ??= new List<ProductImage>();
 
-            // 2) Sold count
+            // 2) Sold count của sản phẩm hiện tại
             int soldCount = await _context.OrderDetails
                 .Where(od => od.ProductId == id && od.Order.Status == OrderStatus.HoanTat)
                 .SumAsync(od => (int?)od.Quantity) ?? 0;
@@ -261,13 +336,12 @@ namespace WebBanDienThoai.Controllers
             }
             ViewBag.SelectedVariant = selectedVariant;
 
-            // =========================
+            // =========================================================================
             // 4) REVIEW: stats + filter/sort + paging + verified badge (NO N+1)
-            // =========================
+            // =========================================================================
             const int pageSize = 5;
             if (page < 1) page = 1;
 
-            // Stats (tất cả review)
             var ratingStats = await _context.ProductRatings
                 .Where(r => r.ProductId == id)
                 .GroupBy(_ => 1)
@@ -295,20 +369,17 @@ namespace WebBanDienThoai.Controllers
             ViewBag.StarCounts = starCounts;
             ViewBag.TotalRatings = totalRatings;
 
-            // Verified userIds (đã mua + hoàn tất)
             var verifiedUserIdsQuery = _context.OrderDetails
                 .Where(od => od.ProductId == id && od.Order.Status == OrderStatus.HoanTat)
                 .Select(od => od.Order.UserId)
                 .Distinct();
 
-            // Query list
             IQueryable<ProductRating> qRatings = _context.ProductRatings
                 .Include(r => r.User)
-                .Include(r => r.Images) // ✅ ảnh review
+                .Include(r => r.Images)
                 .Include(r => r.Replies).ThenInclude(rep => rep.User)
                 .Where(r => r.ProductId == id);
 
-            // Filters
             if (star is >= 1 and <= 5)
                 qRatings = qRatings.Where(r => r.Stars == star);
 
@@ -318,43 +389,27 @@ namespace WebBanDienThoai.Controllers
             if (verifiedOnly == true)
                 qRatings = qRatings.Where(r => verifiedUserIdsQuery.Contains(r.UserId));
 
-            // Sort
             qRatings = sort switch
             {
-                "helpful" => qRatings
-                    .OrderByDescending(r => r.LikeCount - r.DislikeCount)
-                    .ThenByDescending(r => r.CreatedAt),
-
-                "high" => qRatings
-                    .OrderByDescending(r => r.Stars)
-                    .ThenByDescending(r => r.CreatedAt),
-
-                "low" => qRatings
-                    .OrderBy(r => r.Stars)
-                    .ThenByDescending(r => r.CreatedAt),
-
+                "helpful" => qRatings.OrderByDescending(r => r.LikeCount - r.DislikeCount).ThenByDescending(r => r.CreatedAt),
+                "high" => qRatings.OrderByDescending(r => r.Stars).ThenByDescending(r => r.CreatedAt),
+                "low" => qRatings.OrderBy(r => r.Stars).ThenByDescending(r => r.CreatedAt),
                 _ => qRatings.OrderByDescending(r => r.CreatedAt)
             };
 
-            // Paging
             int totalFiltered = await qRatings.CountAsync();
             int totalPages = (int)Math.Ceiling(totalFiltered / (double)pageSize);
             if (totalPages < 1) totalPages = 1;
             if (page > totalPages) page = totalPages;
 
-            var ratings = await qRatings
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            var ratings = await qRatings.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-            // Set badge verified (1 lần)
             var verifiedSet = await verifiedUserIdsQuery.ToHashSetAsync();
             foreach (var r in ratings)
                 r.IsVerifiedPurchase = verifiedSet.Contains(r.UserId);
 
             ViewBag.Ratings = ratings;
 
-            // Keep filter in ViewBag
             ViewBag.RatingPage = page;
             ViewBag.RatingTotalPages = totalPages;
             ViewBag.FilterStar = star;
@@ -362,7 +417,6 @@ namespace WebBanDienThoai.Controllers
             ViewBag.FilterVerifiedOnly = verifiedOnly == true;
             ViewBag.FilterSort = sort;
 
-            // MyRating + CanReview (đã mua mới được đánh giá)
             ProductRating myRating = null;
             bool canReview = false;
 
@@ -408,7 +462,9 @@ namespace WebBanDienThoai.Controllers
                 Variants = variants
             };
 
-            // 6) Related + Viewed (giữ logic cookie của bạn)
+            // =========================================================================
+            // 6) Related + Viewed (XỬ LÝ COOKIE & ĐỒNG BỘ THỨ TỰ THỜI GIAN)
+            // =========================================================================
             const string viewedCookieName = "RecentlyViewedProducts";
             List<int> viewedIds = new List<int>();
 
@@ -437,19 +493,27 @@ namespace WebBanDienThoai.Controllers
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
                 .Include(p => p.Variants)
-                .Where(p => p.Id != id && p.SubCategoryId == product.SubCategoryId)
-                .OrderByDescending(p => p.Id)
+                .Where(p => p.Id != id &&
+                           (product.SubCategoryId.HasValue
+                                ? p.SubCategoryId == product.SubCategoryId
+                                : p.CategoryId == product.CategoryId))
+                .OrderByDescending(p => p.IsHot)
+                .ThenByDescending(p => p.Id)
                 .Take(8)
                 .ToListAsync();
 
-            var viewedEntities = await _context.Products
+            var rawViewedEntities = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
                 .Include(p => p.Variants)
                 .Where(p => viewedIds.Contains(p.Id) && p.Id != id)
                 .ToListAsync();
 
-            // mapping sold count
+            var viewedEntities = viewedIds
+                .Select(vId => rawViewedEntities.FirstOrDefault(p => p.Id == vId))
+                .Where(p => p != null)
+                .ToList();
+
             var allIds = relatedEntities.Select(p => p.Id).Concat(viewedEntities.Select(p => p.Id)).Distinct().ToList();
             var soldDict = allIds.Any()
                 ? await _context.OrderDetails
@@ -467,18 +531,16 @@ namespace WebBanDienThoai.Controllers
                 ImageUrl = p.ImageUrl,
                 Rating = p.Rating,
                 DiscountedPrice = p.DiscountedPrice,
-                SoldCount = soldDict.ContainsKey(p.Id) ? soldDict[p.Id] : 0,
+                SoldCount = soldDict.TryGetValue(p.Id, out var sold) ? sold : 0,
                 Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             };
 
             ViewBag.RelatedProducts = relatedEntities.Select(MapToVm).ToList();
             ViewBag.ViewedProducts = viewedEntities.Select(MapToVm).ToList();
 
-            // =========================
+            // =========================================================================
             // 7) FAQ + Q&A
-            // =========================
-
-            // FAQ: lấy FAQ chung + FAQ theo sản phẩm
+            // =========================================================================
             var faqs = await _context.ProductFaqs
                 .AsNoTracking()
                 .Where(f => f.IsActive && (f.ProductId == null || f.ProductId == id))
@@ -489,12 +551,7 @@ namespace WebBanDienThoai.Controllers
 
             ViewBag.Faqs = faqs;
 
-            // Q&A: Web thật
-            // - Admin/Employer: thấy tất cả
-            // - User thường: thấy câu đã duyệt + câu của chính mình (dù chưa duyệt)
-            // - Chưa đăng nhập: chỉ thấy câu đã duyệt
             bool isStaff = User.IsInRole("Admin") || User.IsInRole("Employer");
-
             string? currentUserId = null;
             if (User.Identity.IsAuthenticated)
             {
@@ -511,27 +568,16 @@ namespace WebBanDienThoai.Controllers
             if (!isStaff)
             {
                 if (string.IsNullOrEmpty(currentUserId))
-                {
-                    // khách chưa login: chỉ thấy câu đã duyệt
                     qQas = qQas.Where(q => q.IsApproved);
-                }
                 else
-                {
-                    // khách login: thấy đã duyệt + câu của mình
                     qQas = qQas.Where(q => q.IsApproved || q.UserId == currentUserId);
-                }
             }
 
-            var qas = await qQas
-                .OrderByDescending(q => q.CreatedAt)
-                .Take(20)
-                .ToListAsync();
-
+            var qas = await qQas.OrderByDescending(q => q.CreatedAt).Take(20).ToListAsync();
             ViewBag.QAs = qas;
 
             return View(displayModel);
         }
-
 
         public async Task<IActionResult> Delete(int id)
         {
@@ -587,7 +633,7 @@ namespace WebBanDienThoai.Controllers
                     CreatedAt = DateTime.Now
                 };
                 _context.ProductRatings.Add(existing);
-                await _context.SaveChangesAsync(); // cần Id để lưu ảnh
+                await _context.SaveChangesAsync();
             }
             else
             {
@@ -598,16 +644,11 @@ namespace WebBanDienThoai.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            // ✅ upload ảnh (tối đa 5 ảnh, mỗi ảnh <= 2MB)
             if (images?.Any() == true)
             {
                 var allowExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
                 var folder = Path.Combine("wwwroot", "uploads", "ratings");
                 Directory.CreateDirectory(folder);
-
-                // (tuỳ chọn) nếu muốn thay ảnh cũ khi update:
-                // _context.ProductRatingImages.RemoveRange(existing.Images);
-                // await _context.SaveChangesAsync();
 
                 foreach (var file in images.Take(5))
                 {
@@ -632,7 +673,6 @@ namespace WebBanDienThoai.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            // update product avg rating
             var avgStars = await _context.ProductRatings
                 .Where(r => r.ProductId == productId)
                 .AverageAsync(r => (double)r.Stars);
@@ -752,16 +792,11 @@ namespace WebBanDienThoai.Controllers
             return Json(new { ok = true });
         }
 
-        // =====================
-        // Q&A - Ask / Reply / Edit / Delete
-        // =====================
-
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AskQuestion(int productId, string question)
         {
-            // ✅ Web thật: Staff không đặt câu hỏi như khách
             if (User.IsInRole("Admin") || User.IsInRole("Employer"))
             {
                 TempData["ErrorMessage"] = "Tài khoản nhân viên không thể đặt câu hỏi như khách hàng.";
@@ -785,7 +820,6 @@ namespace WebBanDienThoai.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Unauthorized();
 
-            // ✅ Web thật: câu hỏi chờ duyệt
             var qa = new ProductQuestion
             {
                 ProductId = productId,
@@ -831,7 +865,6 @@ namespace WebBanDienThoai.Controllers
             var question = await _context.ProductQuestions.FirstOrDefaultAsync(x => x.Id == questionId);
             if (question == null) return NotFound();
 
-            // ✅ Staff trả lời -> auto approve
             question.IsApproved = true;
 
             _context.ProductQuestionReplies.Add(new ProductQuestionReply
@@ -870,7 +903,6 @@ namespace WebBanDienThoai.Controllers
 
             if (reply == null) return NotFound();
 
-            // ✅ Web thật: Employer chỉ sửa reply của chính mình, Admin sửa tất cả
             if (!User.IsInRole("Admin") && reply.UserId != user.Id)
                 return Forbid();
 
@@ -897,7 +929,6 @@ namespace WebBanDienThoai.Controllers
 
             if (reply == null) return NotFound();
 
-            // ✅ Web thật: Employer chỉ xoá reply của chính mình, Admin xoá tất cả
             if (!User.IsInRole("Admin") && reply.UserId != user.Id)
                 return Forbid();
 
@@ -907,10 +938,6 @@ namespace WebBanDienThoai.Controllers
             TempData["SuccessMessage"] = "Đã xoá câu trả lời.";
             return RedirectToAction("Display", new { id = reply.ProductQuestion.ProductId });
         }
-
-        // =====================
-        // Q&A Moderation (Web thật): Approve / Hide / Delete Question
-        // =====================
 
         [HttpPost]
         [Authorize(Roles = "Admin,Employer")]
@@ -942,7 +969,6 @@ namespace WebBanDienThoai.Controllers
             return RedirectToAction("Display", new { id = q.ProductId });
         }
 
-        // (Tuỳ chọn) Web thật thường có xoá câu hỏi (admin làm được)
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
@@ -954,7 +980,6 @@ namespace WebBanDienThoai.Controllers
 
             if (q == null) return NotFound();
 
-            // xoá replies trước (nếu bạn chưa cấu hình cascade)
             if (q.Replies != null && q.Replies.Any())
                 _context.ProductQuestionReplies.RemoveRange(q.Replies);
 
@@ -964,6 +989,5 @@ namespace WebBanDienThoai.Controllers
             TempData["SuccessMessage"] = "Đã xoá câu hỏi.";
             return RedirectToAction("Display", new { id = q.ProductId });
         }
-
     }
 }

@@ -1,21 +1,23 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using WebBanDienThoai.Models; 
+using System.Linq; // Thêm để dùng LINQ cho vòng lặp decimal
+using WebBanDienThoai.Models;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     internal object MomoInfoModel;
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
+
     public DbSet<Product> Products { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderDetail> OrderDetails { get; set; }
     public DbSet<Wishlist> Wishlists { get; set; }
     public DbSet<ProductImage> ProductImages { get; set; }
-    // Các DbSet khác nếu cần
     public DbSet<MomoInfoModel> MomoInfos { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
     public DbSet<ProductRating> ProductRatings { get; set; }
@@ -44,18 +46,46 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(modelBuilder);
 
-        // Cấu hình DeleteBehavior.Restrict để không tự động xóa ảnh khi xóa sản phẩm
+        // ==========================================
+        // 1. TỰ ĐỘNG FIX CẢNH BÁO DECIMAL WARNINGS
+        // ==========================================
+        foreach (var property in modelBuilder.Model.GetEntityTypes()
+                     .SelectMany(t => t.GetProperties())
+                     .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
+        {
+            property.SetPrecision(18);
+            property.SetScale(2);
+        }
+
+        // ==========================================
+        // 2. FIX LỖI MULTIPLE CASCADE PATHS (BẢNG STORES)
+        // ==========================================
+        modelBuilder.Entity<Store>()
+            .HasOne(s => s.Province)
+            .WithMany()
+            .HasForeignKey(s => s.ProvinceId)
+            .OnDelete(DeleteBehavior.Restrict); // Tắt cascade khi xóa Province
+
+        modelBuilder.Entity<Store>()
+            .HasOne(s => s.District)
+            .WithMany()
+            .HasForeignKey(s => s.DistrictId)
+            .OnDelete(DeleteBehavior.Restrict); // Tắt cascade khi xóa District
+
+        // ==========================================
+        // CÁC CẤU HÌNH HIỆN TẠI CỦA BẠN (GIỮ NGUYÊN)
+        // ==========================================
         modelBuilder.Entity<Product>()
             .HasMany(p => p.Images)
             .WithOne(pi => pi.Product)
             .HasForeignKey(pi => pi.ProductId)
-            .OnDelete(DeleteBehavior.Restrict); // Không tự động xóa ảnh khi xóa sản phẩm
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<ProductRatingReply>()
-        .HasOne(r => r.ProductRating)
-        .WithMany(rating => rating.Replies)
-        .HasForeignKey(r => r.ProductRatingId)
-        .OnDelete(DeleteBehavior.Restrict);
+            .HasOne(r => r.ProductRating)
+            .WithMany(rating => rating.Replies)
+            .HasForeignKey(r => r.ProductRatingId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<ProductRatingReply>()
             .HasOne(r => r.User)
@@ -69,17 +99,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // ✅ 1 user chỉ vote 1 lần / 1 rating
         modelBuilder.Entity<ProductRatingVote>()
             .HasIndex(v => new { v.ProductRatingId, v.UserId })
             .IsUnique();
 
-        // ✅ 1 user chỉ report 1 lần / 1 rating (tuỳ bạn)
         modelBuilder.Entity<ProductRatingReport>()
             .HasIndex(r => new { r.ProductRatingId, r.UserId })
             .IsUnique();
 
-        // ✅ 1 user chỉ đánh giá 1 lần / 1 sản phẩm (đúng logic bạn đang dùng update)
         modelBuilder.Entity<ProductRating>()
             .HasIndex(r => new { r.ProductId, r.UserId })
             .IsUnique();
@@ -103,10 +130,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<ProductQuestion>()
-    .HasOne(x => x.User)
-    .WithMany()
-    .HasForeignKey(x => x.UserId)
-    .OnDelete(DeleteBehavior.Restrict);
+            .HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<ProductQuestionReply>()
             .HasOne(x => x.User)
@@ -126,15 +153,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(x => x.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // index để load nhanh theo sản phẩm
         modelBuilder.Entity<ProductQuestion>()
             .HasIndex(x => new { x.ProductId, x.CreatedAt });
 
         modelBuilder.Entity<ProductFaq>()
             .HasIndex(x => new { x.ProductId, x.IsActive, x.SortOrder });
-
     }
-
-
-
 }

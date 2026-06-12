@@ -40,10 +40,8 @@
     decimal finalTotal = priceAfterDiscount + vatAmount + shippingFee;
 
     var vi = CultureInfo.GetCultureInfo("vi-VN");
-}
-
-@{
     var stores = ViewBag.Stores as List<Store>;
+    var saveLaterItems = ViewBag.SaveLaterItems as List<CartItem> ?? new List<CartItem>();
 }
 
 <style>
@@ -99,230 +97,180 @@
             margin-top: -16px;
         }
 
-    media (max-width: 576px) {
-        .checkout-steps .line
+    @Html.Raw("@media") (max-width: 576px) {
+        .checkout-steps .line {
+            width: 30px;
+        }
 
-    {
-        width: 30px;
-    }
-
-    .checkout-steps .step {
-        min-width: 70px;
-    }
-
+        .checkout-steps .step {
+            min-width: 70px;
+        }
     }
 </style>
 
 <div class="container mt-5">
-
-    <!-- ✅ Stepper Checkout -->
     <div class="checkout-steps mb-3">
-        <div class="step active">
-            <div class="circle">1</div>
-            <div class="label">Giỏ hàng</div>
-        </div>
+        <div class="step active"><div class="circle">1</div><div class="label">Giỏ hàng</div></div>
         <div class="line"></div>
-        <div class="step">
-            <div class="circle">2</div>
-            <div class="label">Thông tin</div>
-        </div>
+        <div class="step"><div class="circle">2</div><div class="label">Thông tin</div></div>
         <div class="line"></div>
-        <div class="step">
-            <div class="circle">3</div>
-            <div class="label">Thanh toán</div>
-        </div>
+        <div class="step"><div class="circle">3</div><div class="label">Thanh toán</div></div>
         <div class="line"></div>
-        <div class="step">
-            <div class="circle">4</div>
-            <div class="label">Hoàn tất</div>
-        </div>
+        <div class="step"><div class="circle">4</div><div class="label">Hoàn tất</div></div>
     </div>
 
     <h2 class="text-center mb-4">🛒 Giỏ hàng của bạn</h2>
 
-    @* ✅ Anti-forgery token cho AJAX + hộp thông báo *@
     <form id="ajaxAntiForgeryForm" method="post" style="display:none;">
         @Html.AntiForgeryToken()
     </form>
     <div id="cartMsg" class="alert d-none" role="alert"></div>
 
-    @if (Model.Items.Count == 0)
+    @if (Model.Items.Count == 0 && !saveLaterItems.Any())
     {
         <p class="text-center text-muted">Giỏ hàng của bạn đang trống! 🛍️</p>
     }
     else
     {
         <div class="row">
-            <!-- CỘT TRÁI -->
             <div class="col-md-8">
-                <table class="table table-bordered align-middle text-center">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Hình ảnh</th>
-                            <th style="width: 40%">Tên sản phẩm</th>
-                            <th>Giá</th>
-                            <th>Số lượng</th>
-                            <th>Thành tiền</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model.Items)
-                        {
-                            var warrantyPerItem = item.Warranties?.Sum(w => w.Price) ?? 0;
-                            var lineTotal = (item.Price + warrantyPerItem) * item.Quantity;
-
+                @if (Model.Items.Any())
+                {
+                    <table class="table table-bordered align-middle text-center">
+                        <thead class="table-dark">
                             <tr>
-                                <td class="align-middle">
-                                    <img src="@item.ImageUrl" alt="@item.Name" class="cart-image img-fluid" style="width: 80px; height: 80px; object-fit: contain;">
-                                </td>
-                                <td class="align-middle text-start">
-                                    <strong>@item.Name</strong>
-                                    <p class="text-muted m-0">Mã SP: @item.ProductId</p>
-
-                                    @{
-                                        var allWarrantyOptions = ViewBag.WarrantyOptions as List<WarrantyOption>;
-                                        var optionsForProduct = allWarrantyOptions?
-                                        .Where(w => w.ProductId == item.ProductId && w.IsActive)
-                                        .ToList();
-
-                                        var selectedIds = item.Warranties?
-                                        .Select(w => w.WarrantyOptionId)
-                                        .ToHashSet()
-                                        ?? new HashSet<int>();
-                                    }
-
-                                    @if (optionsForProduct != null && optionsForProduct.Any())
-                                    {
-                                        <div class="mt-2 p-2 border rounded bg-white">
-                                            <form asp-action="UpdateWarranties"
-                                                  asp-controller="ShoppingCart"
-                                                  method="post">
-                                                <input type="hidden" name="productId" value="@item.ProductId" />
-                                                <input type="hidden" name="variantId" value="@(item.VariantId?.ToString() ?? "")" />
-
-                                                <div class="small fw-semibold mb-1">Gói bảo hành thêm:</div>
-
-                                                @foreach (var w in optionsForProduct)
-                                                {
-                                                    var checkId = $"w_{item.ProductId}_{w.Id}";
-                                                    var isChecked = selectedIds.Contains(w.Id);
-                                                    <div class="form-check small">
-                                                        <input class="form-check-input"
-                                                               type="checkbox"
-                                                               name="warrantyOptionIds"
-                                                               value="@w.Id"
-                                                               id="@checkId"
-                                                               @(isChecked ? "checked" : "")
-                                                               onchange="this.form.submit()" />
-                                                        <label class="form-check-label" for="@checkId">
-                                                            @w.Name (@w.Price.ToString("N0", vi) VNĐ)
-                                                        </label>
-                                                    </div>
-                                                }
-
-                                                @if (item.Warranties != null && item.Warranties.Any())
-                                                {
-                                                    <div class="small text-success mt-1">
-                                                        Đã chọn:
-                                                        @string.Join(", ", item.Warranties.Select(w => w.Name))
-                                                        (tổng +@warrantyPerItem.ToString("N0", vi) VNĐ / sản phẩm)
-                                                    </div>
-                                                }
-                                            </form>
-                                        </div>
-                                    }
-                                </td>
-                                <td class="align-middle">
-                                    @item.Price.ToString("N0", vi) VNĐ
-                                    @if (warrantyPerItem > 0)
-                                    {
-                                        <div class="small text-muted">
-                                            + @warrantyPerItem.ToString("N0", vi) VNĐ (bảo hành)
-                                        </div>
-                                    }
-                                </td>
-
-                                <td class="align-middle">
-                                    <div class="input-group input-group-sm">
-                                        <button class="btn btn-outline-secondary btn-sm quantity-btn" type="button">-</button>
-
-                                        <input type="text"
-                                               class="form-control text-center quantity-input"
-                                               value="@item.Quantity"
-                                               data-product-id="@item.ProductId"
-                                               data-variant-id="@(item.VariantId?.ToString() ?? "")"
-                                               data-unit-price="@item.Price"
-                                               data-warranty-price="@warrantyPerItem"
-                                               data-max-qty="@item.AvailableStock"
-                                               style="max-width: 50px;">
-
-                                        <button class="btn btn-outline-secondary btn-sm quantity-btn" type="button">+</button>
-                                    </div>
-
-                                    @{
-                                        var remaining = item.AvailableStock - item.Quantity;
-                                    }
-
-                                    @if (item.AvailableStock <= 0)
-                                    {
-                                        <div class="text-danger small mt-1">Hết hàng.</div>
-                                    }
-                                    else if (remaining <= 0)
-                                    {
-                                        <div class="text-danger small mt-1">Bạn đã chọn tối đa (@item.AvailableStock).</div>
-                                    }
-                                    else if (remaining <= 3)
-                                    {
-                                        <div class="text-warning small mt-1">Chỉ còn @remaining sản phẩm.</div>
-                                    }
-                                    else
-                                    {
-                                        <div class="text-muted small mt-1">Còn @item.AvailableStock sản phẩm.</div>
-                                    }
-                                </td>
-
-                                <td class="align-middle">
-                                    <strong class="line-total">@lineTotal.ToString("N0", vi) VNĐ</strong>
-                                </td>
-
-                                <td class="align-middle">
-                                    <a asp-action="RemoveFromCart"
-                                       asp-route-productId="@item.ProductId"
-                                       asp-route-variantId="@item.VariantId"
-                                       class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                </td>
+                                <th>Hình ảnh</th>
+                                <th style="width: 35%">Tên sản phẩm</th>
+                                <th>Giá</th>
+                                <th>Số lượng</th>
+                                <th>Thành tiền</th>
+                                <th>Thao tác</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                var warrantyPerItem = item.Warranties?.Sum(w => w.Price) ?? 0;
+                                var lineTotal = (item.Price + warrantyPerItem) * item.Quantity;
 
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    <a class="btn btn-outline-secondary btn-sm"
-                       asp-controller="Product" asp-action="Index">
-                        ← Tiếp tục mua hàng
-                    </a>
+                                <tr>
+                                    <td>
+                                        <img src="@item.ImageUrl" class="cart-image img-fluid" style="width: 80px; height: 80px; object-fit: contain;">
+                                    </td>
+                                    <td class="text-start">
+                                        <strong>@item.Name</strong>
+                                        <p class="text-muted m-0 small">Mã SP: @item.ProductId</p>
 
-                    <button type="button" class="btn btn-primary btn-sm" onclick="saveCartQuantities()">
-                        Cập nhật giỏ hàng
-                    </button>
+                                        @{
+                                            var allWarrantyOptions = ViewBag.WarrantyOptions as List<WarrantyOption>;
+                                            var optionsForProduct = allWarrantyOptions?.Where(w => w.ProductId == item.ProductId && w.IsActive).ToList();
+                                            var selectedIds = item.Warranties?.Select(w => w.WarrantyOptionId).ToHashSet() ?? new HashSet<int>();
+                                        }
 
-                    <form asp-action="ClearCart"
-                          asp-controller="ShoppingCart"
-                          method="post"
-                          onsubmit="return confirm('Bạn muốn xóa toàn bộ giỏ hàng?');">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-danger btn-sm">Xóa tất cả</button>
-                    </form>
+                                        @if (optionsForProduct != null && optionsForProduct.Any())
+                                        {
+                                            <div class="mt-2 p-2 border rounded bg-white">
+                                                <form asp-action="UpdateWarranties" asp-controller="ShoppingCart" method="post">
+                                                    <input type="hidden" name="productId" value="@item.ProductId" />
+                                                    <input type="hidden" name="variantId" value="@(item.VariantId?.ToString() ?? "")" />
+                                                    <div class="small fw-semibold mb-1">Gói bảo hành thêm:</div>
+                                                    @foreach (var w in optionsForProduct)
+                                                    {
+                                                        var checkId = $"w_{item.ProductId}_{w.Id}";
+                                                        var isChecked = selectedIds.Contains(w.Id);
+                                                        <div class="form-check small">
+                                                            <input class="form-check-input" type="checkbox" name="warrantyOptionIds" value="@w.Id" id="@checkId" @(isChecked ? "checked" : "") onchange="this.form.submit()" />
+                                                            <label class="form-check-label" for="@checkId">@w.Name (+@w.Price.ToString("N0", vi) đ)</label>
+                                                        </div>
+                                                    }
+                                                </form>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>@item.Price.ToString("N0", vi) đ</td>
+                                    <td>
+                                        <div class="input-group input-group-sm m-auto" style="width: 100px;">
+                                            <button class="btn btn-outline-secondary quantity-btn" type="button">-</button>
+                                            <input type="text" class="form-control text-center quantity-input" value="@item.Quantity"
+                                                   data-product-id="@item.ProductId" data-variant-id="@(item.VariantId?.ToString() ?? "")"
+                                                   data-unit-price="@item.Price" data-warranty-price="@warrantyPerItem" data-max-qty="@item.AvailableStock">
+                                            <button class="btn btn-outline-secondary quantity-btn" type="button">+</button>
+                                        </div>
+                                    </td>
+                                    <td><strong class="line-total">@lineTotal.ToString("N0", vi) đ</strong></td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1 align-items-center">
+                                            <a asp-action="SaveForLater" asp-route-productId="@item.ProductId" asp-route-variantId="@item.VariantId" class="btn btn-sm btn-outline-warning text-dark px-2" title="Lưu mua sau">
+                                                <i class="bi bi-star"></i> Lưu sau
+                                            </a>
+                                            <a asp-action="RemoveFromCart" asp-route-productId="@item.ProductId" asp-route-variantId="@item.VariantId" class="btn btn-sm btn-outline-danger px-2">
+                                                <i class="bi bi-trash"></i> Xóa
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                @if (saveLaterItems.Any())
+                {
+                    <div class="mt-5 p-4 bg-light rounded-4 border border-secondary border-opacity-25 shadow-sm">
+                        <h5 class="fw-bold text-secondary mb-3">
+                            <i class="bi bi-bookmark-star-fill text-warning me-1"></i> Sản phẩm đã lưu để mua sau (@saveLaterItems.Count)
+                        </h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle text-center bg-white rounded-3">
+                                <thead>
+                                    <tr class="table-secondary">
+                                        <th>Hình ảnh</th>
+                                        <th class="text-start">Tên sản phẩm</th>
+                                        <th>Đơn giá</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sItem in saveLaterItems)
+                                    {
+                                        <tr>
+                                            <td><img src="@sItem.ImageUrl" style="width:60px;height:60px;object-fit:contain;"></td>
+                                            <td class="text-start">
+                                                <span class="fw-semibold text-dark">@sItem.Name</span>
+                                            </td>
+                                            <td class="text-danger fw-semibold">@sItem.Price.ToString("N0", vi) đ</td>
+                                            <td>
+                                                <div class="d-flex justify-content-center gap-2">
+                                                    <a asp-action="MoveBackToCart" asp-route-productId="@sItem.ProductId" asp-route-variantId="@sItem.VariantId" class="btn btn-sm btn-success px-2 rounded-pill small fs-7">
+                                                        <i class="bi bi-cart-plus me-1"></i>Thêm lại vào giỏ
+                                                    </a>
+                                                    <a asp-action="RemoveFromCart" asp-route-productId="@sItem.ProductId" asp-route-variantId="@sItem.VariantId" class="btn btn-sm btn-link text-danger text-decoration-none small">
+                                                        Xóa hẳn
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Product" asp-action="Index">← Tiếp tục mua hàng</a>
+                    @if (Model.Items.Any())
+                    {
+                        <button type="button" class="btn btn-primary btn-sm" onclick="saveCartQuantities()">Cập nhật giỏ hàng</button>
+                        <form asp-action="ClearCart" asp-controller="ShoppingCart" method="post" onsubmit="return confirm('Bạn muốn xóa toàn bộ giỏ hàng?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger btn-sm">Xóa tất cả</button>
+                        </form>
+                    }
                 </div>
 
-                <!-- GỢI Ý SẢN PHẨM -->
                 <div class="mt-5">
-                    <h4 class="fw-semibold mb-3">
-                        <i class="bi bi-star-half text-warning"></i> Có thể bạn cũng thích
-                    </h4>
+                    <h4 class="fw-semibold mb-3"><i class="bi bi-star-half text-warning"></i> Có thể bạn cũng thích</h4>
                     <div class="row flex-nowrap overflow-auto pb-2" style="gap:24px;">
                         @foreach (var p in ViewBag.SuggestedProducts as List<Product>)
                         {
@@ -334,127 +282,60 @@
                                     <div class="card-body p-2 text-center">
                                         <div class="fw-semibold small mb-1" style="min-height:38px;">@p.Name</div>
                                         <div class="text-danger fw-bold mb-2">@p.Price.ToString("N0", vi) đ</div>
-                                        <a href="@Url.Action("Display", "Product", new { id = p.Id })"
-                                           class="btn btn-sm btn-outline-danger rounded-pill">
-                                            Xem chi tiết
-                                        </a>
+                                        <a href="@Url.Action("Display", "Product", new { id = p.Id })" class="btn btn-sm btn-outline-danger rounded-pill">Xem chi tiết</a>
                                     </div>
                                 </div>
                             </div>
                         }
-                        <div class="col-auto d-flex align-items-center">
-                            <a href="/Product" class="btn btn-warning rounded-pill ms-2">Xem tất cả &gt;</a>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- CỘT PHẢI -->
             <div class="col-md-4">
                 @{
                     var currentUser = ViewBag.CurrentUser as ApplicationUser;
                 }
-
                 <div class="card shadow-sm p-3">
-                    <!-- THÔNG TIN NGƯỜI MUA -->
                     <h6 class="border-bottom pb-2 mb-2">Thông tin người mua</h6>
-
                     @if (currentUser != null)
                     {
-                        <p class="mb-1 small">
-                            <strong>Trạng thái:</strong>
-                            <span class="text-success">Đã đăng nhập (@currentUser.UserName)</span>
-                        </p>
+                        <p class="mb-1 small"><strong>Trạng thái:</strong> <span class="text-success">Đã đăng nhập</span></p>
                         <p class="mb-1 small"><strong>Họ tên:</strong> @currentUser.FullName</p>
                         <p class="mb-2 small"><strong>SĐT:</strong> @currentUser.PhoneNumber</p>
                         <p class="mb-2 small"><strong>Địa chỉ:</strong> @currentUser.Address</p>
-                        <a asp-area="Identity"
-                           asp-page="/Account/Manage/Index"
-                           class="small">
-                            Chỉnh sửa thông tin giao hàng
-                        </a>
                     }
                     else
                     {
                         <div class="alert alert-info small mb-2">
-                            <p class="mb-1">
-                                <strong>Trạng thái:</strong> Bạn chưa đăng nhập.
-                            </p>
-                            <p class="mb-0">
-                                <a asp-area="Identity" asp-page="/Account/Login">Đăng nhập ngay</a>
-                                để hệ thống tự động điền thông tin người mua và giao hàng.
-                            </p>
+                            Bạn chưa đăng nhập. <a asp-area="Identity" asp-page="/Account/Login">Đăng nhập ngay</a>
                         </div>
                     }
 
-                    <!-- PHƯƠNG THỨC NHẬN HÀNG -->
                     <h6 class="border-bottom pb-2 mt-3 mb-2">Phương thức nhận hàng</h6>
-
                     <div class="small">
                         <div class="form-check">
-                            <input class="form-check-input"
-                                   type="radio"
-                                   name="DeliveryMethod"
-                                   value="ShipToHome"
-                                   id="shipHome"
-                                   checked />
-                            <label class="form-check-label" for="shipHome">
-                                Giao hàng tận nơi
-                            </label>
+                            <input class="form-check-input" type="radio" name="DeliveryMethod" value="ShipToHome" id="shipHome" checked />
+                            <label class="form-check-label" for="shipHome">Giao hàng tận nơi</label>
                         </div>
-
                         <div class="form-check mt-2">
-                            <input class="form-check-input"
-                                   type="radio"
-                                   name="DeliveryMethod"
-                                   value="PickupAtStore"
-                                   id="pickupStore" />
-                            <label class="form-check-label" for="pickupStore">
-                                Nhận tại cửa hàng
-                            </label>
+                            <input class="form-check-input" type="radio" name="DeliveryMethod" value="PickupAtStore" id="pickupStore" />
+                            <label class="form-check-label" for="pickupStore">Nhận tại cửa hàng</label>
                         </div>
 
-                        <!-- ✅ PANEL SHIP -->
                         <div id="shippingPanel" class="mt-3 border rounded p-2">
-                            <div class="fw-semibold mb-2">
-                                <i class="bi bi-truck me-1"></i> Giao đến
-                            </div>
-
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <select class="form-select form-select-sm" id="shipProvince">
-                                        <option value="">-- Chọn Tỉnh/TP --</option>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <select class="form-select form-select-sm" id="shipDistrict" disabled>
-                                        <option value="">-- Chọn Quận/Huyện (hoặc để Toàn tỉnh) --</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- ✅ phương thức giao -->
-                            <div class="mt-2">
-                                <label class="small fw-semibold mb-1">Phương thức</label>
-                                <select id="shipMethodSelect" class="form-select form-select-sm">
-                                    <option value="standard" selected>Tiêu chuẩn</option>
-                                    <option value="express">Nhanh</option>
-                                </select>
-                            </div>
-
+                            <select class="form-select form-select-sm" id="shipProvince"><option value="">-- Chọn Tỉnh/TP --</option></select>
+                            <select class="form-select form-select-sm mt-2" id="shipDistrict" disabled><option value="">-- Chọn Quận/Huyện --</option></select>
+                            <select id="shipMethodSelect" class="form-select form-select-sm mt-2">
+                                <option value="standard" selected>Tiêu chuẩn</option>
+                                <option value="express">Nhanh</option>
+                            </select>
                             <div class="mt-2 small">
                                 <div>Phí ship: <b id="shipFee">—</b></div>
                                 <div>Giao dự kiến: <b id="shipEta">—</b></div>
                             </div>
-
-                            <small class="text-muted d-block mt-1">
-                                Hệ thống sẽ nhớ lựa chọn Tỉnh/Quận cho lần sau.
-                            </small>
                         </div>
 
-                        <!-- PANEL PICKUP -->
                         <div id="storePanel" class="mt-3 border rounded p-2 d-none">
-                            <label for="StoreId" class="form-label mb-1">Chọn cửa hàng</label>
                             <select name="StoreId" id="StoreId" class="form-control form-control-sm">
                                 <option value="">-- Chọn cửa hàng --</option>
                                 @if (stores != null)
@@ -465,143 +346,36 @@
                                     }
                                 }
                             </select>
-                            <small class="text-muted d-block mt-1">
-                                Nhận tại cửa hàng thì phí ship = 0.
-                            </small>
                         </div>
                     </div>
 
-                    <!-- TÓM TẮT ĐƠN HÀNG -->
                     <h6 class="border-bottom pb-2 mt-3 mb-2">Tóm tắt đơn hàng</h6>
-
-                    @if (TempData["CouponSuccess"] != null)
-                    {
-                        <div class="alert alert-success py-1 mb-2 small">
-                            @TempData["CouponSuccess"]
-                        </div>
-                    }
-                    @if (TempData["CouponError"] != null)
-                    {
-                        <div class="alert alert-danger py-1 mb-2 small">
-                            @TempData["CouponError"]
-                        </div>
-                    }
-
-                    <form id="ApplyCouponForm"
-                          asp-action="ApplyCoupon"
-                          asp-controller="ShoppingCart"
-                          method="post"
-                          class="mb-3">
-                        <label class="form-label mb-1 small">Mã giảm giá</label>
+                    <form id="ApplyCouponForm" asp-action="ApplyCoupon" asp-controller="ShoppingCart" method="post" class="mb-3">
                         <div class="input-group input-group-sm">
-                            <input type="text"
-                                   id="CouponCodeInput"
-                                   name="couponCode"
-                                   class="form-control"
-                                   placeholder="Nhập mã (VD: SALE50)"
-                                   value="@(Model.CouponCode ?? string.Empty)" />
-                            <button type="submit" class="btn btn-outline-success">
-                                Áp dụng
-                            </button>
+                            <input type="text" id="CouponCodeInput" name="couponCode" class="form-control" placeholder="Mã giảm giá" value="@(Model.CouponCode ?? string.Empty)" />
+                            <button type="submit" class="btn btn-outline-success">Áp dụng</button>
                         </div>
-                        <small class="text-muted">
-                            Nếu thay đổi số lượng sau khi áp mã, hãy áp lại mã để đảm bảo số tiền chính xác.
-                        </small>
                     </form>
 
-                    @if (ViewBag.AvailableCoupons != null && (ViewBag.AvailableCoupons as List<Coupon>)?.Any() == true)
-                    {
-                        <div class="mt-2 mb-2">
-                            <strong class="small">Các mã bạn có thể dùng:</strong>
-                            <div class="list-group mt-2">
-                                @foreach (var c in ViewBag.AvailableCoupons as List<Coupon>)
-                                {
-                                    var remain = c.Quantity - c.CurrentUsage;
-                                    <button type="button"
-                                            class="list-group-item list-group-item-action coupon-btn py-2"
-                                            data-code="@c.Code">
-                                        <div class="d-flex justify-content-between">
-                                            <div class="small">
-                                                <strong>@c.Code</strong> -
-                                                @(c.DiscountPercent > 0 ? $"{c.DiscountPercent}%" : $"{c.DiscountAmount.GetValueOrDefault().ToString("N0", vi)} VNĐ")
-                                                <div class="text-muted" style="font-size: 12px;">
-                                                    Đơn tối thiểu: @c.MinOrderValue.ToString("N0", vi) •
-                                                    Còn: @(remain > 0 ? remain : 0) lượt •
-                                                    @c.StartDate.ToString("dd/MM") - @c.EndDate.ToString("dd/MM")
-                                                </div>
-                                            </div>
-                                            <span class="badge bg-primary align-self-start">Chọn</span>
-                                        </div>
-                                    </button>
-                                }
-                            </div>
-                        </div>
-                    }
-
-                    <!-- ✅ MỤC 4: Làm rõ VAT -->
-                    <div class="d-flex justify-content-between small">
-                        <span>Tạm tính (chưa VAT)</span>
-                        <strong class="subtotal-amount">@subtotal.ToString("N0", vi) VNĐ</strong>
-                    </div>
-
-                    <div class="d-flex justify-content-between small">
-                        <span>Giảm giá</span>
-                        <strong class="discount-amount">
-                            @if (discount > 0)
-                            {
-                                @("-" + discount.ToString("N0", vi) + " VNĐ")
-                            }
-                            else
-                            {
-                                @("0 VNĐ")
-                            }
-                        </strong>
-                    </div>
-
-                    <div class="d-flex justify-content-between small">
-                        <span>Thành tiền (chưa VAT)</span>
-                        <strong class="before-tax-amount">@priceAfterDiscount.ToString("N0", vi) VNĐ</strong>
-                    </div>
-
-                    <div class="d-flex justify-content-between small">
-                        <span>VAT (10%)</span>
-                        <strong class="vat-amount">@vatAmount.ToString("N0", vi) VNĐ</strong>
-                    </div>
-
-                    <div class="d-flex justify-content-between small">
-                        <span>Phí vận chuyển</span>
-                        <strong class="ship-fee-amount">0 VNĐ</strong>
-                    </div>
-
+                    <div class="d-flex justify-content-between small"><span>Tạm tính:</span><strong class="subtotal-amount">@subtotal.ToString("N0", vi) đ</strong></div>
+                    <div class="d-flex justify-content-between small"><span>Giảm giá:</span><strong class="discount-amount">-(@discount.ToString("N0", vi) đ)</strong></div>
+                    <div class="d-flex justify-content-between small"><span>Thành tiền:</span><strong class="before-tax-amount">@priceAfterDiscount.ToString("N0", vi) đ</strong></div>
+                    <div class="d-flex justify-content-between small"><span>VAT (10%):</span><strong class="vat-amount">@vatAmount.ToString("N0", vi) đ</strong></div>
+                    <div class="d-flex justify-content-between small"><span>Phí ship:</span><strong class="ship-fee-amount">0 đ</strong></div>
                     <hr />
+                    <div class="d-flex justify-content-between small mb-2"><span><strong>Tổng cộng:</strong></span><strong class="final-total">@finalTotal.ToString("N0", vi) đ</strong></div>
 
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span><strong>Tổng cộng (đã gồm VAT)</strong></span>
-                        <strong class="final-total">@finalTotal.ToString("N0", vi) VNĐ</strong>
-                    </div>
-
-                    <!-- ✅ MỤC 5: Chỉ 1 CTA chính -->
-                    @if (User?.Identity != null && User.Identity.IsAuthenticated)
+                    @if (Model.Items.Any())
                     {
-                        <a asp-controller="ShoppingCart"
-                           asp-action="Checkout"
-                           class="btn btn-danger w-100 btn-sm mt-2">
-                            🚀 Tiến hành thanh toán
-                        </a>
+                        @if (User?.Identity?.IsAuthenticated == true)
+                        {
+                            <a asp-controller="ShoppingCart" asp-action="Checkout" class="btn btn-danger w-100 btn-sm mt-2">🚀 Tiến hành thanh toán</a>
+                        }
+                        else
+                        {
+                            <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="/ShoppingCart/Checkout" class="btn btn-danger w-100 btn-sm mt-2">🔑 Đăng nhập để thanh toán</a>
+                        }
                     }
-                    else
-                    {
-                        <a asp-area="Identity"
-                           asp-page="/Account/Login"
-                           asp-route-returnUrl="/ShoppingCart/Checkout"
-                           class="btn btn-danger w-100 btn-sm mt-2">
-                            🔑 Đăng nhập để thanh toán
-                        </a>
-                    }
-
-                    <div class="text-muted small mt-2">
-                        Bạn sẽ chọn phương thức thanh toán ở bước tiếp theo.
-                    </div>
                 </div>
             </div>
         </div>
@@ -610,18 +384,11 @@
 
 @section Scripts {
     <script>
-        // discount cố định từ server
         var discountFromServer = @discount;
-
-        // ====== GLOBAL: Shipping ======
         let currentShippingFee = 0;
         let currentProvinceCode = "";
         let currentDistrictCode = "";
         let currentShipMethod = "standard";
-
-        const LS_PROV = "ship_province_code";
-        const LS_DIST = "ship_district_code";
-        const LS_METHOD = "ship_method";
 
         function computeSubtotal() {
             let subtotal = 0;
@@ -642,37 +409,33 @@
         }
 
         function saveShipSelection() {
-            localStorage.setItem(LS_PROV, currentProvinceCode || "");
-            localStorage.setItem(LS_DIST, currentDistrictCode || "");
-            localStorage.setItem(LS_METHOD, currentShipMethod || "standard");
+            localStorage.setItem("ship_province_code", currentProvinceCode || "");
+            localStorage.setItem("ship_district_code", currentDistrictCode || "");
+            localStorage.setItem("ship_method", currentShipMethod || "standard");
         }
 
         function loadShipSelection() {
             return {
-                prov: localStorage.getItem(LS_PROV) || "",
-                dist: localStorage.getItem(LS_DIST) || "",
-                method: localStorage.getItem(LS_METHOD) || "standard"
+                prov: localStorage.getItem("ship_province_code") || "",
+                dist: localStorage.getItem("ship_district_code") || "",
+                method: localStorage.getItem("ship_method") || "standard"
             };
         }
 
         async function fetchJson(url) {
             const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!res.ok) throw new Error("HTTP " + res.status);
             return await res.json();
         }
 
         async function loadProvinces(selectedCode) {
             const provSel = document.getElementById("shipProvince");
             if (!provSel) return;
-
             provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
-
             const list = await fetchJson("/Shipping/Provinces");
             list.forEach(p => {
                 const opt = document.createElement("option");
-                opt.value = p.code;
-                opt.textContent = p.name;
-                if (selectedCode && selectedCode === p.code) opt.selected = true;
+                opt.value = p.code; opt.textContent = p.name;
+                if (selectedCode === p.code) opt.selected = true;
                 provSel.appendChild(opt);
             });
         }
@@ -680,63 +443,32 @@
         async function loadDistricts(provinceCode, selectedDistrict) {
             const distSel = document.getElementById("shipDistrict");
             if (!distSel) return;
-
-            distSel.innerHTML = `<option value="">-- Chọn Quận/Huyện (hoặc để Toàn tỉnh) --</option>`;
+            distSel.innerHTML = `<option value="">-- Chọn Quận/Huyện --</option>`;
             distSel.disabled = true;
-
             if (!provinceCode) return;
-
-            const list = await fetchJson(`/Shipping/Districts?provinceCode=${encodeURIComponent(provinceCode)}`);
+            const list = await fetchJson(`/Shipping/Districts?provinceCode=${provinceCode}`);
             list.forEach(d => {
                 const opt = document.createElement("option");
-                opt.value = d.code;
-                opt.textContent = d.name;
-                if (selectedDistrict && selectedDistrict === d.code) opt.selected = true;
+                opt.value = d.code; opt.textContent = d.name;
+                if (selectedDistrict === d.code) opt.selected = true;
                 distSel.appendChild(opt);
             });
-
             distSel.disabled = false;
         }
 
         async function quoteShipping(provinceCode, districtCode) {
             if (!provinceCode) {
-                currentShippingFee = 0;
-                setShipUI(null, "—");
-                updateTotal();
-                return;
+                currentShippingFee = 0; setShipUI(null, "—"); updateTotal(); return;
             }
-
             const orderValueAfterDiscount = Math.max(0, computeSubtotal() - (discountFromServer || 0));
-
-            const q = new URLSearchParams();
-            q.set("provinceCode", provinceCode);
-            if (districtCode) q.set("districtCode", districtCode);
-
-            q.set("method", currentShipMethod || "standard");
-            q.set("orderValue", orderValueAfterDiscount);
-
-            const data = await fetchJson(`/Shipping/Quote?${q.toString()}`);
-
+            const data = await fetchJson(`/Shipping/Quote?provinceCode=${provinceCode}&districtCode=${districtCode}&method=${currentShipMethod}&orderValue=${orderValueAfterDiscount}`);
             if (data && data.ok === false) {
-                currentShippingFee = 0;
-                setShipUI(0, data.message || "—");
-                updateTotal();
-                return;
+                currentShippingFee = 0; setShipUI(0, data.message || "—"); updateTotal(); return;
             }
-
-            const fee = Number(data.fee || 0);
-            currentShippingFee = fee;
-
+            currentShippingFee = Number(data.fee || 0);
             let etaText = "—";
-            if (data.etaFrom && data.etaTo) {
-                etaText = `${data.etaFrom} - ${data.etaTo}`;
-            } else if (data.minDays != null && data.maxDays != null) {
-                etaText = (data.minDays === 0 && data.maxDays === 0)
-                    ? "—"
-                    : `${data.minDays}-${data.maxDays} ngày`;
-            }
-
-            setShipUI(fee, etaText);
+            if (data.etaFrom && data.etaTo) etaText = `${data.etaFrom} - ${data.etaTo}`;
+            setShipUI(currentShippingFee, etaText);
             updateTotal();
         }
 
@@ -744,266 +476,109 @@
             var method = document.querySelector("input[name='DeliveryMethod']:checked");
             var storePanel = document.getElementById("storePanel");
             var shipPanel = document.getElementById("shippingPanel");
-
             if (!method) return;
-
             if (method.value === "PickupAtStore") {
                 if (storePanel) storePanel.classList.remove("d-none");
                 if (shipPanel) shipPanel.classList.add("d-none");
-
-                currentShippingFee = 0;
-                updateTotal();
+                currentShippingFee = 0; updateTotal();
             } else {
                 if (storePanel) storePanel.classList.add("d-none");
                 if (shipPanel) shipPanel.classList.remove("d-none");
-
-                if (currentProvinceCode) {
-                    quoteShipping(currentProvinceCode, currentDistrictCode);
-                } else {
-                    currentShippingFee = 0;
-                    updateTotal();
-                }
+                if (currentProvinceCode) quoteShipping(currentProvinceCode, currentDistrictCode);
             }
         }
 
-        // ====== Tổng tiền UI (chỉ hiển thị, không thanh toán tại giỏ) ======
         function updateTotal() {
             const subtotal = computeSubtotal();
-
-            // update "Thành tiền" từng dòng
             document.querySelectorAll(".quantity-input").forEach(input => {
                 const quantity = parseInt(input.value, 10) || 0;
                 const unitPrice = parseFloat(input.getAttribute("data-unit-price")) || 0;
                 const warrantyPrice = parseFloat(input.getAttribute("data-warranty-price")) || 0;
-
-                const lineTotal = quantity * (unitPrice + warrantyPrice);
-
                 const row = input.closest("tr");
                 const lineTotalEl = row ? row.querySelector(".line-total") : null;
-                if (lineTotalEl) {
-                    lineTotalEl.textContent = lineTotal.toLocaleString('vi-VN') + " VNĐ";
-                }
+                if (lineTotalEl) lineTotalEl.textContent = (quantity * (unitPrice + warrantyPrice)).toLocaleString('vi-VN') + " đ";
             });
 
-            const subtotalElement = document.querySelector(".subtotal-amount");
-            if (subtotalElement) subtotalElement.textContent = subtotal.toLocaleString('vi-VN') + ' VNĐ';
-
-            let priceAfterDiscount = subtotal - (discountFromServer || 0);
-            if (priceAfterDiscount < 0) priceAfterDiscount = 0;
-
+            if (document.querySelector(".subtotal-amount")) document.querySelector(".subtotal-amount").textContent = subtotal.toLocaleString('vi-VN') + ' đ';
+            let priceAfterDiscount = Math.max(0, subtotal - (discountFromServer || 0));
             let vatAmount = Math.round(priceAfterDiscount * 0.10);
-
-            const methodEl = document.querySelector("input[name='DeliveryMethod']:checked");
-            const method = methodEl ? methodEl.value : "ShipToHome";
+            const method = document.querySelector("input[name='DeliveryMethod']:checked")?.value || "ShipToHome";
             const shipFee = (method === "ShipToHome") ? (currentShippingFee || 0) : 0;
 
-            let total = priceAfterDiscount + vatAmount + shipFee;
-
-            const beforeTaxElement = document.querySelector(".before-tax-amount");
-            if (beforeTaxElement) beforeTaxElement.textContent = priceAfterDiscount.toLocaleString('vi-VN') + ' VNĐ';
-
-            const vatElement = document.querySelector(".vat-amount");
-            if (vatElement) vatElement.textContent = vatAmount.toLocaleString('vi-VN') + ' VNĐ';
-
-            const shipEl = document.querySelector(".ship-fee-amount");
-            if (shipEl) shipEl.textContent = shipFee.toLocaleString('vi-VN') + ' VNĐ';
-
-            const finalTotalElement = document.querySelector(".final-total");
-            if (finalTotalElement) finalTotalElement.textContent = total.toLocaleString('vi-VN') + ' VNĐ';
+            if (document.querySelector(".before-tax-amount")) document.querySelector(".before-tax-amount").textContent = priceAfterDiscount.toLocaleString('vi-VN') + ' đ';
+            if (document.querySelector(".vat-amount")) document.querySelector(".vat-amount").textContent = vatAmount.toLocaleString('vi-VN') + ' đ';
+            if (document.querySelector(".ship-fee-amount")) document.querySelector(".ship-fee-amount").textContent = shipFee.toLocaleString('vi-VN') + ' đ';
+            if (document.querySelector(".final-total")) document.querySelector(".final-total").textContent = (priceAfterDiscount + vatAmount + shipFee).toLocaleString('vi-VN') + ' đ';
         }
 
-        // =======================
-        // SAVE CART AJAX
-        // =======================
         function showCartMsg(type, text) {
-            const el = document.getElementById("cartMsg");
-            if (!el) return;
-
-            el.classList.remove("d-none", "alert-success", "alert-danger", "alert-warning", "alert-info");
+            const el = document.getElementById("cartMsg"); if (!el) return;
+            el.classList.remove("d-none", "alert-success", "alert-danger");
             el.classList.add(type === "success" ? "alert-success" : "alert-danger");
             el.textContent = text;
-
-            setTimeout(() => {
-                el.classList.add("d-none");
-            }, 3500);
+            setTimeout(() => el.classList.add("d-none"), 3500);
         }
 
         async function saveCartQuantities() {
-            try {
-                const token = document.querySelector("#ajaxAntiForgeryForm input[name='__RequestVerificationToken']")?.value;
-                if (!token) {
-                    showCartMsg("error", "Thiếu anti-forgery token.");
-                    return;
-                }
-
-                const inputs = Array.from(document.querySelectorAll(".quantity-input"));
-                const items = inputs.map(input => {
-                    const productId = parseInt(input.getAttribute("data-product-id"), 10);
-                    const variantStr = (input.getAttribute("data-variant-id") || "").trim();
-                    const variantId = variantStr ? parseInt(variantStr, 10) : null;
-
-                    let qty = parseInt(input.value, 10);
-                    if (!qty || qty < 1) qty = 1;
-
-                    const maxQty = parseInt(input.getAttribute("data-max-qty"), 10) || 9999;
-                    if (qty > maxQty) qty = maxQty;
-
-                    input.value = qty;
-
-                    return { productId, variantId, quantity: qty };
-                });
-
-                const res = await fetch("/ShoppingCart/UpdateCartQuantities", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "RequestVerificationToken": token,
-                        "X-Requested-With": "XMLHttpRequest"
-                    },
-                    body: JSON.stringify(items)
-                });
-
-                const data = await res.json();
-
-                if (!res.ok || !data?.success) {
-                    showCartMsg("error", data?.message || "Cập nhật thất bại.");
-                    return;
-                }
-
-                showCartMsg("success", data.message || "Đã cập nhật giỏ hàng.");
-                setTimeout(() => window.location.reload(), 600);
-            } catch (e) {
-                console.error(e);
-                showCartMsg("error", "Có lỗi xảy ra khi cập nhật giỏ hàng.");
-            }
+            const token = document.querySelector("#ajaxAntiForgeryForm input[name='__RequestVerificationToken']")?.value;
+            const inputs = Array.from(document.querySelectorAll(".quantity-input"));
+            const items = inputs.map(input => {
+                return {
+                    productId: parseInt(input.getAttribute("data-product-id"), 10),
+                    variantId: input.getAttribute("data-variant-id") ? parseInt(input.getAttribute("data-variant-id"), 10) : null,
+                    quantity: parseInt(input.value, 10) || 1
+                };
+            });
+            const res = await fetch("/ShoppingCart/UpdateCartQuantities", {
+                method: "POST", headers: { "Content-Type": "application/json", "RequestVerificationToken": token, "X-Requested-With": "XMLHttpRequest" },
+                body: JSON.stringify(items)
+            });
+            const data = await res.json();
+            if (data?.success) { showCartMsg("success", data.message); setTimeout(() => window.location.reload(), 600); }
+            else { showCartMsg("error", data?.message); }
         }
-        window.saveCartQuantities = saveCartQuantities;
 
         document.addEventListener("DOMContentLoaded", async function () {
-
-            // coupon quick pick
             document.querySelectorAll(".coupon-btn").forEach(btn => {
                 btn.addEventListener("click", function () {
-                    const code = this.getAttribute("data-code");
-                    const input = document.getElementById("CouponCodeInput");
-                    const form = document.getElementById("ApplyCouponForm");
-                    if (input) input.value = code;
-                    if (form) form.submit();
+                    document.getElementById("CouponCodeInput").value = this.getAttribute("data-code");
+                    document.getElementById("ApplyCouponForm").submit();
                 });
             });
 
-            // delivery toggle
-            document.querySelectorAll("input[name='DeliveryMethod']").forEach(function (el) {
-                el.addEventListener("change", function () {
-                    togglePanels();
-                    updateTotal();
-                });
-            });
+            document.querySelectorAll("input[name='DeliveryMethod']").forEach(el => el.addEventListener("change", () => { togglePanels(); }));
+            document.getElementById("StoreId")?.addEventListener("change", updateTotal);
 
-            const storeSelect = document.getElementById("StoreId");
-            if (storeSelect) {
-                storeSelect.addEventListener("change", function () {
-                    updateTotal();
-                });
-            }
-
-            // +/- qty
             document.querySelectorAll(".quantity-btn").forEach(button => {
                 button.addEventListener("click", function () {
                     let input = this.parentElement.querySelector(".quantity-input");
                     let value = parseInt(input.value, 10) || 0;
                     const maxQty = parseInt(input.getAttribute("data-max-qty"), 10) || 9999;
-
-                    if (this.innerText.trim() === "+" && value < maxQty) {
-                        input.value = value + 1;
-                    } else if (this.innerText.trim() === "-" && value > 1) {
-                        input.value = value - 1;
-                    }
-
-                    if (currentProvinceCode) quoteShipping(currentProvinceCode, currentDistrictCode);
-                    else updateTotal();
+                    if (this.innerText.trim() === "+" && value < maxQty) input.value = value + 1;
+                    else if (this.innerText.trim() === "-" && value > 1) input.value = value - 1;
+                    updateTotal();
                 });
             });
 
-            // manual qty
-            document.querySelectorAll(".quantity-input").forEach(input => {
-                input.addEventListener("change", function () {
-                    const maxQty = parseInt(this.getAttribute("data-max-qty"), 10) || 9999;
-                    let v = parseInt(this.value, 10) || 1;
-                    if (v < 1) v = 1;
-                    if (v > maxQty) v = maxQty;
-                    this.value = v;
+            const saved = loadShipSelection();
+            currentShipMethod = saved.method || "standard";
+            if (document.getElementById("shipMethodSelect")) document.getElementById("shipMethodSelect").value = currentShipMethod;
+            await loadProvinces(saved.prov);
 
-                    if (currentProvinceCode) quoteShipping(currentProvinceCode, currentDistrictCode);
-                    else updateTotal();
-                });
+            const provSel = document.getElementById("shipProvince");
+            const distSel = document.getElementById("shipDistrict");
+
+            provSel?.addEventListener("change", async function () {
+                currentProvinceCode = this.value; currentDistrictCode = ""; saveShipSelection();
+                await loadDistricts(currentProvinceCode, ""); await quoteShipping(currentProvinceCode, "");
+            });
+            distSel?.addEventListener("change", async function () {
+                currentDistrictCode = this.value; saveShipSelection(); await quoteShipping(currentProvinceCode, currentDistrictCode);
             });
 
-            // ship method
-            const shipMethodSelect = document.getElementById("shipMethodSelect");
-            if (shipMethodSelect) {
-                shipMethodSelect.addEventListener("change", async function () {
-                    currentShipMethod = this.value || "standard";
-                    saveShipSelection();
-                    if (currentProvinceCode) await quoteShipping(currentProvinceCode, currentDistrictCode);
-                    else updateTotal();
-                });
-            }
-
-            // init shipping
-            try {
-                const saved = loadShipSelection();
-
-                currentShipMethod = saved.method || "standard";
-                if (shipMethodSelect) shipMethodSelect.value = currentShipMethod;
-
-                await loadProvinces(saved.prov);
-
-                const provSel = document.getElementById("shipProvince");
-                const distSel = document.getElementById("shipDistrict");
-
-                if (provSel) {
-                    provSel.addEventListener("change", async function () {
-                        currentProvinceCode = this.value || "";
-                        currentDistrictCode = "";
-                        saveShipSelection();
-
-                        await loadDistricts(currentProvinceCode, "");
-                        await quoteShipping(currentProvinceCode, "");
-                    });
-                }
-
-                if (distSel) {
-                    distSel.addEventListener("change", async function () {
-                        currentDistrictCode = this.value || "";
-                        saveShipSelection();
-                        await quoteShipping(currentProvinceCode, currentDistrictCode);
-                    });
-                }
-
-                currentProvinceCode = saved.prov || "";
-                currentDistrictCode = saved.dist || "";
-
-                if (currentProvinceCode) {
-                    await loadDistricts(currentProvinceCode, currentDistrictCode);
-                    await quoteShipping(currentProvinceCode, currentDistrictCode);
-                } else {
-                    setShipUI(null, "—");
-                }
-            } catch (e) {
-                console.warn("Shipping init error:", e);
-            }
-
-            togglePanels();
-            updateTotal();
-
-            // hide banner on cart
-            var adBanner = document.querySelector('.carousel');
-            if (adBanner) adBanner.style.display = 'none';
+            currentProvinceCode = saved.prov || ""; currentDistrictCode = saved.dist || "";
+            if (currentProvinceCode) { await loadDistricts(currentProvinceCode, currentDistrictCode); await quoteShipping(currentProvinceCode, currentDistrictCode); }
+            togglePanels(); updateTotal();
         });
     </script>
-
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
 }
