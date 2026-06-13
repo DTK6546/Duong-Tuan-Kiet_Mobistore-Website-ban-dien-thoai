@@ -1,8 +1,15 @@
 ﻿@model IEnumerable<ProductWithSoldCount>
+@using WebBanDienThoai.Models
 
 @{
     ViewData["Title"] = "Sản Phẩm";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var vi = new System.Globalization.CultureInfo("vi-VN");
+
+    // Đọc trạng thái bộ lọc phần cứng hiện tại từ ViewBag gửi về
+    string currentRam = ViewBag.Ram as string ?? "";
+    string currentRom = ViewBag.Rom as string ?? "";
+    string currentColor = ViewBag.Color as string ?? "";
 }
 
 <div class="container mt-4">
@@ -11,22 +18,19 @@
         <div class="col-lg-3">
             <div class="filter-sidebar p-4 shadow rounded-4 mb-4">
                 <form asp-action="Index" method="get" id="filterForm">
+
+                    <input type="hidden" name="query" value="@ViewBag.Query" />
+
                     <div class="mb-4">
                         <div class="d-flex align-items-center mb-2">
                             <i class="bi bi-list-ul fs-5 text-primary me-2"></i>
                             <span class="fw-semibold fs-6">Danh mục</span>
                         </div>
                         <div class="filter-options">
-                            <button type="button" class="filter-btn @(string.IsNullOrEmpty(ViewBag.CategoryId?.ToString()) ? "active" : "")"
-                                    onclick="selectFilter('categoryId','')">
-                                Tất cả
-                            </button>
+                            <button type="button" class="filter-btn @(ViewBag.CategoryId == 0 ? "active" : "")" onclick="selectFilter('categoryId','')">Tất cả</button>
                             @foreach (var category in ViewBag.Categories)
                             {
-                                <button type="button" class="filter-btn @(ViewBag.CategoryId == category.Id ? "active" : "")"
-                                        onclick="selectFilter('categoryId','@category.Id')">
-                                    @category.Name
-                                </button>
+                                <button type="button" class="filter-btn @(ViewBag.CategoryId == category.Id ? "active" : "")" onclick="selectFilter('categoryId','@category.Id')">@category.Name</button>
                             }
                         </div>
                     </div>
@@ -37,16 +41,10 @@
                             <span class="fw-semibold fs-6">Hãng</span>
                         </div>
                         <div class="filter-options">
-                            <button type="button" class="filter-btn @(ViewBag.SubCategoryId == 0 ? "active" : "")"
-                                    onclick="selectFilter('subCategoryId','')">
-                                Tất cả
-                            </button>
+                            <button type="button" class="filter-btn @(ViewBag.SubCategoryId == 0 ? "active" : "")" onclick="selectFilter('subCategoryId','')">Tất cả</button>
                             @foreach (var sub in ViewBag.SubCategories)
                             {
-                                <button type="button" class="filter-btn @(ViewBag.SubCategoryId == sub.Id ? "active" : "")"
-                                        onclick="selectFilter('subCategoryId','@sub.Id')">
-                                    @sub.Name
-                                </button>
+                                <button type="button" class="filter-btn @(ViewBag.SubCategoryId == sub.Id ? "active" : "")" onclick="selectFilter('subCategoryId','@sub.Id')">@sub.Name</button>
                             }
                         </div>
                     </div>
@@ -66,19 +64,72 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between gap-2">
-                        <button type="submit" class="btn btn-danger flex-grow-1">
-                            <i class="bi bi-funnel-fill me-1"></i> Lọc
-                        </button>
-                        <a href="@Url.Action("Index", "Product")" class="btn btn-outline-secondary flex-shrink-1">
-                            <i class="bi bi-x-circle"></i>
-                        </a>
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-cpu fs-5 text-info me-2"></i>
+                            <span class="fw-semibold fs-6">Bộ nhớ RAM</span>
+                        </div>
+                        <div class="filter-options">
+                            <button type="button" class="filter-btn @(string.IsNullOrEmpty(currentRam) ? "active" : "")" onclick="selectFilter('ram','')">Tất cả</button>
+                            @{
+                                var ramOptions = new[] { "4 GB", "6 GB", "8 GB", "12 GB", "16 GB" };
+                            }
+                            @foreach (var r in ramOptions)
+                            {
+                                <button type="button" class="filter-btn @(currentRam == r ? "active" : "")" onclick="selectFilter('ram','@r')">@r</button>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-sd-card fs-5 text-secondary me-2"></i>
+                            <span class="fw-semibold fs-6">Bộ nhớ trong (ROM)</span>
+                        </div>
+                        <div class="filter-options">
+                            <button type="button" class="filter-btn @(string.IsNullOrEmpty(currentRom) ? "active" : "")" onclick="selectFilter('rom','')">Tất cả</button>
+                            @{
+                                var romOptions = new[] { "64 GB", "128 GB", "256 GB", "512 GB", "1 TB" };
+                            }
+                            @foreach (var rm in romOptions)
+                            {
+                                <button type="button" class="filter-btn @(currentRom == rm ? "active" : "")" onclick="selectFilter('rom','@rm')">@rm</button>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-palette fs-5 text-danger me-2"></i>
+                            <span class="fw-semibold fs-6">Màu sắc</span>
+                        </div>
+                        @{
+                            var colorOptions = new[] { "Đen", "Trắng", "Vàng", "Xanh", "Bạc", "Xám" };
+                        }
+                        <select name="color" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">-- Tất cả màu --</option>
+                            @foreach (var c in colorOptions)
+                            {
+                                <option value="@c" selected="@(currentColor == c ? "selected" : null)">Màu @c</option>
+                            }
+                        </select>
                     </div>
 
                     <input type="hidden" name="categoryId" id="categoryId" value="@ViewBag.CategoryId" />
                     <input type="hidden" name="subCategoryId" id="subCategoryId" value="@ViewBag.SubCategoryId" />
+                    <input type="hidden" name="ram" id="ram" value="@ViewBag.Ram" />
+                    <input type="hidden" name="rom" id="rom" value="@ViewBag.Rom" />
 
-                    <div style="height: 32px;"></div>
+                    <div class="d-flex justify-content-between gap-2 mt-3">
+                        <button type="submit" class="btn btn-danger flex-grow-1">
+                            <i class="bi bi-funnel-fill me-1"></i> Tìm lọc nhanh
+                        </button>
+                        <a href="@Url.Action("Index", "Product")" class="btn btn-outline-secondary flex-shrink-1" title="Xóa bộ lọc">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    </div>
+
+                    <div style="height: 24px;"></div>
 
                     @{
                         var sortBy = ViewBag.SortBy as string;
@@ -91,19 +142,12 @@
                             new { Value = "giacaothap", Text = "Giá cao - thấp" }
                         };
                     }
-                    <div class="d-flex flex-wrap gap-3 align-items-center mb-3 mt-2">
-                        <label class="fw-semibold text-secondary mb-0">Sắp xếp theo:</label>
-                        <select class="form-select form-select-sm w-auto" name="sortBy" onchange="this.form.submit()">
+                    <div class="mb-2">
+                        <label class="fw-semibold text-secondary small text-uppercase mb-1">Sắp xếp đơn hàng:</label>
+                        <select class="form-select form-select-sm w-100" name="sortBy" onchange="this.form.submit()">
                             @foreach (var item in options)
                             {
-                                if (sortBy == item.Value)
-                                {
-                                    <option value="@item.Value" selected>@item.Text</option>
-                                }
-                                else
-                                {
-                                    <option value="@item.Value">@item.Text</option>
-                                }
+                                <option value="@item.Value" selected="@(sortBy == item.Value ? "selected" : null)">@item.Text</option>
                             }
                         </select>
                     </div>
@@ -112,8 +156,7 @@
         </div>
 
         <div class="col-lg-9">
-
-            @if (ViewBag.HotProducts != null && ((IEnumerable<ProductWithSoldCount>)ViewBag.HotProducts).Any())
+            @if (ViewBag.HotProducts != null && ((IEnumerable<ProductWithSoldCount>)ViewBag.HotProducts).Any() && string.IsNullOrEmpty(ViewBag.Query) && ViewBag.CategoryId == 0)
             {
                 <div class="mb-5 p-4 bg-light rounded-4 border border-danger border-opacity-25 shadow-sm position-relative">
                     <span class="position-absolute top-0 start-0 translate-middle-y badge rounded-pill bg-danger fs-6 px-3 shadow">
@@ -123,63 +166,55 @@
                         @foreach (var hotProduct in (IEnumerable<ProductWithSoldCount>)ViewBag.HotProducts)
                         {
                             <div class="col-12 col-sm-6 col-md-4 col-lg-3 position-relative">
-                                <span class="badge bg-danger position-absolute px-2 py-1 shadow" style="top: 20px; left: 20px; z-index: 10; border-radius: 4px; font-weight: bold;">
-                                    HOT
-                                </span>
+                                <span class="badge bg-danger position-absolute px-2 py-1 shadow" style="top: 20px; left: 20px; z-index: 10; border-radius: 4px; font-weight: bold;">HOT</span>
                                 @Html.Partial("_ProductCard", hotProduct)
                             </div>
                         }
                     </div>
                 </div>
             }
-            <h4 class="fw-bold text-secondary mb-3"><i class="bi bi-grid-3x3-gap-fill me-1"></i> Tất cả sản phẩm</h4>
-            <div class="row g-4">
-                @foreach (var product in Model)
-                {
-                    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        @Html.Partial("_ProductCard", product)
-                    </div>
-                }
-            </div>
 
-            <div class="d-flex justify-content-center mt-4">
+            <h4 class="fw-bold text-secondary mb-3"><i class="bi bi-grid-3x3-gap-fill me-1"></i> Tất cả sản phẩm</h4>
+
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5 text-muted border border-dashed rounded-4 bg-white shadow-sm">
+                    <i class="bi bi-search fs-1 mb-2 text-secondary d-block"></i>
+                    Không tìm thấy thiết bị nào khớp với thông số kỹ thuật bạn chọn.
+                </div>
+            }
+            else
+            {
+                <div class="row g-4">
+                    @foreach (var product in Model)
+                    {
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            @Html.Partial("_ProductCard", product)
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="d-flex justify-content-center mt-5">
                 <ul class="pagination">
                     @if (ViewBag.PageNumber > 1)
                     {
                         <li class="page-item">
-                            <a class="page-link" href="@Url.Action("Index", "Product", new
-                               {
-                                   pageNumber = ViewBag.PageNumber - 1,
-                                   categoryId = ViewBag.CategoryId,
-                                   minPrice = ViewBag.MinPrice,
-                                   maxPrice = ViewBag.MaxPrice
-                               })">«</a>
+                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = ViewBag.PageNumber - 1, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color })">«</a>
                         </li>
                     }
 
                     @for (int i = 1; i <= ViewBag.TotalPages; i++)
                     {
                         <li class="page-item @(i == ViewBag.PageNumber ? "active" : "")">
-                            <a class="page-link" href="@Url.Action("Index", "Product", new
-                               {
-                                   pageNumber = i,
-                                   categoryId = ViewBag.CategoryId,
-                                   minPrice = ViewBag.MinPrice,
-                                   maxPrice = ViewBag.MaxPrice
-                               })">@i</a>
+                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = i, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color })">@i</a>
                         </li>
                     }
 
                     @if (ViewBag.PageNumber < ViewBag.TotalPages)
                     {
                         <li class="page-item">
-                            <a class="page-link" href="@Url.Action("Index", "Product", new
-                               {
-                                   pageNumber = ViewBag.PageNumber + 1,
-                                   categoryId = ViewBag.CategoryId,
-                                   minPrice = ViewBag.MinPrice,
-                                   maxPrice = ViewBag.MaxPrice
-                               })">»</a>
+                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = ViewBag.PageNumber + 1, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color })">»</a>
                         </li>
                     }
                 </ul>
@@ -209,7 +244,7 @@
         color: #444;
         border-radius: 24px;
         padding: 5px 16px;
-        font-size: 1em;
+        font-size: 0.9em;
         cursor: pointer;
         transition: all 0.15s;
         outline: none;
@@ -313,7 +348,10 @@
 
 <script>
     function selectFilter(name, value) {
-        document.getElementById(name).value = value;
-        document.getElementById('filterForm').submit();
+        var element = document.getElementById(name);
+        if (element) {
+            element.value = value;
+            document.getElementById('filterForm').submit();
+        }
     }
 </script>

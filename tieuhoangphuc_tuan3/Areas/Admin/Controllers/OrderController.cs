@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebBanDienThoai.Models;
+using Microsoft.AspNetCore.Identity.UI.Services; // Nạp dịch vụ IEmailSender chuẩn của bạn
+using WebBanDienThoai.Services.Email; // Nạp đường dẫn dịch vụ thông báo mới tạo
 
 namespace WebBanDienThoai.Areas.Admin.Controllers
 {
@@ -9,10 +11,18 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
     public class OrderController : Controller
     {
         private readonly ApplicationDbContext _db;
+        private readonly IEmailSender _emailSender; // ✨ Khai báo interface email có sẵn
+        private readonly NotificationService _notifService; // ✨ Khai báo dịch vụ SMS/Push mới
 
-        public OrderController(ApplicationDbContext db)
+        // Cập nhật Constructor để nạp (Inject) các dịch vụ thông báo đa kênh
+        public OrderController(
+            ApplicationDbContext db,
+            IEmailSender emailSender,
+            NotificationService notifService)
         {
             _db = db;
+            _emailSender = emailSender;
+            _notifService = notifService;
         }
 
         public IActionResult Index(string search, int? status)
@@ -52,7 +62,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public IActionResult UpdateStatus(int id, OrderStatus status)
+        public async Task<IActionResult> UpdateStatus(int id, OrderStatus status)
         {
             var order = _db.Orders
                 .Include(o => o.OrderDetails)
@@ -93,7 +103,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     ProductVariant variant = null;
                     if (item.VariantId.HasValue)
                     {
-                        // 🛠️ ĐÃ FIX LỖI BIẾN BIÊN DỊCH TẠI ĐÂY:
                         variant = _db.ProductVariants.FirstOrDefault(v => v.Id == item.VariantId.Value);
                     }
                     var product = _db.Products.FirstOrDefault(p => p.Id == item.ProductId);
@@ -105,10 +114,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     }
                 }
 
-                // =========================================================================
-                // ✨ CHỨC NĂNG 2: TỰ ĐỘNG TÍNH TOÁN CỘNG ĐIỂM THƯỞNG KHI ĐƠN HOÀN TẤT
-                // Quy đổi: Mỗi 100.000 đ giá trị đơn hàng thực tế mang về cho khách 1 điểm thưởng
-                // =========================================================================
                 if (status == OrderStatus.HoanTat)
                 {
                     var user = _db.ApplicationUsers.FirstOrDefault(u => u.Id == order.UserId);
@@ -116,10 +121,60 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     {
                         int pointsEarned = (int)(order.TotalPrice / 100000);
                         user.CurrentPoints += pointsEarned;
-                        user.RankingPoints += pointsEarned; // Tăng điểm trọn đời để thăng hạng VIP
+                        user.RankingPoints += pointsEarned;
                     }
                 }
             }
+
+            // =========================================================================
+            // ✨ CHỨC NĂNG 6: TỰ ĐỘNG PHÁT THÔNG BÁO ĐA KÊNH KHI CẬP NHẬT TRẠNG THÁI
+            // =========================================================================
+            try
+            {
+                var customer = _db.ApplicationUsers.FirstOrDefault(u => u.Id == order.UserId);
+                if (customer != null)
+                {
+                    string orderUrl = $"{Request.Scheme}://{Request.Host}/Order/Details/{order.Id}";
+
+                    // 📬 1. GỬI TIN NHẮN SMS GIẢ LẬP (LOG RA CONSOLE)
+                    string smsMessage = $"MobiStore: Don hang #{order.Id} cua ban da chuyen sang trang thai: {description}. Xem tai {orderUrl}";
+                    await _notifService.SendSmsAsync(customer.PhoneNumber, smsMessage);
+
+                    // 📲 2. GỬI PUSH NOTIFICATION APP GIẢ LẬP (LOG RA CONSOLE)
+                    string pushTitle = $"Cập nhật đơn hàng #{order.Id}";
+                    string pushBody = $"Đơn hàng của bạn hiện tại: {description}. Bấm để theo dõi hành trình di chuyển bưu kiện.";
+                    await _notifService.SendPushNotificationAsync(customer.Id, pushTitle, pushBody);
+
+                    // 📧 3. GỬI EMAIL THÔNG BÁO THỰC TẾ QUA DỊCH VỤ CỦA BẠN
+                    if (!string.IsNullOrEmpty(customer.Email))
+                    {
+                        string emailSubject = $"[MobiStore] Cập nhật trạng thái đơn hàng #{order.Id}";
+                        string emailBody = $@"
+                            <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;'>
+                                <h2 style='color: #dc3545; text-align: center;'>MobiStore - Cập nhật hành trình bưu kiện</h2>
+                                <p>Xin chào <strong>{customer.FullName}</strong>,</p>
+                                <p>Hệ thống MobiStore xin thông báo đơn hàng <strong>#{order.Id}</strong> của bạn đã có cập nhật mới:</p>
+                                <div style='background-color: #f8f9fa; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; font-weight: bold;'>
+                                    Trạng thái: {description}
+                                </div>
+                                <p>Lộ trình bưu kiện đang được bưu tá cập nhật liên tục trên trang quản trị cá nhân hành trình Real-time.</p>
+                                <div style='text-align: center; margin-top: 30px;'>
+                                    <a href='{orderUrl}' style='background-color: #dc3545; color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;'>Xem Chi Tiết Đơn Hàng Tại Đây</a>
+                                </div>
+                                <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;' />
+                                <p style='font-size: 11px; color: #777; text-align: center;'>Đây là email tự động từ hệ thống MobiStore, vui lòng không phản hồi lại email này.</p>
+                            </div>";
+
+                        // Chạy nền tác vụ gửi Email thực tế để tránh làm chậm luồng phản hồi trang Admin
+                        _ = Task.Run(() => _emailSender.SendEmailAsync(customer.Email, emailSubject, emailBody));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lỗi gửi thông báo đa kênh: {ex.Message}");
+            }
+            // =========================================================================
 
             _db.SaveChanges();
             TempData["SuccessMessage"] = "Trạng thái đơn hàng và nhật ký hành trình đã được cập nhật!";

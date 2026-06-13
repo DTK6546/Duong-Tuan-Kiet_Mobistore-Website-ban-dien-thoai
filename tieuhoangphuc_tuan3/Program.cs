@@ -63,6 +63,7 @@ builder.Services.AddScoped<IProductRepository, EFProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, EFCategoryRepository>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.Configure<PayPalSettings>(builder.Configuration.GetSection("PayPal"));
+builder.Services.AddSingleton<WebBanDienThoai.Services.Email.NotificationService>();
 var app = builder.Build();
 RotativaConfiguration.Setup(app.Environment.WebRootPath, "Rotativa");
 

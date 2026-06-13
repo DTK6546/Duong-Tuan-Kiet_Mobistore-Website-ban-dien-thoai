@@ -41,11 +41,9 @@ namespace WebBanDienThoai.Controllers
                 products = products.Where(p => p.Name.ToLower().Contains(query)).ToList();
             }
 
-            // Gán danh sách danh mục (bỏ danh mục "Chưa phân loại")
             var categories = await _categoryRepository.GetAllAsync();
             ViewBag.Categories = categories.Where(c => c.Id != 16).ToList();
 
-            // ✨ ĐỒNG BỘ CHỨC NĂNG 1: Đẩy hàng Hot ra ViewBag đề phòng User xài thanh search nhanh
             var hotProductsData = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
@@ -87,19 +85,20 @@ namespace WebBanDienThoai.Controllers
         // 2) Index với bộ lọc Sidebar và phân trang (Hàm chính xử lý trang /Product)
         // =========================================================================
         [HttpGet]
-        public async Task<IActionResult> Index(int pageNumber = 1, int? categoryId = null, int? subCategoryId = null, decimal? minPrice = null, decimal? maxPrice = null, string query = "", string sortBy = "")
+        public async Task<IActionResult> Index(int pageNumber = 1, int? categoryId = null, int? subCategoryId = null, decimal? minPrice = null, decimal? maxPrice = null, string query = "", string sortBy = "", string ram = "", string rom = "", string color = "")
         {
             const int pageSize = 16;
             if (pageNumber < 1) pageNumber = 1;
 
-            // Base query
+            // Khởi tạo Base query nối bảng
             IQueryable<Product> q = _context.Products
-                .AsNoTracking()
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
-                .Include(p => p.Variants);
+                .Include(p => p.Variants)
+                .Include(p => p.Specs) // Gộp bảng thông số kỹ thuật gốc
+                .AsNoTracking();
 
-            // Filters
+            // --- Thực thi các tầng bộ lọc động (Dynamic Query) ---
             if (categoryId.HasValue && categoryId.Value != 0)
                 q = q.Where(p => p.CategoryId == categoryId.Value);
 
@@ -115,33 +114,50 @@ namespace WebBanDienThoai.Controllers
             if (!string.IsNullOrWhiteSpace(query))
                 q = q.Where(p => p.Name.Contains(query));
 
-            // Sort
+            // =========================================================================
+            // ✨ CHỨC NĂNG 2: QUÉT SÂU THÔNG SỐ RAM / ROM / MÀU SẮC BIẾN THỂ
+            // =========================================================================
+            if (!string.IsNullOrWhiteSpace(ram))
+            {
+                // Quét trực tiếp thông số RAM từ trường dữ liệu Storage của các biến thể (Variants)
+                q = q.Where(p => p.Variants.Any(v => v.Storage.Contains(ram.Trim())));
+            }
+
+            if (!string.IsNullOrWhiteSpace(rom))
+            {
+                // Quét trực tiếp thông số ROM từ trường dữ liệu Storage của các biến thể (Variants)
+                q = q.Where(p => p.Variants.Any(v => v.Storage.Contains(rom.Trim())));
+            }
+            // =========================================================================
+
+            if (!string.IsNullOrWhiteSpace(color))
+            {
+                q = q.Where(p => p.Variants.Any(v => v.Color.Contains(color.Trim())));
+            }
+            // =========================================================================
+
+            // Sắp xếp thứ tự danh sách (Sort)
             switch (sortBy)
             {
                 case "giamgia":
                     q = q.OrderByDescending(p => p.DiscountPercent).ThenByDescending(p => p.Id);
                     break;
-
                 case "moi":
                     q = q.OrderByDescending(p => p.Id);
                     break;
-
                 case "giathapcao":
                     q = q.OrderBy(p => p.DiscountedPrice).ThenByDescending(p => p.Id);
                     break;
-
                 case "giacaothap":
                     q = q.OrderByDescending(p => p.DiscountedPrice).ThenByDescending(p => p.Id);
                     break;
-
                 case "banchay":
                     var soldQuery = _context.OrderDetails
                         .Where(od => od.Order.Status == OrderStatus.HoanTat)
                         .GroupBy(od => od.ProductId)
                         .Select(g => new { ProductId = g.Key, Sold = g.Sum(x => x.Quantity) });
 
-                    q = q
-                        .GroupJoin(
+                    q = q.GroupJoin(
                             soldQuery,
                             p => p.Id,
                             s => s.ProductId,
@@ -151,15 +167,15 @@ namespace WebBanDienThoai.Controllers
                         .ThenByDescending(x => x.p.Id)
                         .Select(x => x.p);
                     break;
-
                 default:
-                    q = q.OrderByDescending(p => p.Id);
+                    q = q.OrderByDescending(p => p.IsHot).ThenByDescending(p => p.Id); // Ưu tiên hàng HOT lên đầu
                     break;
             }
 
-            // Paging
+            // Thực thi phân trang (Paging)
             var totalItems = await q.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            if (pageNumber > totalPages && totalPages > 0) pageNumber = totalPages;
 
             var pagedProducts = await q
                 .Skip((pageNumber - 1) * pageSize)
@@ -168,7 +184,7 @@ namespace WebBanDienThoai.Controllers
 
             var productIds = pagedProducts.Select(p => p.Id).ToList();
 
-            // SoldCount cho danh sách đang hiển thị
+            // Tính số lượng đã bán (SoldCount)
             var soldDict = await _context.OrderDetails
                 .Where(od => productIds.Contains(od.ProductId) && od.Order.Status == OrderStatus.HoanTat)
                 .GroupBy(od => od.ProductId)
@@ -194,7 +210,7 @@ namespace WebBanDienThoai.Controllers
                 Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             }).ToList();
 
-            // ViewBag giữ nguyên các bộ lọc hiện tại của bạn
+            // Đồng bộ trạng thái bộ lọc ngược về phía giao diện (Maintain State)
             ViewBag.PageNumber = pageNumber;
             ViewBag.TotalPages = totalPages;
             ViewBag.Categories = (await _categoryRepository.GetAllAsync()).Where(c => c.Id != 16).ToList();
@@ -205,24 +221,24 @@ namespace WebBanDienThoai.Controllers
             ViewBag.SubCategoryId = subCategoryId ?? 0;
             ViewBag.SortBy = sortBy;
 
+            // Đẩy giá trị lọc nâng cao về View
+            ViewBag.Ram = ram;
+            ViewBag.Rom = rom;
+            ViewBag.Color = color;
+
             var subcats = (categoryId.HasValue && categoryId.Value != 0)
                 ? await _context.SubCategories.Where(s => s.CategoryId == categoryId.Value).ToListAsync()
-                : await _context.SubCategories
-                    .GroupBy(s => s.Name)
-                    .Select(g => g.First())
-                    .ToListAsync();
+                : await _context.SubCategories.GroupBy(s => s.Name).Select(g => g.First()).ToListAsync();
 
             ViewBag.SubCategories = subcats;
 
-            // =========================================================================
-            // ✨ CHỨC NĂNG 1: LẤY VÀ TRUYỀN DANH SÁCH HÀNG HOT VÀO TRANG PRODUCT/INDEX
-            // =========================================================================
+            // Đổ hàng HOT ra khu vực Banner đầu trang
             var hotProductsData = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
                 .Include(p => p.Variants)
-                .Where(p => p.IsHot) // Chỉ bốc các dòng máy được gạt nút Hot (IsHot = 1)
-                .Take(4)             // Hiện tối đa 4 máy trên thanh Banner VIP
+                .Where(p => p.IsHot)
+                .Take(4)
                 .ToListAsync();
 
             var hotProductIds = hotProductsData.Select(p => p.Id).ToList();
@@ -250,7 +266,6 @@ namespace WebBanDienThoai.Controllers
                 SoldCount = hotSoldDict.TryGetValue(p.Id, out var sold) ? sold : 0,
                 Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             }).ToList();
-            // =========================================================================
 
             return View(model);
         }
