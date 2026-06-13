@@ -35,5 +35,12 @@ namespace WebBanDienThoai.Models
 
         [NotMapped]
         public bool IsVerifiedPurchase { get; set; } // Nhãn "Đã mua"
+
+        // =========================================================================
+        // ✨ CHỨC NĂNG 8: THUỘC TÍNH PHỤC VỤ XÉT DUYỆT / ẨN BÌNH LUẬN XẤU (MỚI)
+        // Mặc định ban đầu luôn là true để không ảnh hưởng các bản ghi cũ. 
+        // Khi dính từ cấm hoặc Admin ẩn bài thì trường này sẽ chuyển về false.
+        // =========================================================================
+        public bool IsApproved { get; set; } = true;
     }
 }

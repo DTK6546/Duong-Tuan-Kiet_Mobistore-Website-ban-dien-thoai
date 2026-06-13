@@ -621,6 +621,15 @@ namespace WebBanDienThoai.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Unauthorized();
 
+            // =========================================================================
+            // ✨ CHỨC NĂNG 8: KIỂM TRA TRẠNG THÁI KHÓA TÀI KHOẢN (BAN SYSTEM)
+            // =========================================================================
+            if (user.IsBanned)
+            {
+                TempData["ErrorMessage"] = "Tài khoản của bạn đã bị khóa chức năng viết bình luận/đánh giá do vi phạm tiêu chuẩn!";
+                return RedirectToAction("Display", new { id = productId });
+            }
+
             var hasPurchased = await _context.Orders
                 .Include(o => o.OrderDetails)
                 .AnyAsync(o => o.UserId == user.Id
@@ -637,6 +646,14 @@ namespace WebBanDienThoai.Controllers
                 .Include(r => r.Images)
                 .FirstOrDefaultAsync(r => r.ProductId == productId && r.UserId == user.Id);
 
+            // =========================================================================
+            // ✨ CHỨC NĂNG 8: BỘ LỌC KIỂM DUYỆT TỪ NGỮ ĐỘC HẠI TỰ ĐỘNG (CONTENT MODERATION)
+            // =========================================================================
+            string checkContent = (comment ?? "").ToLower();
+            string[] bannedWords = { "lừa đảo", "vcl", "dm", "đm", "hàng giả", "fake", "bú" };
+            bool containsBadWords = bannedWords.Any(word => checkContent.Contains(word));
+            bool approveStatus = !containsBadWords; // Không dính từ cấm thì tự động duyệt hiển thị luôn
+
             if (existing == null)
             {
                 existing = new ProductRating
@@ -645,19 +662,20 @@ namespace WebBanDienThoai.Controllers
                     UserId = user.Id,
                     Stars = stars,
                     Comment = comment,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    IsApproved = approveStatus
                 };
                 _context.ProductRatings.Add(existing);
-                await _context.SaveChangesAsync();
             }
             else
             {
                 existing.Stars = stars;
                 existing.Comment = comment;
-                existing.UpdatedAt = DateTime.Now;
+                existing.UpdatedAt = DateTime.Now; // Đã xóa bỏ dòng lỗi bám chữ metadata
+                existing.IsApproved = approveStatus;
                 _context.ProductRatings.Update(existing);
-                await _context.SaveChangesAsync();
             }
+            await _context.SaveChangesAsync();
 
             if (images?.Any() == true)
             {
@@ -684,13 +702,13 @@ namespace WebBanDienThoai.Controllers
                         Url = $"/uploads/ratings/{fileName}"
                     });
                 }
-
                 await _context.SaveChangesAsync();
             }
 
-            var avgStars = await _context.ProductRatings
-                .Where(r => r.ProductId == productId)
-                .AverageAsync(r => (double)r.Stars);
+            var avgStars = (await _context.ProductRatings
+                .Where(r => r.ProductId == productId && r.IsApproved)
+                .Select(r => (double?)r.Stars)
+                .AverageAsync()) ?? 0.0;
 
             var product = await _context.Products.FindAsync(productId);
             if (product != null)
@@ -699,7 +717,15 @@ namespace WebBanDienThoai.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            TempData["SuccessMessage"] = "Đánh giá của bạn đã được ghi nhận!";
+            if (containsBadWords)
+            {
+                TempData["SuccessMessage"] = "Đánh giá đã được gửi đi và đang nằm trong danh sách kiểm duyệt của Admin.";
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Đánh giá của bạn đã được ghi nhận!";
+            }
+
             return RedirectToAction("Display", new { id = productId });
         }
 
@@ -818,6 +844,18 @@ namespace WebBanDienThoai.Controllers
                 return RedirectToAction("Display", new { id = productId });
             }
 
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            // =========================================================================
+            // ✨ CHỨC NĂNG 8: CHẶN USER SPAMMER ĐẶT CÂU HỎI Q&A
+            // =========================================================================
+            if (user.IsBanned)
+            {
+                TempData["ErrorMessage"] = "Tài khoản của bạn đã bị khóa chức năng đặt câu hỏi thảo luận!";
+                return RedirectToAction("Display", new { id = productId });
+            }
+
             question = (question ?? "").Trim();
 
             if (string.IsNullOrWhiteSpace(question))
@@ -832,8 +870,12 @@ namespace WebBanDienThoai.Controllers
                 return RedirectToAction("Display", new { id = productId });
             }
 
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
+            // =========================================================================
+            // ✨ CHỨC NĂNG 8: QUÉT TỪ CẤM TRONG KHỐI HỎI ĐÁP Q&A
+            // =========================================================================
+            string checkContent = question.ToLower();
+            string[] bannedWords = { "lừa đảo", "vcl", "dm", "đm", "hàng giả", "fake", "bú" };
+            bool containsBadWords = bannedWords.Any(word => checkContent.Contains(word));
 
             var qa = new ProductQuestion
             {
@@ -841,13 +883,21 @@ namespace WebBanDienThoai.Controllers
                 UserId = user.Id,
                 Question = question,
                 CreatedAt = DateTime.Now,
-                IsApproved = false
+                IsApproved = !containsBadWords // Nếu không dính từ cấm thì tự duyệt hiển thị, dính từ cấm bắt chờ duyệt
             };
 
             _context.ProductQuestions.Add(qa);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Đã gửi câu hỏi! Câu hỏi sẽ hiển thị sau khi được duyệt.";
+            if (containsBadWords)
+            {
+                TempData["SuccessMessage"] = "Câu hỏi của bạn chứa từ khóa cần xác minh và đã được chuyển đến bộ phận kiểm duyệt.";
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Đã gửi câu hỏi! Câu hỏi sẽ hiển thị ngay lập tức.";
+            }
+
             return RedirectToAction("Display", new { id = productId });
         }
 

@@ -122,6 +122,34 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                         int pointsEarned = (int)(order.TotalPrice / 100000);
                         user.CurrentPoints += pointsEarned;
                         user.RankingPoints += pointsEarned;
+
+                        if (!string.IsNullOrEmpty(user.Email) && order.OrderDetails != null && order.OrderDetails.Any())
+                        {
+                            var firstItem = order.OrderDetails.First();
+                            var prodInfo = _db.Products.FirstOrDefault(p => p.Id == firstItem.ProductId);
+
+                            if (prodInfo != null)
+                            {
+                                string productUrl = $"{Request.Scheme}://{Request.Host}/Product/Display/{prodInfo.Id}";
+                                string requestEmailSubject = $"[MobiStore] Mời bạn đánh giá sản phẩm {prodInfo.Name}";
+                                string requestEmailBody = $@"
+                                    <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;'>
+                                        <h2 style='color: #059669; text-align: center;'>Cảm ơn bạn đã tin tưởng mua sắm tại MobiStore!</h2>
+                                        <p>Xin chào <strong>{user.FullName}</strong>,</p>
+                                        <p>Đơn hàng <strong>#{order.Id}</strong> của bạn đã giao dịch thành công. Ý kiến của bạn là điều vô cùng quý giá để chúng tôi nâng cao chất lượng dịch vụ.</p>
+                                        <p>MobiStore trân trọng mời bạn chia sẻ cảm nhận thực tế về thiết bị <strong>{prodInfo.Name}</strong> mà bạn vừa sở hữu.</p>
+                                        <div style='text-align: center; margin: 30px 0;'>
+                                            <a href='{productUrl}#review-section' style='background-color: #059669; color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>✍️ Viết Đánh Giá Để Lấy Tích Xanh Ngay</a>
+                                        </div>
+                                        <p style='font-size: 13px; color: #666; font-style: italic; text-align: center;'>Bình luận của bạn sẽ được hiển thị kèm Huy hiệu xác minh đã mua hàng độc lập.</p>
+                                        <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;' />
+                                        <p style='font-size: 11px; color: #777; text-align: center;'>MobiStore - Uy tín kiến tạo niềm tin.</p>
+                                    </div>";
+
+                                // Gọi luồng gửi Mail nền bất đồng bộ
+                                _ = Task.Run(() => _emailSender.SendEmailAsync(user.Email, requestEmailSubject, requestEmailBody));
+                            }
+                        }
                     }
                 }
             }
