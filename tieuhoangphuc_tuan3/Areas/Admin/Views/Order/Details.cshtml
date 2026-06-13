@@ -6,7 +6,6 @@
     ViewData["Title"] = "Chi tiết đơn hàng Admin";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 
-    // ⭐ Xác định tên hiển thị của khách hàng
     string customerName = Model.ApplicationUser?.FullName ?? (Model.Notes?.Contains("Khách hàng:") == true ? Model.Notes.Split('.')[0].Replace("Khách hàng:", "").Trim() : "Khách vãng lai");
 
     Func<WebBanDienThoai.Models.OrderStatus, string> statusClass = s =>
@@ -39,13 +38,21 @@
         }
     };
 
-    // 🔥 Tính toán tiền minh bạch
     var subTotal = Model.Subtotal;
     if (subTotal == 0)
     {
         subTotal = Model.OrderDetails.Sum(od => (od.Price + (od.Warranties?.Sum(w => w.Price) ?? 0)) * od.Quantity);
     }
     var discount = Model.DiscountAmount;
+    var shippers = ViewBag.Shippers as List<Shipper> ?? new List<Shipper>();
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm rounded-3" role="alert">
+        <i class="bi bi-check-circle-fill me-1"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
 <div class="card shadow-sm mb-4">
@@ -57,15 +64,13 @@
                 @Model.Status.ToVietnameseStatus()
             </span>
         </div>
-        <a href="@Url.Action("Index", "Order", new { area = "Admin" })"
-           class="btn btn-outline-primary btn-sm ms-auto">
+        <a href="@Url.Action("Index", "Order", new { area = "Admin" })" class="btn btn-outline-primary btn-sm ms-auto">
             <i class="bi bi-arrow-left"></i> Quay lại danh sách
         </a>
     </div>
     <div class="card-body">
         <dl class="row mb-3">
             <dt class="col-sm-3">Khách hàng:</dt>
-            @* ⭐ Hiển thị Tên đầy đủ thay vì ID *@
             <dd class="col-sm-9 fw-bold text-primary">@customerName</dd>
 
             <dt class="col-sm-3">Ngày đặt:</dt>
@@ -73,10 +78,10 @@
 
             <dt class="col-sm-3">Phương thức nhận hàng:</dt>
             <dd class="col-sm-9">
-                @(Model.DeliveryMethod == DeliveryMethod.ShipToHome ? "Giao hàng tận nơi" : "Nhận tại cửa hàng")
+                @(Model.DeliveryMethod == 0 ? "Giao hàng tận nơi" : "Nhận tại cửa hàng")
             </dd>
 
-            @if (Model.DeliveryMethod == DeliveryMethod.ShipToHome)
+            @if (Model.DeliveryMethod == 0)
             {
                 <dt class="col-sm-3">Khu vực giao:</dt>
                 <dd class="col-sm-9">@Model.DistrictCode, @Model.ProvinceCode</dd>
@@ -85,7 +90,7 @@
                 <dd class="col-sm-9">@Model.ShippingAddress</dd>
             }
 
-            @if (Model.DeliveryMethod == DeliveryMethod.PickupAtStore && Model.Store != null)
+            @if (Model.DeliveryMethod == 1 && Model.Store != null)
             {
                 <dt class="col-sm-3">Cửa hàng nhận:</dt>
                 <dd class="col-sm-9">
@@ -119,6 +124,87 @@
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+@if (Model.Status != OrderStatus.DaHuy && Model.Status != OrderStatus.HoanTat)
+{
+    <div class="card shadow-sm mb-4 border border-warning border-opacity-50">
+        <div class="card-header bg-warning bg-opacity-10 py-3">
+            <h5 class="mb-0 text-warning-emphasis fw-bold">
+                <i class="bi bi-truck me-1"></i> Điều phối Vận chuyển & Logistics
+            </h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="UpdateLogistics" asp-controller="Order" asp-area="Admin" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="orderId" value="@Model.Id" />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Chọn Shipper / Đơn vị phụ trách</label>
+                        <select name="shipperId" class="form-select form-select-sm" required>
+                            <option value="">-- Chọn nhân viên giao hàng --</option>
+                            @foreach (var s in shippers)
+                            {
+                                <option value="@s.Id" selected="@(Model.ShipperId == s.Id ? "selected" : null)">
+                                    @s.FullName (@s.CompanyName)
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Mã vận đơn điện tử (Tracking ID)</label>
+                        <input type="text" name="trackingNumber" value="@Model.TrackingNumber" class="form-control form-control-sm" placeholder="Ví dụ: GHN987654321VN" required />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Nhật ký mốc lộ trình hiện tại</label>
+                        <input type="text" name="initialLogDescription" class="form-control form-control-sm" placeholder="Ví dụ: Đơn hàng đã rời kho phân loại..." />
+                    </div>
+                </div>
+
+                <div class="mt-3 text-end">
+                    <button type="submit" class="btn btn-sm btn-warning fw-semibold px-4 shadow-sm text-dark">
+                        <i class="bi bi-check-circle-fill me-1"></i> Xác nhận điều phối & Phát hành hành trình
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<div class="card shadow-sm mb-4 border border-info border-opacity-50">
+    <div class="card-header bg-info bg-opacity-10 fw-bold text-info-emphasis">
+        <i class="bi bi-bezier2 me-1"></i> Nhật ký hành trình Tracking di chuyển thực tế
+    </div>
+    <div class="card-body">
+        @if (Model.OrderLogs != null && Model.OrderLogs.Any())
+        {
+            <div class="position-relative ps-3 ms-2" style="border-left: 2px solid #0ea5e9;">
+                @foreach (var log in Model.OrderLogs.OrderByDescending(l => l.LogDate))
+                {
+                    <div class="mb-3 position-relative">
+                        <div class="position-absolute bg-info rounded-circle" style="width: 10px; height: 10px; left: -20px; top: 6px; border: 2px solid #fff;"></div>
+                        <div class="small fw-bold text-dark">@log.LogDate.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                        <div class="small text-secondary">
+                            @log.StatusDescription
+                            @if (!string.IsNullOrEmpty(log.Location))
+                            {
+                                <span class="badge bg-light text-secondary border ms-1">@log.Location</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-muted text-center py-2 small">
+                <i class="bi bi-info-circle me-1"></i> Chưa có nhật ký hành trình logistics chi tiết cho đơn hàng này.
+            </div>
+        }
     </div>
 </div>
 
@@ -173,7 +259,6 @@
                     <td colspan="3" class="text-end">VAT (10%):</td>
                     <td class="text-end fw-semibold">@Model.VatAmount.ToString("N0") đ</td>
                 </tr>
-                @* ⭐ CẬP NHẬT DÒNG PHÍ SHIP TRONG ADMIN *@
                 <tr>
                     <td colspan="3" class="text-end fw-bold">Phí vận chuyển:</td>
                     <td class="text-end fw-bold text-dark">@Model.ShippingFee.ToString("N0") đ</td>

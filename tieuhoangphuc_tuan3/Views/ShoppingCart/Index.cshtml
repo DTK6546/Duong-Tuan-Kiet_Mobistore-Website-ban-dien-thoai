@@ -42,6 +42,7 @@
     var vi = CultureInfo.GetCultureInfo("vi-VN");
     var stores = ViewBag.Stores as List<Store>;
     var saveLaterItems = ViewBag.SaveLaterItems as List<CartItem> ?? new List<CartItem>();
+    var currentUser = ViewBag.CurrentUser as ApplicationUser;
 }
 
 <style>
@@ -154,9 +155,7 @@
                                 var lineTotal = (item.Price + warrantyPerItem) * item.Quantity;
 
                                 <tr>
-                                    <td>
-                                        <img src="@item.ImageUrl" class="cart-image img-fluid" style="width: 80px; height: 80px; object-fit: contain;">
-                                    </td>
+                                    <td><img src="@item.ImageUrl" class="cart-image img-fluid" style="width: 80px; height: 80px; object-fit: contain;"></td>
                                     <td class="text-start">
                                         <strong>@item.Name</strong>
                                         <p class="text-muted m-0 small">Mã SP: @item.ProductId</p>
@@ -217,9 +216,7 @@
                 @if (saveLaterItems.Any())
                 {
                     <div class="mt-5 p-4 bg-light rounded-4 border border-secondary border-opacity-25 shadow-sm">
-                        <h5 class="fw-bold text-secondary mb-3">
-                            <i class="bi bi-bookmark-star-fill text-warning me-1"></i> Sản phẩm đã lưu để mua sau (@saveLaterItems.Count)
-                        </h5>
+                        <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-bookmark-star-fill text-warning me-1"></i> Sản phẩm đã lưu để mua sau (@saveLaterItems.Count)</h5>
                         <div class="table-responsive">
                             <table class="table table-sm align-middle text-center bg-white rounded-3">
                                 <thead>
@@ -235,18 +232,12 @@
                                     {
                                         <tr>
                                             <td><img src="@sItem.ImageUrl" style="width:60px;height:60px;object-fit:contain;"></td>
-                                            <td class="text-start">
-                                                <span class="fw-semibold text-dark">@sItem.Name</span>
-                                            </td>
+                                            <td class="text-start"><span class="fw-semibold text-dark">@sItem.Name</span></td>
                                             <td class="text-danger fw-semibold">@sItem.Price.ToString("N0", vi) đ</td>
                                             <td>
                                                 <div class="d-flex justify-content-center gap-2">
-                                                    <a asp-action="MoveBackToCart" asp-route-productId="@sItem.ProductId" asp-route-variantId="@sItem.VariantId" class="btn btn-sm btn-success px-2 rounded-pill small fs-7">
-                                                        <i class="bi bi-cart-plus me-1"></i>Thêm lại vào giỏ
-                                                    </a>
-                                                    <a asp-action="RemoveFromCart" asp-route-productId="@sItem.ProductId" asp-route-variantId="@sItem.VariantId" class="btn btn-sm btn-link text-danger text-decoration-none small">
-                                                        Xóa hẳn
-                                                    </a>
+                                                    <a asp-action="MoveBackToCart" asp-route-productId="@sItem.ProductId" asp-route-variantId="@sItem.VariantId" class="btn btn-sm btn-success px-2 rounded-pill small fs-7"><i class="bi bi-cart-plus me-1"></i>Thêm lại vào giỏ</a>
+                                                    <a asp-action="RemoveFromCart" asp-route-productId="@sItem.ProductId" asp-route-variantId="@sItem.VariantId" class="btn btn-sm btn-link text-danger text-decoration-none small">Xóa hẳn</a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -272,29 +263,27 @@
                 <div class="mt-5">
                     <h4 class="fw-semibold mb-3"><i class="bi bi-star-half text-warning"></i> Có thể bạn cũng thích</h4>
                     <div class="row flex-nowrap overflow-auto pb-2" style="gap:24px;">
-                        @foreach (var p in ViewBag.SuggestedProducts as List<Product>)
+                        @if (ViewBag.SuggestedProducts != null)
                         {
-                            <div class="col-auto" style="min-width: 210px;">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <a href="@Url.Action("Display", "Product", new { id = p.Id })">
-                                        <img src="@p.ImageUrl" class="card-img-top" style="height:120px;object-fit:contain">
-                                    </a>
-                                    <div class="card-body p-2 text-center">
-                                        <div class="fw-semibold small mb-1" style="min-height:38px;">@p.Name</div>
-                                        <div class="text-danger fw-bold mb-2">@p.Price.ToString("N0", vi) đ</div>
-                                        <a href="@Url.Action("Display", "Product", new { id = p.Id })" class="btn btn-sm btn-outline-danger rounded-pill">Xem chi tiết</a>
+                            foreach (var p in ViewBag.SuggestedProducts as List<Product>)
+                            {
+                                <div class="col-auto" style="min-width: 210px;">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <a href="@Url.Action("Display", "Product", new { id = p.Id })"><img src="@p.ImageUrl" class="card-img-top" style="height:120px;object-fit:contain"></a>
+                                        <div class="card-body p-2 text-center">
+                                            <div class="fw-semibold small mb-1" style="min-height:38px;">@p.Name</div>
+                                            <div class="text-danger fw-bold mb-2">@p.Price.ToString("N0", vi) đ</div>
+                                            <a href="@Url.Action("Display", "Product", new { id = p.Id })" class="btn btn-sm btn-outline-danger rounded-pill">Xem chi tiết</a>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            }
                         }
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                @{
-                    var currentUser = ViewBag.CurrentUser as ApplicationUser;
-                }
                 <div class="card shadow-sm p-3">
                     <h6 class="border-bottom pb-2 mb-2">Thông tin người mua</h6>
                     @if (currentUser != null)
@@ -303,38 +292,38 @@
                         <p class="mb-1 small"><strong>Họ tên:</strong> @currentUser.FullName</p>
                         <p class="mb-2 small"><strong>SĐT:</strong> @currentUser.PhoneNumber</p>
                         <p class="mb-2 small"><strong>Địa chỉ:</strong> @currentUser.Address</p>
+
+                        <div class="card border border-success border-opacity-25 bg-success bg-opacity-10 p-2 rounded shadow-sm my-2">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="small fw-bold text-success"><i class="bi bi-coin"></i> Điểm tích lũy: <b>@currentUser.CurrentPoints</b> điểm</div>
+                                    <div class="text-muted" style="font-size: 11px;">Hạng: <span class="badge bg-primary">@currentUser.MemberTier</span> (Đặc quyền giảm @(currentUser.TierDiscountRate * 100)%)</div>
+                                </div>
+                                @if (currentUser.CurrentPoints > 0)
+                                {
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" id="pointsToggle">
+                                        <label class="form-check-label small fw-bold text-success" for="pointsToggle">Dùng</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     }
                     else
                     {
-                        <div class="alert alert-info small mb-2">
-                            Bạn chưa đăng nhập. <a asp-area="Identity" asp-page="/Account/Login">Đăng nhập ngay</a>
-                        </div>
+                        <div class="alert alert-info small mb-2">Bạn chưa đăng nhập. <a asp-area="Identity" asp-page="/Account/Login">Đăng nhập ngay</a></div>
                     }
 
                     <h6 class="border-bottom pb-2 mt-3 mb-2">Phương thức nhận hàng</h6>
                     <div class="small">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="DeliveryMethod" value="ShipToHome" id="shipHome" checked />
-                            <label class="form-check-label" for="shipHome">Giao hàng tận nơi</label>
-                        </div>
-                        <div class="form-check mt-2">
-                            <input class="form-check-input" type="radio" name="DeliveryMethod" value="PickupAtStore" id="pickupStore" />
-                            <label class="form-check-label" for="pickupStore">Nhận tại cửa hàng</label>
-                        </div>
-
+                        <div class="form-check"><input class="form-check-input" type="radio" name="DeliveryMethod" value="ShipToHome" id="shipHome" checked /><label class="form-check-label" for="shipHome">Giao hàng tận nơi</label></div>
+                        <div class="form-check mt-2"><input class="form-check-input" type="radio" name="DeliveryMethod" value="PickupAtStore" id="pickupStore" /><label class="form-check-label" for="pickupStore">Nhận tại cửa hàng</label></div>
                         <div id="shippingPanel" class="mt-3 border rounded p-2">
                             <select class="form-select form-select-sm" id="shipProvince"><option value="">-- Chọn Tỉnh/TP --</option></select>
                             <select class="form-select form-select-sm mt-2" id="shipDistrict" disabled><option value="">-- Chọn Quận/Huyện --</option></select>
-                            <select id="shipMethodSelect" class="form-select form-select-sm mt-2">
-                                <option value="standard" selected>Tiêu chuẩn</option>
-                                <option value="express">Nhanh</option>
-                            </select>
-                            <div class="mt-2 small">
-                                <div>Phí ship: <b id="shipFee">—</b></div>
-                                <div>Giao dự kiến: <b id="shipEta">—</b></div>
-                            </div>
+                            <select id="shipMethodSelect" class="form-select form-select-sm mt-2"><option value="standard" selected>Tiêu chuẩn</option><option value="express">Nhanh</option></select>
+                            <div class="mt-2 small"><div>Phí ship: <b id="shipFee">—</b></div><div>Giao dự kiến: <b id="shipEta">—</b></div></div>
                         </div>
-
                         <div id="storePanel" class="mt-3 border rounded p-2 d-none">
                             <select name="StoreId" id="StoreId" class="form-control form-control-sm">
                                 <option value="">-- Chọn cửa hàng --</option>
@@ -359,6 +348,17 @@
 
                     <div class="d-flex justify-content-between small"><span>Tạm tính:</span><strong class="subtotal-amount">@subtotal.ToString("N0", vi) đ</strong></div>
                     <div class="d-flex justify-content-between small"><span>Giảm giá:</span><strong class="discount-amount">-(@discount.ToString("N0", vi) đ)</strong></div>
+
+                    <div class="d-flex justify-content-between small text-primary">
+                        <span>Ưu đãi VIP Tier:</span>
+                        <strong id="vipDiscountText">0 đ</strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between small text-success">
+                        <span>Khấu trừ điểm:</span>
+                        <strong id="pointsDiscountText">0 đ</strong>
+                    </div>
+
                     <div class="d-flex justify-content-between small"><span>Thành tiền:</span><strong class="before-tax-amount">@priceAfterDiscount.ToString("N0", vi) đ</strong></div>
                     <div class="d-flex justify-content-between small"><span>VAT (10%):</span><strong class="vat-amount">@vatAmount.ToString("N0", vi) đ</strong></div>
                     <div class="d-flex justify-content-between small"><span>Phí ship:</span><strong class="ship-fee-amount">0 đ</strong></div>
@@ -373,6 +373,7 @@
                         }
                         else
                         {
+
                             <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="/ShoppingCart/Checkout" class="btn btn-danger w-100 btn-sm mt-2">🔑 Đăng nhập để thanh toán</a>
                         }
                     }
@@ -389,6 +390,10 @@
         let currentProvinceCode = "";
         let currentDistrictCode = "";
         let currentShipMethod = "standard";
+
+        // Gắn cấu hình Loyalty Points
+        let userPoints = @(currentUser?.CurrentPoints ?? 0);
+        let tierRate = @(currentUser?.TierDiscountRate ?? 0m);
 
         function computeSubtotal() {
             let subtotal = 0;
@@ -428,28 +433,23 @@
         }
 
         async function loadProvinces(selectedCode) {
-            const provSel = document.getElementById("shipProvince");
-            if (!provSel) return;
+            const provSel = document.getElementById("shipProvince"); if (!provSel) return;
             provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
             const list = await fetchJson("/Shipping/Provinces");
             list.forEach(p => {
-                const opt = document.createElement("option");
-                opt.value = p.code; opt.textContent = p.name;
+                const opt = document.createElement("option"); opt.value = p.code; opt.textContent = p.name;
                 if (selectedCode === p.code) opt.selected = true;
                 provSel.appendChild(opt);
             });
         }
 
         async function loadDistricts(provinceCode, selectedDistrict) {
-            const distSel = document.getElementById("shipDistrict");
-            if (!distSel) return;
-            distSel.innerHTML = `<option value="">-- Chọn Quận/Huyện --</option>`;
-            distSel.disabled = true;
+            const distSel = document.getElementById("shipDistrict"); if (!distSel) return;
+            distSel.innerHTML = `<option value="">-- Chọn Quận/Huyện --</option>`; distSel.disabled = true;
             if (!provinceCode) return;
             const list = await fetchJson(`/Shipping/Districts?provinceCode=${provinceCode}`);
             list.forEach(d => {
-                const opt = document.createElement("option");
-                opt.value = d.code; opt.textContent = d.name;
+                const opt = document.createElement("option"); opt.value = d.code; opt.textContent = d.name;
                 if (selectedDistrict === d.code) opt.selected = true;
                 distSel.appendChild(opt);
             });
@@ -457,50 +457,64 @@
         }
 
         async function quoteShipping(provinceCode, districtCode) {
-            if (!provinceCode) {
-                currentShippingFee = 0; setShipUI(null, "—"); updateTotal(); return;
-            }
+            if (!provinceCode) { currentShippingFee = 0; setShipUI(null, "—"); updateTotal(); return; }
             const orderValueAfterDiscount = Math.max(0, computeSubtotal() - (discountFromServer || 0));
             const data = await fetchJson(`/Shipping/Quote?provinceCode=${provinceCode}&districtCode=${districtCode}&method=${currentShipMethod}&orderValue=${orderValueAfterDiscount}`);
-            if (data && data.ok === false) {
-                currentShippingFee = 0; setShipUI(0, data.message || "—"); updateTotal(); return;
-            }
+            if (data && data.ok === false) { currentShippingFee = 0; setShipUI(0, data.message || "—"); updateTotal(); return; }
             currentShippingFee = Number(data.fee || 0);
-            let etaText = "—";
-            if (data.etaFrom && data.etaTo) etaText = `${data.etaFrom} - ${data.etaTo}`;
+            let etaText = "—"; if (data.etaFrom && data.etaTo) etaText = `${data.etaFrom} - ${data.etaTo}`;
             setShipUI(currentShippingFee, etaText);
             updateTotal();
         }
 
         function togglePanels() {
             var method = document.querySelector("input[name='DeliveryMethod']:checked");
-            var storePanel = document.getElementById("storePanel");
-            var shipPanel = document.getElementById("shippingPanel");
+            var storePanel = document.getElementById("storePanel"); var shipPanel = document.getElementById("shippingPanel");
             if (!method) return;
             if (method.value === "PickupAtStore") {
-                if (storePanel) storePanel.classList.remove("d-none");
-                if (shipPanel) shipPanel.classList.add("d-none");
+                if (storePanel) storePanel.classList.remove("d-none"); if (shipPanel) shipPanel.classList.add("d-none");
                 currentShippingFee = 0; updateTotal();
             } else {
-                if (storePanel) storePanel.classList.add("d-none");
-                if (shipPanel) shipPanel.classList.remove("d-none");
+                if (storePanel) storePanel.classList.add("d-none"); if (shipPanel) shipPanel.classList.remove("d-none");
                 if (currentProvinceCode) quoteShipping(currentProvinceCode, currentDistrictCode);
             }
         }
 
+        // =========================================================================
+        // ✨ ĐỒNG BỘ JS: TÍNH TOÁN TRỪ TIỀN THEO HẠNG VIP VÀ ĐIỂM REWARD LOYALTY
+        // =========================================================================
         function updateTotal() {
             const subtotal = computeSubtotal();
             document.querySelectorAll(".quantity-input").forEach(input => {
                 const quantity = parseInt(input.value, 10) || 0;
                 const unitPrice = parseFloat(input.getAttribute("data-unit-price")) || 0;
                 const warrantyPrice = parseFloat(input.getAttribute("data-warranty-price")) || 0;
-                const row = input.closest("tr");
-                const lineTotalEl = row ? row.querySelector(".line-total") : null;
+                const row = input.closest("tr"); const lineTotalEl = row ? row.querySelector(".line-total") : null;
                 if (lineTotalEl) lineTotalEl.textContent = (quantity * (unitPrice + warrantyPrice)).toLocaleString('vi-VN') + " đ";
             });
 
             if (document.querySelector(".subtotal-amount")) document.querySelector(".subtotal-amount").textContent = subtotal.toLocaleString('vi-VN') + ' đ';
-            let priceAfterDiscount = Math.max(0, subtotal - (discountFromServer || 0));
+
+            // 1. Tính toán giảm giá theo Voucher
+            let couponDiscount = discountFromServer || 0;
+
+            // 2. Tính toán đặc quyền giảm giá của VIP Tier hạng thành viên
+            let vipDiscount = Math.round((subtotal - couponDiscount) * tierRate);
+            if(vipDiscount < 0) vipDiscount = 0;
+            document.getElementById("vipDiscountText").textContent = "-" + vipDiscount.toLocaleString('vi-VN') + " đ";
+
+            // 3. Tính toán khấu trừ điểm Loyalty Points (1 điểm = 1.000 VNĐ)
+            let pointsDiscount = 0;
+            const pointsToggle = document.getElementById("pointsToggle");
+            if (pointsToggle && pointsToggle.checked) {
+                pointsDiscount = userPoints * 1000;
+            }
+            document.getElementById("pointsDiscountText").textContent = "-" + pointsDiscount.toLocaleString('vi-VN') + " đ";
+
+            // Thành tiền sau khi trừ sạch các lớp ưu đãi khuyến mãi
+            let priceAfterDiscount = subtotal - couponDiscount - vipDiscount - pointsDiscount;
+            if (priceAfterDiscount < 0) priceAfterDiscount = 0;
+
             let vatAmount = Math.round(priceAfterDiscount * 0.10);
             const method = document.querySelector("input[name='DeliveryMethod']:checked")?.value || "ShipToHome";
             const shipFee = (method === "ShipToHome") ? (currentShippingFee || 0) : 0;
@@ -513,9 +527,7 @@
 
         function showCartMsg(type, text) {
             const el = document.getElementById("cartMsg"); if (!el) return;
-            el.classList.remove("d-none", "alert-success", "alert-danger");
-            el.classList.add(type === "success" ? "alert-success" : "alert-danger");
-            el.textContent = text;
+            el.classList.remove("d-none", "alert-success", "alert-danger"); el.classList.add(type === "success" ? "alert-success" : "alert-danger"); el.textContent = text;
             setTimeout(() => el.classList.add("d-none"), 3500);
         }
 
@@ -539,6 +551,8 @@
         }
 
         document.addEventListener("DOMContentLoaded", async function () {
+            document.getElementById("pointsToggle")?.addEventListener("change", updateTotal);
+
             document.querySelectorAll(".coupon-btn").forEach(btn => {
                 btn.addEventListener("click", function () {
                     document.getElementById("CouponCodeInput").value = this.getAttribute("data-code");
@@ -551,8 +565,7 @@
 
             document.querySelectorAll(".quantity-btn").forEach(button => {
                 button.addEventListener("click", function () {
-                    let input = this.parentElement.querySelector(".quantity-input");
-                    let value = parseInt(input.value, 10) || 0;
+                    let input = this.parentElement.querySelector(".quantity-input"); let value = parseInt(input.value, 10) || 0;
                     const maxQty = parseInt(input.getAttribute("data-max-qty"), 10) || 9999;
                     if (this.innerText.trim() === "+" && value < maxQty) input.value = value + 1;
                     else if (this.innerText.trim() === "-" && value > 1) input.value = value - 1;
@@ -560,14 +573,11 @@
                 });
             });
 
-            const saved = loadShipSelection();
-            currentShipMethod = saved.method || "standard";
+            const saved = loadShipSelection(); currentShipMethod = saved.method || "standard";
             if (document.getElementById("shipMethodSelect")) document.getElementById("shipMethodSelect").value = currentShipMethod;
             await loadProvinces(saved.prov);
 
-            const provSel = document.getElementById("shipProvince");
-            const distSel = document.getElementById("shipDistrict");
-
+            const provSel = document.getElementById("shipProvince"); const distSel = document.getElementById("shipDistrict");
             provSel?.addEventListener("change", async function () {
                 currentProvinceCode = this.value; currentDistrictCode = ""; saveShipSelection();
                 await loadDistricts(currentProvinceCode, ""); await quoteShipping(currentProvinceCode, "");

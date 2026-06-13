@@ -3,13 +3,12 @@ using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace WebBanDienThoai.Models
 {
-    public enum DeliveryMethod
+    public class DeliveryMethod
     {
-        ShipToHome = 0,     // Giao hàng tận nơi
-        PickupAtStore = 1   // Nhận tại cửa hàng
+        public const int ShipToHome = 0;     // Giao hàng tận nơi
+        public const int PickupAtStore = 1;   // Nhận tại cửa hàng
     }
 
-    // ✨ BỔ SUNG TRẠNG THÁI THANH TOÁN
     public enum PaymentStatus
     {
         ChuaThanhToan = 0,
@@ -30,21 +29,27 @@ namespace WebBanDienThoai.Models
         public string ShippingAddress { get; set; }
         public string Notes { get; set; }
         public OrderStatus Status { get; set; } = OrderStatus.ChoXacNhan;
-        public DeliveryMethod DeliveryMethod { get; set; } = DeliveryMethod.ShipToHome;
+        public int DeliveryMethod { get; set; } = 0;
         public int? StoreId { get; set; }
         public Store? Store { get; set; }
         public string ProvinceCode { get; set; }
         public string DistrictCode { get; set; }
         public decimal ShippingFee { get; set; }
 
-        // =========================================================================
-        // ✨ CẬP NHẬT CHỨC NĂNG 2 & 3: LƯU PHƯƠNG THỨC COD / TRẢ GÓP 0%
-        // =========================================================================
         public string PaymentMethod { get; set; } = "COD"; // "COD" hoặc "Installment"
         public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.ChuaThanhToan;
 
-        public string? InstallmentBank { get; set; }  // Ngân hàng trả góp (ví dụ: Techcombank)
-        public int? InstallmentMonths { get; set; }   // Kỳ hạn trả góp (ví dụ: 6, 12 tháng)
+        public string? InstallmentBank { get; set; }  // Ngân hàng trả góp
+        public int? InstallmentMonths { get; set; }   // Kỳ hạn trả góp
+
+        // =========================================================================
+        // ✨ CẬP NHẬT CHỨC NĂNG 1 & 3: QUAN LÝ SHIPPER & TRACKING MÃ VẬN ĐƠN THỰC
+        // =========================================================================
+        public int? ShipperId { get; set; }
+        public Shipper? Shipper { get; set; } // Khóa ngoại liên kết sang bảng Shipper
+
+        public string? TrackingNumber { get; set; } // Mã vận đơn điện tử thực tế từ API vận chuyển
+        public List<OrderLog>? OrderLogs { get; set; } // Nhật ký hành trình real-time
         // =========================================================================
 
         [ForeignKey("UserId")]

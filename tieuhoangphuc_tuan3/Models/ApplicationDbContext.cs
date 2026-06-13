@@ -41,6 +41,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProductQuestion> ProductQuestions { get; set; }
     public DbSet<ProductQuestionReply> ProductQuestionReplies { get; set; }
     public DbSet<ProductFaq> ProductFaqs { get; set; }
+    public DbSet<Shipper> Shippers { get; set; }
+    public DbSet<OrderLog> OrderLogs { get; set; }
+    public DbSet<ApplicationUser> ApplicationUsers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

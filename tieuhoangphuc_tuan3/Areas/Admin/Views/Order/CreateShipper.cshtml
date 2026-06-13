@@ -1,0 +1,55 @@
+﻿@model WebBanDienThoai.Models.Shipper
+
+@{
+    ViewData["Title"] = "Thêm mới Shipper";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container mt-4" style="max-width: 700px;">
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-primary text-white py-3">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Thêm mới nhân viên giao vận</h5>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="CreateShipper" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label fw-semibold small">Họ và tên Shipper</label>
+                    <input asp-for="FullName" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required />
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="PhoneNumber" class="form-label fw-semibold small">Số điện thoại</label>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="Ví dụ: 0901234567" required />
+                        <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="VehicleNumber" class="form-label fw-semibold small">Biển số xe</label>
+                        <input asp-for="VehicleNumber" class="form-control" placeholder="Ví dụ: 59X3-12345" required />
+                        <span asp-validation-for="VehicleNumber" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="CompanyName" class="form-label fw-semibold small">Đơn vị / Công ty vận chuyển</label>
+                    <input asp-for="CompanyName" class="form-control" placeholder="Ví dụ: Giao Hàng Nhanh (GHN) hoặc Nội bộ MobiStore" required />
+                    <span asp-validation-for="CompanyName" class="text-danger small"></span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Hủy bỏ</a>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm">
+                        <i class="bi bi-plus-circle me-1"></i> Lưu thông tin Shipper
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

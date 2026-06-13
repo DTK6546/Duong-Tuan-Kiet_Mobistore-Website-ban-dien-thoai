@@ -24,13 +24,11 @@
         _ => "badge bg-light text-dark",
     };
 
-    // ===== Money =====
     decimal subTotal = Model.Subtotal;
     decimal discount = Model.DiscountAmount;
     decimal vat = Model.VatAmount;
     decimal shipFee = Model.ShippingFee;
 
-    // Fallback cho các đơn cũ (khi Subtotal = 0)
     if (subTotal == 0 && Model.OrderDetails != null && Model.OrderDetails.Any())
     {
         subTotal = Model.OrderDetails.Sum(od =>
@@ -40,7 +38,6 @@
         });
     }
 
-    // ===== Progress (Shopee-like) =====
     bool isCancelled = Model.Status == OrderStatus.DaHuy;
     bool isReturn = Model.Status == OrderStatus.TraHang;
 
@@ -63,23 +60,16 @@
         ("Hoàn thành", "bi-check2-circle"),
     };
 
-    string DeliveryText() => Model.DeliveryMethod == DeliveryMethod.ShipToHome
-        ? "Giao hàng tận nơi"
-        : "Nhận tại cửa hàng";
+    string DeliveryText() => Model.DeliveryMethod == 0 ? "Giao hàng tận nơi" : "Nhận tại cửa hàng";
 }
 
 <style>
-    /* =========================================================
-               QUAN TRỌNG: “Kháng” CSS global .card / .card-body trong site.css
-               (site.css của bạn đang set .card{height:100%} + .card-body{display:flex; justify-content:space-between})
-               => làm card bị kéo cao bất thường và footer nhìn như “đè”.
-               ========================================================= */
     .od-card {
         border: 1px solid rgba(0,0,0,.06);
         border-radius: 1rem;
         box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-        height: auto !important; /* chặn height:100% global */
-        transform: none !important; /* chặn hover translateY */
+        height: auto !important;
+        transform: none !important;
         transition: none !important;
     }
 
@@ -88,13 +78,12 @@
         }
 
         .od-card .card-body {
-            display: block !important; /* chặn display:flex global */
-            justify-content: unset !important; /* chặn space-between global */
-            text-align: left !important; /* chặn center global */
+            display: block !important;
+            justify-content: unset !important;
+            text-align: left !important;
             flex-grow: 0 !important;
         }
 
-    /* thêm khoảng thở cuối trang để không “chạm” footer */
     .od-page {
         padding-bottom: 40px;
     }
@@ -103,7 +92,7 @@
         color: #6c757d;
     }
 
-    /* Progress */
+    /* Progress Timeline */
     .od-progress {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
@@ -170,7 +159,7 @@
             background: rgba(13,110,253,.35);
         }
 
-    /* Items */
+    /* Items layout */
     .od-item {
         padding: .9rem 0;
     }
@@ -219,61 +208,41 @@
 
             <div class="d-flex flex-wrap gap-2 align-items-center">
                 <span class="@statusClass(Model.Status) px-3 py-2">@Model.Status.ToVietnameseStatus()</span>
-
-                <a href="@Url.Action("MyOrders", "Order")" class="btn btn-outline-primary rounded-pill px-4">
-                    <i class="bi bi-arrow-left"></i> Quay lại
-                </a>
+                <a href="@Url.Action("MyOrders", "Order")" class="btn btn-outline-primary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Quay lại</a>
 
                 @if (Model.Status == OrderStatus.DaGiao || Model.Status == OrderStatus.HoanTat)
                 {
-                    <a href="@Url.Action("Invoice", "Order", new { id = Model.Id })"
-                       class="btn btn-success rounded-pill px-4">
-                        <i class="bi bi-receipt"></i> Xuất hóa đơn
-                    </a>
-
-                    <a href="/Order/ExportInvoicePdf/@Model.Id"
-                       class="btn btn-dark rounded-pill px-4">
-                        <i class="bi bi-file-earmark-pdf"></i> Tải PDF
-                    </a>
+                    <a href="@Url.Action("Invoice", "Order", new { id = Model.Id })" class="btn btn-success rounded-pill px-4"><i class="bi bi-receipt"></i> Xuất hóa đơn</a>
+                    <a href="/Order/ExportInvoicePdf/@Model.Id" class="btn btn-dark rounded-pill px-4"><i class="bi bi-file-earmark-pdf"></i> Tải PDF</a>
                 }
 
                 @if (canCancel)
                 {
-                    <form asp-action="CancelOrder" method="post" class="d-inline"
-                          onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?');">
+                    <form asp-action="CancelOrder" method="post" class="d-inline" onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?');">
                         <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-danger rounded-pill px-4">
-                            <i class="bi bi-x-circle"></i> Hủy đơn
-                        </button>
+                        <button type="submit" class="btn btn-danger rounded-pill px-4"><i class="bi bi-x-circle"></i> Hủy đơn</button>
                     </form>
                 }
 
                 @if (canConfirmReceived)
                 {
-                    <form asp-action="ConfirmReceived" method="post" class="d-inline"
-                          onsubmit="return confirm('Xác nhận đã nhận hàng?');">
+                    <form asp-action="ConfirmReceived" method="post" class="d-inline" onsubmit="return confirm('Xác nhận đã nhận hàng?');">
                         <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-success rounded-pill px-4">
-                            <i class="bi bi-check2-circle"></i> Đã nhận hàng
-                        </button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4"><i class="bi bi-check2-circle"></i> Đã nhận hàng</button>
                     </form>
                 }
 
                 @if (canReturn)
                 {
-                    <form asp-action="ReturnOrder" method="post" class="d-inline"
-                          onsubmit="return confirm('Bạn muốn yêu cầu trả hàng/hoàn tiền cho đơn này?');">
+                    <form asp-action="ReturnOrder" method="post" class="d-inline" onsubmit="return confirm('Bạn muốn yêu cầu trả hàng/hoàn tiền cho đơn này?');">
                         <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-dark rounded-pill px-4">
-                            <i class="bi bi-arrow-repeat"></i> Trả hàng
-                        </button>
+                        <button type="submit" class="btn btn-dark rounded-pill px-4"><i class="bi bi-arrow-repeat"></i> Trả hàng</button>
                     </form>
                 }
             </div>
         </div>
 
-        <!-- Progress / Banner -->
-        <div class="card od-card mb-3">
+        <div class="card od-card mb-4">
             <div class="card-body">
                 @if (isCancelled)
                 {
@@ -305,8 +274,92 @@
             </div>
         </div>
 
+        <div class="card od-card mb-4 border border-primary border-opacity-25 rounded-4 shadow-sm">
+            <div class="card-header bg-primary bg-opacity-10 py-3">
+                <h5 class="mb-0 text-primary-emphasis fw-bold">
+                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> Nhật ký hành trình giao vận Real-time
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-5 border-end">
+                        <div class="fw-semibold text-secondary mb-2 small"><i class="bi bi-patch-check"></i> Đơn vị phụ trách giao hàng:</div>
+                        @if (Model.Shipper != null)
+                        {
+                            <div class="d-flex align-items-center gap-3 bg-light p-3 rounded-3 border">
+                                <div class="fs-1 text-primary"><i class="bi bi-person-circle"></i></div>
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark">@Model.Shipper.FullName</h6>
+                                    <div class="small text-muted mb-1">Đối tác: @Model.Shipper.CompanyName</div>
+                                    <div class="small text-muted mb-1">Biển số: @Model.Shipper.VehicleNumber</div>
+                                    <div class="mt-2">
+                                        <a href="tel:@Model.Shipper.PhoneNumber" class="btn btn-sm btn-success px-3 rounded-pill small">
+                                            <i class="bi bi-telephone-fill me-1"></i>Gọi Shipper: @Model.Shipper.PhoneNumber
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted bg-light p-3 rounded-3 text-center border border-dashed small">
+                                <i class="bi bi-clock-history me-1"></i> Hệ thống đang điều phối nhân sự hoặc đồng bộ mã vận đơn đối tác...
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.TrackingNumber))
+                        {
+                            <div class="mt-3 small text-secondary">
+                                Mã vận đơn điện tử: <strong class="text-dark bg-warning bg-opacity-25 px-2 py-1 rounded">@Model.TrackingNumber</strong>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="col-md-7 ps-md-4">
+                        <div class="fw-semibold text-secondary mb-3 small"><i class="bi bi-bezier2"></i> Mốc lộ trình di chuyển của gói hàng:</div>
+                        @if (Model.OrderLogs != null && Model.OrderLogs.Any())
+                        {
+                            <div class="position-relative ps-3" style="border-left: 2px solid #0ea5e9;">
+                                @foreach (var log in Model.OrderLogs.OrderByDescending(l => l.LogDate))
+                                {
+                                    <div class="mb-3 position-relative">
+                                        <div class="position-absolute bg-primary rounded-circle" style="width: 10px; height: 10px; left: -20px; top: 6px; border: 2px solid #fff;"></div>
+                                        <div class="fw-bold text-dark small">@log.LogDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                        <div class="text-secondary small">
+                                            @log.StatusDescription
+                                            @if (!string.IsNullOrEmpty(log.Location))
+                                            {
+                                                <span class="badge bg-light text-secondary border ms-1">@log.Location</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            // Cơ chế Fallback hiển thị mốc cơ bản theo thời gian đơn hàng
+                            <div class="position-relative ps-3" style="border-left: 2px solid #ced4da;">
+                                <div class="mb-2 position-relative">
+                                    <div class="position-absolute bg-success rounded-circle" style="width: 10px; height: 10px; left: -20px; top: 6px; border: 2px solid #fff;"></div>
+                                    <div class="fw-bold text-success small">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                    <div class="text-dark small">Đơn hàng khởi tạo thành công tại hệ thống @storeName.</div>
+                                </div>
+                                @if (Model.Status >= OrderStatus.DangXuLy)
+                                {
+                                    <div class="mt-3 position-relative">
+                                        <div class="position-absolute bg-warning rounded-circle" style="width: 10px; height: 10px; left: -20px; top: 6px; border: 2px solid #fff;"></div>
+                                        <div class="fw-bold text-warning-emphasis small">Đang đóng gói</div>
+                                        <div class="text-muted small">Nhân viên kho hoàn tất dán nhãn niêm phong gói hàng.</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="row g-3">
-            <!-- Shipping / Info -->
             <div class="col-lg-5">
                 <div class="card od-card">
                     <div class="card-header bg-white border-0 pt-3">
@@ -314,14 +367,14 @@
                         <div class="od-muted small">Phương thức: @DeliveryText()</div>
                     </div>
                     <div class="card-body pt-2">
-                        @if (Model.DeliveryMethod == DeliveryMethod.ShipToHome)
+                        @if (Model.DeliveryMethod == 0)
                         {
                             <div class="mb-2">
                                 <div class="od-muted small">Địa chỉ giao hàng</div>
                                 <div class="fw-semibold">@Model.ShippingAddress</div>
                             </div>
                         }
-                        else if (Model.DeliveryMethod == DeliveryMethod.PickupAtStore && Model.Store != null)
+                        else if (Model.DeliveryMethod == 1 && Model.Store != null)
                         {
                             <div class="mb-2">
                                 <div class="od-muted small">Nhận tại cửa hàng</div>
@@ -329,7 +382,6 @@
                                 <div class="od-muted">@Model.Store.Address</div>
                             </div>
                         }
-
                         <div class="mb-2">
                             <div class="od-muted small">Ghi chú</div>
                             <div>@(string.IsNullOrWhiteSpace(Model.Notes) ? "(Không có)" : Model.Notes)</div>
@@ -337,124 +389,86 @@
                     </div>
                 </div>
 
-                <!-- Money summary -->
                 <div class="card od-card mt-3">
                     <div class="card-header bg-white border-0 pt-3">
                         <div class="fw-bold"><i class="bi bi-receipt"></i> Thanh toán</div>
                     </div>
                     <div class="card-body pt-2">
-                        <div class="od-summary-row">
-                            <div class="od-muted">Tạm tính</div>
-                            <div class="fw-semibold">@subTotal.ToString("N0") đ</div>
-                        </div>
-
+                        <div class="od-summary-row"><div class="od-muted">Tạm tính</div><div class="fw-semibold">@subTotal.ToString("N0") đ</div></div>
                         @if (discount > 0)
                         {
                             <div class="od-summary-row">
-                                <div class="od-muted">
-                                    Giảm giá
-                                    @if (!string.IsNullOrEmpty(Model.CouponCode))
-                                    {
-                                        <span class="small">(Mã: @Model.CouponCode)</span>
-                                    }
-                                </div>
-                                <div class="fw-semibold text-danger">-@discount.ToString("N0") đ</div>
+                                <div class="od-muted">Giảm giá @if (!string.IsNullOrEmpty(Model.CouponCode)) {
+                                    <span class="small">(Mã: @Model.CouponCode)</span>
+                                }
                             </div>
-                        }
-
-                        <div class="od-summary-row">
-                            <div class="od-muted">Thành tiền (chưa VAT)</div>
-                            <div class="fw-semibold">
-                                @Math.Max(0, subTotal - discount).ToString("N0") đ
-                            </div>
+                            <div class="fw-semibold text-danger">-@discount.ToString("N0") đ</div>
                         </div>
-
-                        <div class="od-summary-row">
-                            <div class="od-muted">VAT (10%)</div>
-                            <div class="fw-semibold">@vat.ToString("N0") đ</div>
-                        </div>
-
-                        <div class="od-summary-row">
-                            <div class="od-muted">Phí vận chuyển</div>
-                            <div class="fw-semibold">@(shipFee > 0 ? shipFee.ToString("N0") + " đ" : "Miễn phí")</div>
-                        </div>
-
-                        <hr />
-
-                        <div class="od-summary-row align-items-center">
-                            <div class="fw-bold">Tổng cộng</div>
-                            <div class="fs-5 fw-bold text-danger">@Model.TotalPrice.ToString("N0") đ</div>
-                        </div>
-                    </div>
+                    }
+                    <div class="od-summary-row"><div class="od-muted">Thành tiền (chưa VAT)</div><div class="fw-semibold">@Math.Max(0, subTotal - discount).ToString("N0") đ</div></div>
+                    <div class="od-summary-row"><div class="od-muted">VAT (10%)</div><div class="fw-semibold">@vat.ToString("N0") đ</div></div>
+                    <div class="od-summary-row"><div class="od-muted">Phí vận chuyển</div><div class="fw-semibold">@(shipFee > 0 ? shipFee.ToString("N0") + " đ" : "Miễn phí")</div></div>
+                    <hr />
+                    <div class="od-summary-row align-items-center"><div class="fw-bold">Tổng cộng</div><div class="fs-5 fw-bold text-danger">@Model.TotalPrice.ToString("N0") đ</div></div>
                 </div>
             </div>
+        </div>
 
-            <!-- Items -->
-            <div class="col-lg-7">
-                <div class="card od-card">
-                    <div class="card-header bg-white border-0 pt-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <div class="fw-bold"><i class="bi bi-shop"></i> @storeName</div>
-                        <div class="od-muted small">Mã đơn: #@Model.Id</div>
-                    </div>
+        <div class="col-lg-7">
+            <div class="card od-card">
+                <div class="card-header bg-white border-0 pt-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div class="fw-bold"><i class="bi bi-shop"></i> @storeName</div>
+                    <div class="od-muted small">Mã đơn: #@Model.Id</div>
+                </div>
 
-                    <div class="card-body pt-2">
-                        @foreach (var item in Model.OrderDetails ?? new List<OrderDetail>())
-                        {
-                            var warrantyPerItem = item.Warranties?.Sum(w => w.Price) ?? 0m;
-                            var lineTotal = (item.Price + warrantyPerItem) * item.Quantity;
-                            var displayName = !string.IsNullOrWhiteSpace(item.ProductName) ? item.ProductName : item.Product?.Name;
-                            var img = item.Product?.ImageUrl;
+                <div class="card-body pt-2">
+                    @foreach (var item in Model.OrderDetails ?? new List<OrderDetail>())
+                    {
+                        var warrantyPerItem = item.Warranties?.Sum(w => w.Price) ?? 0m;
+                        var lineTotal = (item.Price + warrantyPerItem) * item.Quantity;
+                        var displayName = !string.IsNullOrWhiteSpace(item.ProductName) ? item.ProductName : item.Product?.Name;
+                        var img = item.Product?.ImageUrl;
 
-                            <div class="od-item d-flex gap-3">
-                                <div class="od-thumb">
-                                    @if (!string.IsNullOrWhiteSpace(img))
-                                    {
-                                        <img src="@img" alt="@displayName" />
-                                    }
-                                    else
-                                    {
-                                        <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
-                                            <i class="bi bi-phone fs-4"></i>
-                                        </div>
-                                    }
-                                </div>
+                        <div class="od-item d-flex gap-3">
+                            <div class="od-thumb">
+                                @if (!string.IsNullOrWhiteSpace(img))
+                                {
+                                    <img src="@img" alt="@displayName" />
+                                }
+                                else
+                                {
 
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold">@displayName</div>
-
-                                    @if (item.Warranties != null && item.Warranties.Any())
-                                    {
-                                        <div class="mt-2 p-2 bg-light rounded border">
-                                            <div class="fw-semibold mb-1 small">
-                                                <i class="bi bi-shield-check text-success"></i> Gói bảo hành đã mua
-                                            </div>
-                                            @foreach (var w in item.Warranties)
-                                            {
-                                                <div class="d-flex justify-content-between small ps-2">
-                                                    <span>• @w.Name (@w.Months tháng)</span>
-                                                    <span class="text-danger fw-semibold">+@w.Price.ToString("N0") đ</span>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-
-                                <div class="text-end od-price">
-                                    <div class="od-muted small">x@(item.Quantity)</div>
-                                    <div class="fw-semibold">@item.Price.ToString("N0") đ</div>
-                                    @if (warrantyPerItem > 0)
-                                    {
-                                        <div class="od-muted small">BH: +@warrantyPerItem.ToString("N0") đ / sp</div>
-                                    }
-                                    <div class="fw-bold mt-1">@lineTotal.ToString("N0") đ</div>
-                                </div>
+                                    <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted"><i class="bi bi-phone fs-4"></i></div>
+                                }
                             </div>
-                        }
-                    </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">@displayName</div>
+                                @if (item.Warranties != null && item.Warranties.Any())
+                                {
+                                    <div class="mt-2 p-2 bg-light rounded border">
+                                        <div class="fw-semibold mb-1 small"><i class="bi bi-shield-check text-success"></i> Gói bảo hành đã mua</div>
+                                        @foreach (var w in item.Warranties)
+                                        {
+                                            <div class="d-flex justify-content-between small ps-2">
+                                                <span>• @w.Name (@w.Months tháng)</span>
+                                                <span class="text-danger fw-semibold">+@w.Price.ToString("N0") đ</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="text-end od-price">
+                                <div class="od-muted small">x@(item.Quantity)</div>
+                                <div class="fw-semibold">@item.Price.ToString("N0") đ</div>
+                                <div class="fw-bold mt-1">@lineTotal.ToString("N0") đ</div>
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <script>
