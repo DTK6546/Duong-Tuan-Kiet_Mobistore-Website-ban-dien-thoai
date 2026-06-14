@@ -11,30 +11,26 @@
     @RenderSection("Meta", required: false)
     <title>@ViewData["Title"] - Shop Điện Thoại</title>
 
-    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
-    <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    <!-- Swiper JS -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
-    <!-- Custom CSS -->
     <link href="~/css/site.css" rel="stylesheet" />
 
     <style>
         /* Header trên */
         .header-top {
-            position: sticky;
-            top: 0;
-            z-index: 1040;
+        position: sticky;
+        top: 0;
+        z-index: 1040;
         }
 
         /* Header dưới */
         .header-bottom {
-            position: sticky;
-            top: 6px; /* chiều cao header trên */
-            z-index: 1039;
+        position: sticky;
+        top: 6px; /* chiều cao header trên */
+        z-index: 1039;
         }
 
         /* ==== FIX MÀU CHỮ TÀI KHOẢN TRÊN HEADER ==== */
@@ -43,74 +39,71 @@
         .header-top .dropdown-menu a,
         .header-top span,
         .header-top strong {
-            color: #ffffff !important;
+        color: #ffffff !important;
         }
 
         .header-top .dropdown-menu {
-            background: #ffffff; /* giữ popup dropdown trắng đẹp */
+        background: #ffffff; /* giữ popup dropdown trắng đẹp */
         }
 
-            .header-top .dropdown-menu a {
-                color: #000 !important; /* chữ trong menu xổ xuống vẫn đen */
-            }
+        .header-top .dropdown-menu a {
+        color: #000 !important; /* chữ trong menu xổ xuống vẫn đen */
+        }
 
-                .header-top .dropdown-menu a:hover {
-                    background: #f0f0f0;
-                }
+        .header-top .dropdown-menu a:hover {
+        background: #f0f0f0;
+        }
 
 
         /* Đảm bảo dropdown menu nổi lên */
         .dropdown-menu {
-            z-index: 3000 !important;
+        z-index: 3000 !important;
         }
-            /* Nới dropdown khỏi header trắng (nếu cần) */
-            .dropdown-menu[aria-labelledby="userDropdown"] {
-                margin-top: 8px;
-            }
+        /* Nới dropdown khỏi header trắng (nếu cần) */
+        .dropdown-menu[aria-labelledby="userDropdown"] {
+        margin-top: 8px;
+        }
 
         /* ===== MENU MỘT MÀU ===== */
         .navbar-nav .nav-link {
-            color: #0ea5e9 !important; /* MÀU CHỮ MỘT MÀU */
-            font-weight: 600;
-            transition: 0.25s;
+        color: #0ea5e9 !important; /* MÀU CHỮ MỘT MÀU */
+        font-weight: 600;
+        transition: 0.25s;
         }
 
-            /* ===== HIỆU ỨNG HOVER ===== */
-            .navbar-nav .nav-link:hover {
-                color: #0284c7 !important; /* Đậm hơn khi hover */
-                text-decoration: underline; /* Gạch chân khi hover */
-            }
+        /* ===== HIỆU ỨNG HOVER ===== */
+        .navbar-nav .nav-link:hover {
+        color: #0284c7 !important; /* Đậm hơn khi hover */
+        text-decoration: underline; /* Gạch chân khi hover */
+        }
 
-            /* ===== ACTIVE (trang hiện tại) ===== */
-            .navbar-nav .nav-link.active {
-                color: #0284c7 !important;
-                border-bottom: 2px solid #0284c7;
-            }
+        /* ===== ACTIVE (trang hiện tại) ===== */
+        .navbar-nav .nav-link.active {
+        color: #0284c7 !important;
+        border-bottom: 2px solid #0284c7;
+        }
 
         .row {
-            align-items: flex-start;
+        align-items: flex-start;
         }
 
         .col-lg-4 {
-            align-self: flex-start;
+        align-self: flex-start;
         }
     </style>
 </head>
 
 <body>
     <div class="wrapper">
-        <!-- Header trên -->
         <nav class="navbar navbar-expand-lg navbar-dark py-2 header-top" style="background:#0ea5e9;">
             <div class="container align-items-center">
 
-                <!-- Logo -->
                 <a class="navbar-brand d-flex align-items-center" href="/">
                     <img src="/images/mobistore-logo.png"
                          alt="Mobistore" style="height:40px; margin-right:8px;">
                     <span class="fw-bold ms-1">Mobistore</span>
                 </a>
 
-                <!-- Search + Voice -->
                 <form class="d-flex flex-grow-1 mx-4 search-bar" action="@Url.Action("Index", "Product")" method="get">
                     <div class="input-group w-100">
                         <input class="form-control search-input" type="search" name="query" placeholder="Nhập tên sản phẩm..." value="@Context.Request.Query["query"]">
@@ -156,7 +149,6 @@
         </nav>
 
 
-        <!-- Header dưới: menu điều hướng -->
         <nav class="navbar navbar-expand navbar-light bg-white border-bottom shadow-sm header-bottom" style="min-height:45px">
             <div class="container">
                 <ul class="navbar-nav me-auto">
@@ -176,12 +168,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link fw-bold" asp-area="" asp-controller="Home" asp-action="Policy" asp-route-type="baohanh" title="Chính sách sản phẩm">
+                        <a class="nav-link fw-bold" asp-controller="Information" asp-action="PrivacyPolicy" title="Chính sách sản phẩm">
                             <i class="bi bi-info-circle"></i> Chính Sách
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link fw-bold" asp-controller="About" asp-action="Index">
+                        <a class="nav-link fw-bold" asp-controller="Information" asp-action="AboutUs">
                             <i class="bi bi-building"></i> Giới thiệu
                         </a>
                     </li>
@@ -190,11 +182,15 @@
                             <i class="bi bi-envelope"></i> Liên hệ
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold" asp-controller="Information" asp-action="FAQ">
+                            <i class="bi bi-patch-question"></i> FAQ Trang Chủ
+                        </a>
+                    </li>
                 </ul>
             </div>
         </nav>
 
-        <!-- Banner quảng cáo -->
         <div class="container mt-3">
             <div id="carouselExample" class="carousel slide" data-bs-ride="carousel">
                 <div class="carousel-inner">
@@ -229,50 +225,42 @@
             </div>
         </div>
 
-        <!-- Nội dung chính -->
         <div class="container mt-4 content">
             @RenderBody()
         </div>
 
-        <!-- Footer -->
-        <!-- Footer -->
         <footer class="bg-dark text-white pt-5 pb-4 mt-5">
             <div class="container">
                 <div class="row row-cols-1 row-cols-md-4 g-4">
-                    <!-- Thương hiệu -->
                     <div class="col">
-                        <h6 class="text-uppercase fw-bold">Thương hiệu đảm bảo</h6>
-                        <ul class="list-unstyled">
-                            <li>Nhập khẩu, bảo hành chính hãng</li>
-                            <li>Đổi trả dễ dàng tại Mobistore</li>
+                        <h6 class="text-uppercase fw-bold text-info">Thương hiệu đảm bảo</h6>
+                        <ul class="list-unstyled mt-3">
+                            <li class="mb-2"><i class="bi bi-shield-check text-success me-2"></i>Nhập khẩu, bảo hành chính hãng</li>
+                            <li class="mb-2"><i class="bi bi-arrow-counterclockwise text-success me-2"></i>Đổi trả dễ dàng tại Mobistore</li>
                         </ul>
                     </div>
 
-                    <!-- Chính sách -->
                     <div class="col">
-                        <h6 class="text-uppercase fw-bold">Các Chính sách</h6>
-                        <ul class="list-unstyled">
-                            <li><a href="/Home/Policy?type=baohanh" class="text-white text-decoration-none">Chính sách bảo hành</a></li>
-                            <li><a href="/Home/Policy?type=doitra" class="text-white text-decoration-none">Chính sách đổi trả</a></li>
-                            <li><a href="/Home/Policy?type=baomat" class="text-white text-decoration-none">Chính sách bảo mật</a></li>
-
+                        <h6 class="text-uppercase fw-bold text-info">Thông tin MobiStore</h6>
+                        <ul class="list-unstyled mt-3">
+                            <li class="mb-2"><a href="/Information/AboutUs" class="text-white text-decoration-none"><i class="bi bi-chevron-right small me-1"></i> Giới thiệu cửa hàng</a></li>
+                            <li class="mb-2"><a href="/Information/PrivacyPolicy" class="text-white text-decoration-none"><i class="bi bi-chevron-right small me-1"></i> Điều khoản & Chính sách</a></li>
+                            <li class="mb-2"><a href="/Information/FAQ" class="text-white text-decoration-none"><i class="bi bi-chevron-right small me-1"></i> Câu hỏi thường gặp (FAQ)</a></li>
                         </ul>
                     </div>
 
-                    <!-- Kết nối -->
                     <div class="col">
-                        <h6 class="text-uppercase fw-bold">Kết nối với Mobistore</h6>
-                        <ul class="list-unstyled">
-                            <li><a href="https://www.facebook.com/FPTShopOnline" class="text-white text-decoration-none" target="_blank"><i class="fab fa-facebook me-2"></i>Facebook</a></li>
-                            <li><a href="https://www.tiktok.com/@@fptshop.official" class="text-white text-decoration-none" target="_blank"><i class="fab fa-tiktok me-2"></i>TikTok</a></li>
-                            <li><a href="https://www.youtube.com/@@FPTShop_" class="text-white text-decoration-none" target="_blank"><i class="fab fa-youtube me-2"></i>YouTube</a></li>
+                        <h6 class="text-uppercase fw-bold text-info">Kết nối với Mobistore</h6>
+                        <ul class="list-unstyled mt-3">
+                            <li class="mb-2"><a href="https://www.facebook.com/FPTShopOnline" class="text-white text-decoration-none" target="_blank"><i class="fab fa-facebook me-2 text-primary"></i>Facebook</a></li>
+                            <li class="mb-2"><a href="https://www.tiktok.com/@@fptshop.official" class="text-white text-decoration-none" target="_blank"><i class="fab fa-tiktok me-2 text-light"></i>TikTok</a></li>
+                            <li class="mb-2"><a href="https://www.youtube.com/@@FPTShop_" class="text-white text-decoration-none" target="_blank"><i class="fab fa-youtube me-2 text-danger"></i>YouTube</a></li>
                         </ul>
                     </div>
 
-                    <!-- Hỗ trợ thanh toán -->
                     <div class="col">
-                        <h6 class="text-uppercase fw-bold">Hỗ trợ thanh toán</h6>
-                        <div class="d-flex flex-wrap gap-2">
+                        <h6 class="text-uppercase fw-bold text-info">Hỗ trợ thanh toán</h6>
+                        <div class="d-flex flex-wrap gap-2 mt-3">
                             <img src="https://cdn2.fptshop.com.vn/svg/visa_icon_44fe6e15ed.svg?w=48&q=100" alt="Visa" width="48">
                             <img src="https://cdn2.fptshop.com.vn/svg/mastercard_icon_c75f94f6a5.svg?w=48&q=100" alt="MasterCard" width="48">
                             <img src="https://cdn2.fptshop.com.vn/svg/jcb_icon_214783937c.svg?w=48&q=100" alt="JCB" width="48">
@@ -285,142 +273,133 @@
                     </div>
                 </div>
 
-                <div class="text-center mt-4 text-muted">
-                    © 2025 Mobistore. Tất cả quyền lợi được bảo lưu.
+                <div class="text-center mt-4 text-muted border-top pt-3">
+                    © 2026 Mobistore. Tất cả quyền lợi được bảo lưu.
                 </div>
             </div>
         </footer>
 
     </div>
+
     <script>
         function updateCartCount() {
-            fetch('/ShoppingCart/GetCartCount')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('cartCount').innerText = data.count;
-                });
+        fetch('/ShoppingCart/GetCartCount')
+        .then(response => response.json())
+        .then(data => {
+        document.getElementById('cartCount').innerText = data.count;
+        });
         }
-
-        updateCartCount(); // Cập nhật số giỏ hàng khi trang load
-
-
+        updateCartCount();
     </script>
     <script>
         function startVoiceSearch() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Trình duyệt của bạn không hỗ trợ tìm kiếm bằng giọng nói.");
-                return;
-            }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+        alert("Trình duyệt của bạn không hỗ trợ tìm kiếm bằng giọng nói.");
+        return;
+        }
 
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'vi-VN';  // Đặt ngôn ngữ là tiếng Việt
-            recognition.continuous = false;
-            recognition.interimResults = false;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'vi-VN';
+        recognition.continuous = false;
+        recognition.interimResults = false;
 
-            recognition.onstart = function() {
-                console.log("Đang nghe...");
-            };
+        recognition.onstart = function() {
+        console.log("Đang nghe...");
+        };
 
-            recognition.onresult = function(event) {
-                let searchQuery = event.results[0][0].transcript;
-                console.log("Tìm kiếm với từ khóa:", searchQuery);
+        recognition.onresult = function(event) {
+        let searchQuery = event.results[0][0].transcript;
+        searchQuery = searchQuery.replace(/\.$/, '');
+        document.querySelector('input[name="query"]').value = searchQuery;
+        document.querySelector('form').submit();
+        };
 
-                // Loại bỏ dấu chấm ở cuối từ khóa nếu có
-                searchQuery = searchQuery.replace(/\.$/, '');
+        recognition.onerror = function(event) {
+        console.error("Lỗi nhận diện giọng nói: ", event.error);
+        };
 
-                document.querySelector('input[name="query"]').value = searchQuery;
-                document.querySelector('form').submit();  // Gửi form tìm kiếm sau khi nhận diện giọng nói
-            };
+        recognition.onend = function() {
+        console.log("Kết thúc nhận diện.");
+        };
 
-            recognition.onerror = function(event) {
-                console.error("Lỗi nhận diện giọng nói: ", event.error);
-            };
-
-            recognition.onend = function() {
-                console.log("Kết thúc nhận diện.");
-            };
-
-            recognition.start(); // Bắt đầu nhận diện giọng nói
+        recognition.start();
         }
     </script>
-    <!-- Bootstrap & Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
     <script>
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chatHub")
-            .build();
+        .withUrl("/chatHub")
+        .build();
 
         // === Thông báo Tin tức ===
         connection.on("ReceiveNewsNotification", function (title, summary, url, createdAt) {
-            const container = document.createElement('div');
-            container.className = "toast align-items-center text-bg-primary border-0 position-fixed bottom-0 end-0 m-3";
-            container.setAttribute("role", "alert");
-            container.setAttribute("aria-live", "assertive");
-            container.setAttribute("aria-atomic", "true");
-            container.style.zIndex = 9999;
+        const container = document.createElement('div');
+        container.className = "toast align-items-center text-bg-primary border-0 position-fixed bottom-0 end-0 m-3";
+        container.setAttribute("role", "alert");
+        container.setAttribute("aria-live", "assertive");
+        container.setAttribute("aria-atomic", "true");
+        container.style.zIndex = 9999;
 
-            container.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <div class="fw-bold mb-1">
-                            <i class="bi bi-newspaper"></i> Tin tức mới
-                        </div>
-                        <div>${title}</div>
-                        <small class="text-light-50">${createdAt ?? ""}</small>
-                        ${summary ? `<div class="mt-1 small">${summary}</div>` : ""}
-                        ${url ? `
-                            <div class="mt-2">
-                                <a href="${url}" class="text-white text-decoration-underline">
-                                    Xem chi tiết
-                                </a>
-                            </div>` : ""}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-
-            document.body.appendChild(container);
-            const toast = new bootstrap.Toast(container, { delay: 5000 });
-            toast.show();
-            container.addEventListener('hidden.bs.toast', () => container.remove());
+        container.innerHTML = `
+        <div class="d-flex">
+        <div class="toast-body">
+        <div class="fw-bold mb-1">
+        <i class="bi bi-newspaper"></i> Tin tức mới
+        </div>
+        <div>${title}</div>
+        <small class="text-light-50">${createdAt ?? ""}</small>
+        ${summary ? `<div class="mt-1 small">${summary}</div>` : ""}
+        ${url ? `
+        <div class="mt-2">
+        <a href="${url}" class="text-white text-decoration-underline">
+        Xem chi tiết
+        </a>
+        </div>` : ""}
+        </div>
+        <button type="submit" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+        `;
+        document.body.appendChild(container);
+        const toast = new bootstrap.Toast(container, { delay: 5000 });
+        toast.show();
+        container.addEventListener('hidden.bs.toast', () => container.remove());
         });
 
         // === Thông báo Sản phẩm ===
         connection.on("ReceiveProductNotification", function (title, summary, url, createdAt) {
-            const container = document.createElement('div');
-            container.className = "toast align-items-center text-bg-success border-0 position-fixed bottom-0 end-0 m-3";
-            container.setAttribute("role", "alert");
-            container.setAttribute("aria-live", "assertive");
-            container.setAttribute("aria-atomic", "true");
-            container.style.zIndex = 9999;
+        const container = document.createElement('div');
+        container.className = "toast align-items-center text-bg-success border-0 position-fixed bottom-0 end-0 m-3";
+        container.setAttribute("role", "alert");
+        container.setAttribute("aria-live", "assertive");
+        container.setAttribute("aria-atomic", "true");
+        container.style.zIndex = 9999;
 
-            container.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <div class="fw-bold mb-1">
-                            <i class="bi bi-phone"></i> ${title}
-                        </div>
-                        ${summary ? `<div>${summary}</div>` : ""}
-                        <small class="text-light-50 d-block mt-1">${createdAt ?? ""}</small>
-                        ${url ? `
-                            <div class="mt-2">
-                                <a href="${url}" class="text-white text-decoration-underline">
-                                    Xem chi tiết
-                                </a>
-                            </div>` : ""}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-
-            document.body.appendChild(container);
-            const toast = new bootstrap.Toast(container, { delay: 5000 });
-            toast.show();
-            container.addEventListener('hidden.bs.toast', () => container.remove());
+        container.innerHTML = `
+        <div class="d-flex">
+        <div class="toast-body">
+        <div class="fw-bold mb-1">
+        <i class="bi bi-phone"></i> ${title}
+        </div>
+        ${summary ? `<div>${summary}</div>` : ""}
+        <small class="text-light-50 d-block mt-1">${createdAt ?? ""}</small>
+        ${url ? `
+        <div class="mt-2">
+        <a href="${url}" class="text-white text-decoration-underline">
+        Xem chi tiết
+        </a>
+        </div>` : ""}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+        `;
+        document.body.appendChild(container);
+        const toast = new bootstrap.Toast(container, { delay: 5000 });
+        toast.show();
+        container.addEventListener('hidden.bs.toast', () => container.remove());
         });
 
         connection.start().catch(err => console.error("ChatHub connect error:", err));

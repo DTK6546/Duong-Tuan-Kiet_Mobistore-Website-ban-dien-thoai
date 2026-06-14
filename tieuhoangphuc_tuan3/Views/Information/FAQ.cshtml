@@ -1,0 +1,51 @@
+﻿@{
+    ViewData["Title"] = "Câu hỏi thường gặp - FAQ";
+}
+
+<div class="container my-5" style="max-width: 800px;">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold text-dark"><i class="bi bi-patch-question-fill text-warning"></i> CÂU HỎI THƯỜNG GẶP (FAQ)</h2>
+        <p class="text-muted">MobiStore giải đáp nhanh các thắc mắc phổ biến của bạn khi mua sắm</p>
+    </div>
+
+    <div class="accordion shadow-sm" id="accordionFAQ">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                    📌 1. Các sản phẩm tại MobiStore có phải chính hãng không?
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionFAQ">
+                <div class="accordion-body text-secondary" style="line-height: 1.7;">
+                    Toàn bộ sản phẩm điện thoại di động bán ra tại MobiStore đều là **hàng chính hãng 100%**, đầy đủ hóa đơn VAT và được hưởng đầy đủ chính sách bảo hành toàn quốc từ các hãng lớn như Apple, Samsung, Oppo...
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingTwo">
+                <button class="accordion-button collapsed fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                    🚚 2. Thời gian và phí giao hàng được tính như thế nào?
+                </button>
+            </h2>
+            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionFAQ">
+                <div class="accordion-body text-secondary" style="line-height: 1.7;">
+                    Hệ thống sẽ tự động tính toán phí giao hàng dựa theo Tỉnh/Thành phố và Quận/Huyện của bạn. Thời gian giao hàng nội thành từ 1-2 ngày, ngoại thành từ 3-4 ngày làm việc thông qua đội ngũ Shipper chuyên nghiệp.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    💎 3. Hệ thống điểm tích lũy thành viên VIP hoạt động ra sao?
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionFAQ">
+                <div class="accordion-body text-secondary" style="line-height: 1.7;">
+                    Mỗi đơn hàng hoàn tất sẽ được cộng điểm trực tiếp vào tài khoản của bạn. Khi tích lũy đủ điểm, bạn sẽ được thăng hạng lên **Bạc (giảm 1%)**, **Vàng (giảm 3%)**, hoặc **Kim Cương (giảm 5%)** áp dụng trực tiếp cho toàn bộ các hóa đơn mua sắm tiếp theo.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

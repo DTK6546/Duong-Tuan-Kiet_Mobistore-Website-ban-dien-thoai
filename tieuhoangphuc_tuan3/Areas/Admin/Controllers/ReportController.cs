@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebBanDienThoai.Models;
@@ -82,21 +83,61 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             return View(orderList);
         }
 
-        // 🧾 Xuất báo cáo kho ra Excel
+        // 🧾 CHỨC NĂNG 10: XUẤT BÁO CÁO DOANH THU ĐƠN HÀNG (MỚI)
+        [HttpGet]
+        public async Task<IActionResult> ExportRevenueToCsv(DateTime? fromDate, DateTime? toDate)
+        {
+            var orders = _context.Orders
+                .Include(o => o.ApplicationUser)
+                .Where(o => o.Status == OrderStatus.HoanTat);
+
+            if (fromDate.HasValue) orders = orders.Where(o => o.OrderDate >= fromDate.Value);
+            if (toDate.HasValue) orders = orders.Where(o => o.OrderDate <= toDate.Value);
+
+            var orderList = await orders.OrderByDescending(o => o.OrderDate).ToListAsync();
+
+            var csvBuilder = new StringBuilder();
+            csvBuilder.AppendLine("Mã đơn hàng;Ngày đặt;Khách hàng;Tổng tiền (VNĐ);Trạng thái");
+
+            foreach (var o in orderList)
+            {
+                csvBuilder.AppendLine($"{o.Id};{o.OrderDate:dd/MM/yyyy HH:mm};{o.ApplicationUser?.FullName ?? "Ẩn danh"};{o.TotalPrice};Hoàn tất");
+            }
+
+            // ✨ Chèn mã BOM mã hóa UTF-8 giúp Excel nhận diện dấu Tiếng Việt chuẩn 100%
+            byte[] buffer = Encoding.UTF8.GetBytes(csvBuilder.ToString());
+            byte[] bom = { 0xEF, 0xBB, 0xBF };
+            byte[] fileBytes = new byte[bom.Length + buffer.Length];
+            Buffer.BlockCopy(bom, 0, fileBytes, 0, bom.Length);
+            Buffer.BlockCopy(buffer, 0, fileBytes, bom.Length, buffer.Length);
+
+            return File(fileBytes, "text/csv; charset=utf-8", $"BaoCaoDoanhThu_{DateTime.Now:yyyyMMdd}.csv");
+        }
+
+        // 🧾 CHỨC NĂNG 10: XUẤT BÁO CÁO KHO RA EXCEL (ĐÃ SỬA LỖI FONT & VỠ CỘT)
         [HttpGet]
         public async Task<IActionResult> ExportInventoryToCsv()
         {
             var products = await _context.Products.ToListAsync();
-            var csv = "Tên sản phẩm,Số lượng tồn,Ngưỡng cảnh báo,Giá,Giá trị tồn kho,Ngày nhập gần nhất,Ngày xuất gần nhất\n";
+
+            var csvBuilder = new StringBuilder();
+            // Dùng dấu chấm phẩy ; thay vì dấu phẩy để tránh lỗi chia nhầm cột khi tên sản phẩm chứa dấu ,
+            csvBuilder.AppendLine("Tên sản phẩm;Số lượng tồn;Ngưỡng cảnh báo;Giá bán (VNĐ);Giá trị tồn kho (VNĐ);Ngày nhập gần nhất;Ngày xuất gần nhất");
 
             foreach (var p in products)
             {
-                csv += $"{p.Name},{p.Quantity},{p.MinStockLevel},{p.Price:N0},{(p.Quantity * p.Price):N0}," +
-                       $"{p.LastImportDate?.ToString("dd/MM/yyyy")},{p.LastExportDate?.ToString("dd/MM/yyyy")}\n";
+                csvBuilder.AppendLine($"{p.Name};{p.Quantity};{p.MinStockLevel};{p.Price};{p.Quantity * p.Price};" +
+                                       $"{p.LastImportDate?.ToString("dd/MM/yyyy")};{p.LastExportDate?.ToString("dd/MM/yyyy")}");
             }
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
-            return File(bytes, "text/csv", "BaoCaoTonKho.csv");
+            // ✨ Chèn mã BOM bảo vệ bảng mã hóa ký tự
+            byte[] buffer = Encoding.UTF8.GetBytes(csvBuilder.ToString());
+            byte[] bom = { 0xEF, 0xBB, 0xBF };
+            byte[] fileBytes = new byte[bom.Length + buffer.Length];
+            Buffer.BlockCopy(bom, 0, fileBytes, 0, bom.Length);
+            Buffer.BlockCopy(buffer, 0, fileBytes, bom.Length, buffer.Length);
+
+            return File(fileBytes, "text/csv; charset=utf-8", $"BaoCaoTonKho_{DateTime.Now:yyyyMMdd}.csv");
         }
     }
 }
