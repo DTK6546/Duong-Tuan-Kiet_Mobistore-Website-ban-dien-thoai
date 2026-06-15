@@ -1,0 +1,178 @@
+﻿@{
+    ViewData["Title"] = "Báo cáo phân tích chuyên sâu - MobiStore";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string timeline = ViewBag.Timeline as string ?? "month";
+}
+
+<div class="container-fluid pt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark m-0"><i class="bi bi-graph-up-arrow text-primary"></i> Dashboard Analytics</h2>
+
+        <div class="btn-group shadow-sm">
+            <a href="?timeline=day" class="btn btn-outline-primary @(timeline == "day" ? "active" : "")">Theo Ngày</a>
+            <a href="?timeline=month" class="btn btn-outline-primary @(timeline == "month" ? "active" : "")">Theo Tháng</a>
+            <a href="?timeline=year" class="btn btn-outline-primary @(timeline == "year" ? "active" : "")">Theo Năm</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 border-start border-4 border-success shadow-sm p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Tổng doanh thu</div>
+                        <div class="fs-4 fw-bold text-success mt-1">@ViewBag.TotalRevenue.ToString("N0") ₫</div>
+                    </div>
+                    <div class="fs-1 text-success opacity-50"><i class="bi bi-currency-dollar"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 border-start border-4 border-primary shadow-sm p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Đơn hàng hoàn tất</div>
+                        <div class="fs-4 fw-bold text-primary mt-1">@ViewBag.TotalOrdersCount đơn</div>
+                    </div>
+                    <div class="fs-1 text-primary opacity-50"><i class="bi bi-cart-check-fill"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 border-start border-4 border-warning shadow-sm p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Tỷ lệ Conversion</div>
+                        <div class="fs-4 fw-bold text-warning mt-1">@ViewBag.ConversionRate%</div>
+                    </div>
+                    <div class="fs-1 text-warning opacity-50"><i class="bi bi-lightning-charge-fill"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 border-start border-4 border-info shadow-sm p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Khách quay lại</div>
+                        <div class="fs-5 fw-bold text-info mt-1">
+                            @ViewBag.RecurringCustomers cũ / @ViewBag.NewCustomers mới
+                        </div>
+                    </div>
+                    <div class="fs-1 text-info opacity-50"><i class="bi bi-people-fill"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-4 bg-white">
+                <h5 class="fw-bold text-dark mb-3">📈 Xu hướng doanh thu theo thời gian</h5>
+                <div style="height: 320px; position: relative;">
+                    <canvas id="mainRevenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4 bg-white h-100">
+                <h5 class="fw-bold text-dark mb-3">💰 Tỷ trọng theo Danh mục</h5>
+                <div style="height: 280px; position: relative;" class="d-flex justify-content-center align-items-center">
+                    <canvas id="categoryPieChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-dark text-white fw-bold py-3">
+            <i class="bi bi-star-fill text-warning me-1"></i> TOP 5 SẢN PHẨM BÁN CHẠY NHẤT
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>Hạng</th>
+                            <th class="text-start">Tên sản phẩm</th>
+                            <th>Số lượng đã bán</th>
+                            <th class="text-end">Doanh thu đem lại</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int rank = 1;
+                        }
+                        @foreach (var p in ViewBag.TopProducts)
+                        {
+                            <tr>
+                                <td class="text-center fw-bold text-secondary">#@rank</td>
+                                <td class="fw-semibold text-primary">@p.ProductName</td>
+                                <td class="text-center badge bg-primary bg-opacity-10 text-primary rounded px-3 py-1 my-2 d-inline-block">@p.TotalSold sản phẩm</td>
+                                <td class="text-end fw-bold text-success">@p.TotalRevenue.ToString("N0") ₫</td>
+                            </tr>
+                            rank++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 1. Khởi tạo Biểu đồ xu hướng Doanh thu (Line Chart)
+        const ctxLine = document.getElementById('mainRevenueChart').getContext('2d');
+        new Chart(ctxLine, {
+        type: 'line',
+        data: {
+        labels: [@Html.Raw(ViewBag.ChartLabels)],
+        datasets: [{
+        label: 'Doanh thu thực tế (VNĐ)',
+        data: [@ViewBag.ChartData],
+        borderColor: '#0ea5e9',
+        backgroundColor: 'rgba(14, 165, 233, 0.05)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#0284c7'
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+        y: {
+        beginAtZero: true,
+        ticks: { callback: v => v.toLocaleString("vi-VN") + " ₫" }
+        }
+        }
+        }
+        });
+
+        // 2. Khởi tạo Biểu đồ Tỷ trọng Danh mục (Doughnut Chart)
+        const ctxPie = document.getElementById('categoryPieChart').getContext('2d');
+        new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+        labels: [@Html.Raw(ViewBag.CategoryLabels)],
+        datasets: [{
+        data: [@ViewBag.CategoryValues],
+        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+        legend: { position: 'bottom' }
+        }
+        }
+        });
+    </script>
+}

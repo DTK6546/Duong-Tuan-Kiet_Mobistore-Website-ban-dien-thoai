@@ -1,0 +1,61 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.LoyaltyReward>
+@{
+    ViewData["Title"] = "Quản lý Đổi điểm Thưởng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="content-wrapper p-3">
+    <div class="card shadow-sm border-0 rounded-3 bg-white p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold text-dark m-0"><i class="bi bi-gift text-danger"></i> Quản lý quà tặng đổi điểm</h4>
+            <a href="@Url.Action("Create", "LoyaltyReward", new { area = "Admin" })" class="btn btn-sm btn-primary rounded-pill px-3">
+                <i class="bi bi-plus-circle"></i> Thêm cấu hình quà mới
+            </a>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success rounded-3 small p-2">@TempData["SuccessMessage"]</div>
+        }
+
+        <table class="table table-bordered table-striped text-center align-middle m-0 small">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 80px;">Mã số</th>
+                    <th>Tên quà tặng / Voucher</th>
+                    <th>Số điểm cần đổi</th>
+                    <th>Số tiền giảm giá (đ)</th>
+                    <th>Tiền tố sinh mã</th>
+                    <th>Trạng thái</th>
+                    <th style="width: 160px;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td class="text-start fw-bold">@item.Title</td>
+                        <td class="text-primary fw-bold">@item.PointsRequired</td>
+                        <td class="text-danger fw-bold">@item.DiscountAmount.ToString("N0") đ</td>
+                        <td><code>@item.CouponCodePrefix</code></td>
+                        <td>
+                            <span class="badge @(item.IsActive ? "bg-success" : "bg-secondary")">
+                                @(item.IsActive ? "Đang mở" : "Đang khóa")
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="@Url.Action("Edit", "LoyaltyReward", new { area = "Admin", id = item.Id })" class="btn btn-xs btn-warning small py-1">Sửa</a>
+                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn chắc chắn muốn xóa phần quà này?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-xs btn-danger small py-1">Xóa</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

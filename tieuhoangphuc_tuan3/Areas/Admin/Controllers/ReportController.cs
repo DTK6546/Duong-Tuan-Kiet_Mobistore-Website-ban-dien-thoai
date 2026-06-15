@@ -1,4 +1,8 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +21,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             _context = context;
         }
 
-        // 📊 Báo cáo tổng hợp: doanh thu + tồn kho
+        // 📊 Báo cáo tổng hợp cũ: doanh thu + tồn kho (GIỮ NGUYÊN VẸN)
         public async Task<IActionResult> Index(DateTime? fromDate, DateTime? toDate, string type = "month")
         {
             // 🧩 Lọc các đơn hàng đã hoàn tất
@@ -83,7 +87,95 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             return View(orderList);
         }
 
-        // 🧾 CHỨC NĂNG 10: XUẤT BÁO CÁO DOANH THU ĐƠN HÀNG (MỚI)
+        // 📈 CHỨC NĂNG MỚI: DASHBOARD ANALYTICS CHUYÊN SÂU BI ĐẲNG CẤP
+        public async Task<IActionResult> Dashboard(string timeline = "month")
+        {
+            // 1. Tải toàn bộ đơn hàng hoàn tất kèm chi tiết sản phẩm và danh mục để tính toán
+            var completedOrders = await _context.Orders
+                .Include(o => o.OrderDetails).ThenInclude(d => d.Product).ThenInclude(p => p.Category)
+                .Where(o => o.Status == OrderStatus.HoanTat)
+                .ToListAsync();
+
+            // 💵 KPIs Thẻ Tài Chính
+            ViewBag.TotalRevenue = completedOrders.Sum(o => o.TotalPrice);
+            ViewBag.TotalOrdersCount = completedOrders.Count;
+
+            // 📦 Tính toán tỷ lệ chuyển đổi (Conversion Rate)
+            var allOrdersCount = await _context.Orders.CountAsync();
+            ViewBag.ConversionRate = allOrdersCount > 0
+                ? ((double)completedOrders.Count / allOrdersCount * 100).ToString("F1")
+                : "0.0";
+
+            // 👥 Phân tích khách hàng (Mới vs Quay lại mua hàng)
+            var allUsersCount = await _context.Users.CountAsync();
+            var recurringCustomerIds = completedOrders
+                .GroupBy(o => o.UserId)
+                .Where(g => g.Count() >= 2)
+                .Select(g => g.Key)
+                .ToList();
+
+            ViewBag.RecurringCustomers = recurringCustomerIds.Count;
+            ViewBag.NewCustomers = Math.Max(0, allUsersCount - recurringCustomerIds.Count);
+
+            // 💰 Tính toán doanh thu theo Danh mục sản phẩm (Categories) phục vụ biểu đồ Tròn
+            var categoryData = completedOrders
+                .SelectMany(o => o.OrderDetails)
+                .GroupBy(d => d.Product?.Category?.Name ?? "Khác")
+                .Select(g => new { CategoryName = g.Key, Amount = g.Sum(x => x.Quantity * x.Price) })
+                .ToList();
+
+            ViewBag.CategoryLabels = string.Join(",", categoryData.Select(c => $"\"{c.CategoryName}\""));
+            ViewBag.CategoryValues = string.Join(",", categoryData.Select(c => c.Amount));
+
+            // ⭐ Thống kê TOP 5 sản phẩm bán chạy nhất hệ thống
+            var topProducts = completedOrders
+                .SelectMany(o => o.OrderDetails)
+                .GroupBy(d => new { d.ProductId, d.Product?.Name })
+                .Select(g => new {
+                    ProductName = g.Key.Name ?? "Sản phẩm đã ẩn",
+                    TotalSold = g.Sum(x => x.Quantity),
+                    TotalRevenue = g.Sum(x => x.Quantity * x.Price)
+                })
+                .OrderByDescending(p => p.TotalSold)
+                .Take(5)
+                .ToList();
+            ViewBag.TopProducts = topProducts;
+
+            // 📈 Xử lý nhóm thời gian cho biểu đồ đường xu hướng doanh thu (Main Chart)
+            var revenueTrend = timeline switch
+            {
+                "day" => completedOrders
+                    .GroupBy(o => o.OrderDate.ToString("dd/MM"))
+                    .Select(g => new { Label = g.Key, Total = g.Sum(x => x.TotalPrice) }),
+                "year" => completedOrders
+                    .GroupBy(o => o.OrderDate.ToString("yyyy"))
+                    .Select(g => new { Label = g.Key, Total = g.Sum(x => x.TotalPrice) }),
+                _ => completedOrders
+                    .GroupBy(o => o.OrderDate.ToString("MM/yyyy"))
+                    .Select(g => new { Label = g.Key, Total = g.Sum(x => x.TotalPrice) })
+            };
+
+            var trendList = revenueTrend.OrderBy(x => x.Label).ToList();
+            ViewBag.ChartLabels = string.Join(",", trendList.Select(x => $"\"{x.Label}\""));
+            ViewBag.ChartData = string.Join(",", trendList.Select(x => x.Total));
+            ViewBag.Timeline = timeline;
+
+            return View();
+        }
+
+        // 📝 XEM LỊCH SỬ NHẬT KÝ KHO HÀNG (STOCK HISTORY LOGS)
+        public async Task<IActionResult> InventoryLogs()
+        {
+            var logs = await _context.InventoryLogs
+                .Include(l => l.Product)
+                .OrderByDescending(l => l.CreatedAt)
+                .Take(100) // Lấy 100 nhật ký gần nhất để tránh lag trang
+                .ToListAsync();
+
+            return View(logs);
+        }
+
+        // 🧾 XUẤT BÁO CÁO DOANH THU ĐƠN HÀNG (GIỮ NGUYÊN VẸN CỦA BẠN - ĐÃ THÊM LỆNH TỰ TÁCH CỘT)
         [HttpGet]
         public async Task<IActionResult> ExportRevenueToCsv(DateTime? fromDate, DateTime? toDate)
         {
@@ -97,6 +189,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             var orderList = await orders.OrderByDescending(o => o.OrderDate).ToListAsync();
 
             var csvBuilder = new StringBuilder();
+            csvBuilder.AppendLine("sep=;");
             csvBuilder.AppendLine("Mã đơn hàng;Ngày đặt;Khách hàng;Tổng tiền (VNĐ);Trạng thái");
 
             foreach (var o in orderList)
@@ -104,7 +197,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 csvBuilder.AppendLine($"{o.Id};{o.OrderDate:dd/MM/yyyy HH:mm};{o.ApplicationUser?.FullName ?? "Ẩn danh"};{o.TotalPrice};Hoàn tất");
             }
 
-            // ✨ Chèn mã BOM mã hóa UTF-8 giúp Excel nhận diện dấu Tiếng Việt chuẩn 100%
             byte[] buffer = Encoding.UTF8.GetBytes(csvBuilder.ToString());
             byte[] bom = { 0xEF, 0xBB, 0xBF };
             byte[] fileBytes = new byte[bom.Length + buffer.Length];
@@ -114,14 +206,14 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             return File(fileBytes, "text/csv; charset=utf-8", $"BaoCaoDoanhThu_{DateTime.Now:yyyyMMdd}.csv");
         }
 
-        // 🧾 CHỨC NĂNG 10: XUẤT BÁO CÁO KHO RA EXCEL (ĐÃ SỬA LỖI FONT & VỠ CỘT)
+        // 🧾 XUẤT BÁO CÁO KHO RA EXCEL (GIỮ NGUYÊN VẸN CỦA BẠN - ĐÃ THÊM LỆNH TỰ TÁCH CỘT)
         [HttpGet]
         public async Task<IActionResult> ExportInventoryToCsv()
         {
             var products = await _context.Products.ToListAsync();
 
             var csvBuilder = new StringBuilder();
-            // Dùng dấu chấm phẩy ; thay vì dấu phẩy để tránh lỗi chia nhầm cột khi tên sản phẩm chứa dấu ,
+            csvBuilder.AppendLine("sep=;");
             csvBuilder.AppendLine("Tên sản phẩm;Số lượng tồn;Ngưỡng cảnh báo;Giá bán (VNĐ);Giá trị tồn kho (VNĐ);Ngày nhập gần nhất;Ngày xuất gần nhất");
 
             foreach (var p in products)
@@ -130,7 +222,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                                        $"{p.LastImportDate?.ToString("dd/MM/yyyy")};{p.LastExportDate?.ToString("dd/MM/yyyy")}");
             }
 
-            // ✨ Chèn mã BOM bảo vệ bảng mã hóa ký tự
             byte[] buffer = Encoding.UTF8.GetBytes(csvBuilder.ToString());
             byte[] bom = { 0xEF, 0xBB, 0xBF };
             byte[] fileBytes = new byte[bom.Length + buffer.Length];

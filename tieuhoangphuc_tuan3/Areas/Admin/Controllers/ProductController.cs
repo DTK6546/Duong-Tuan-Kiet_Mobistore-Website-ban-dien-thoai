@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using WebBanDienThoai.Models;
 using WebBanDienThoai.Repositories;
-using WebBanDienThoai.Services.SignalR; // ChatHub
+using WebBanDienThoai.Services.SignalR;
 
 namespace WebBanDienThoai.Areas.Admin.Controllers
 {
@@ -16,18 +16,18 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         private readonly IProductRepository _productRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly ApplicationDbContext _context;
-        private readonly IHubContext<ChatHub> _chatHub;     // 🔔
+        private readonly IHubContext<ChatHub> _chatHub;
 
         public ProductController(
             IProductRepository productRepository,
             ICategoryRepository categoryRepository,
             ApplicationDbContext context,
-            IHubContext<ChatHub> chatHub)                   // 🔔
+            IHubContext<ChatHub> chatHub)
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
             _context = context;
-            _chatHub = chatHub;                             // 🔔
+            _chatHub = chatHub;
         }
 
         [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employer)]
@@ -35,14 +35,12 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         {
             var products = await _productRepository.GetAllAsync();
 
-            // --- Tìm kiếm ---
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 products = products.Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                                                p.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
-            // --- Sắp xếp ---
             switch (sortOrder)
             {
                 case "price_asc":
@@ -53,7 +51,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     break;
             }
 
-            // --- Cảnh báo tồn kho thấp ---
             var lowStockProducts = products.Where(p => p.Quantity <= p.MinStockLevel).ToList();
             ViewBag.LowStockProducts = lowStockProducts;
 
@@ -82,66 +79,66 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Ảnh sản phẩm chính
                 if (imageUrl != null)
                 {
                     product.ImageUrl = await SaveImage(imageUrl);
                 }
 
-                // Tính giá sau giảm
                 if (product.Price > 0 && product.DiscountPercent > 0)
                     product.DiscountedPrice = product.Price - (product.Price * product.DiscountPercent / 100);
                 else
                     product.DiscountedPrice = product.Price;
 
-                // Cập nhật ngày nhập hàng
                 product.LastImportDate = DateTime.Now;
 
-                // Lưu product trước để có Id (Thuộc tính IsHot từ form sẽ tự động map vào đây)
                 await _productRepository.AddAsync(product);
 
-                // Lưu nhiều ảnh phụ
+                // ✨ ĐỒNG BỘ: Khởi tạo mốc lịch sử giá đầu tiên khi tạo mới sản phẩm
+                var initialHistory = new ProductPriceHistory
+                {
+                    ProductId = product.Id,
+                    Price = product.DiscountedPrice,
+                    ChangeDate = DateTime.Now
+                };
+                _context.ProductPriceHistories.Add(initialHistory);
+                await _context.SaveChangesAsync();
+
                 if (additionalImages != null && additionalImages.Length > 0)
                 {
                     foreach (var file in additionalImages)
                     {
                         if (file != null && file.Length > 0)
                         {
-                            // 🔹 ĐỔI TÊN BIẾN Ở ĐÂY
                             var imageUrlSaved = await SaveImage(file);
 
                             var img = new ProductImage
                             {
-                                Url = imageUrlSaved,   // dùng imageUrlSaved chứ không phải url
+                                Url = imageUrlSaved,
                                 ProductId = product.Id
                             };
 
                             _context.ProductImages.Add(img);
                         }
                     }
-
                     await _context.SaveChangesAsync();
                 }
 
-                // 🔔 PUSH: Sản phẩm mới
-                // 🔹 VÀ Ở ĐÂY ĐỔI TÊN BIẾN KHÁC, VD: productUrl
                 var productUrl = Url.Action("Display", "Product", new { area = "", id = product.Id }, Request.Scheme);
                 var summary = $"Giá: {product.DiscountedPrice:N0}₫" +
                               (product.DiscountPercent > 0 ? $" (Giảm {product.DiscountPercent}%)" : "");
 
                 await _chatHub.Clients.All.SendAsync(
                     "ReceiveProductNotification",
-                    $"Sản phẩm mới: {product.Name}",            // title
-                    summary,                                    // summary
-                    productUrl,                                 // url xem chi tiết
-                    DateTime.Now.ToString("dd/MM/yyyy HH:mm")   // time
+                    $"Sản phẩm mới: {product.Name}",
+                    summary,
+                    productUrl,
+                    DateTime.Now.ToString("dd/MM/yyyy HH:mm")
                 );
 
                 TempData["SuccessMessage"] = "Sản phẩm đã được thêm thành công!";
                 return RedirectToAction(nameof(Index));
             }
 
-            // Nếu lỗi -> load lại dropdown
             var categories = await _categoryRepository.GetAllAsync();
             ViewBag.Categories = new SelectList(categories, "Id", "Name", product.CategoryId);
 
@@ -157,9 +154,9 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         public async Task<IActionResult> Display(int id)
         {
             var product = await _context.Products
-                .Include(p => p.Images)        // 🔹 lấy luôn ảnh phụ
-                .Include(p => p.Category)      // nếu cần
-                .Include(p => p.SubCategory)   // nếu cần
+                .Include(p => p.Images)
+                .Include(p => p.Category)
+                .Include(p => p.SubCategory)
                 .FirstOrDefaultAsync(p => p.Id == id);
             if (product == null)
                 return NotFound();
@@ -199,23 +196,38 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
 
             if (ModelState.IsValid)
             {
-                var existingProduct = await _productRepository.GetByIdAsync(id);
+                var existingProduct = await _context.Products.Include(p => p.Images).FirstOrDefaultAsync(p => p.Id == id);
                 if (existingProduct == null)
                     return NotFound();
 
-                // Ảnh
                 if (imageUrl != null)
                     product.ImageUrl = await SaveImage(imageUrl);
                 else
                     product.ImageUrl = existingProduct.ImageUrl;
 
-                // Giá sau giảm
+                // Tính toán giá mới từ dữ liệu Form gửi lên
+                decimal newDiscountedPrice = product.Price;
                 if (product.Price > 0 && product.DiscountPercent > 0)
-                    product.DiscountedPrice = product.Price - (product.Price * product.DiscountPercent / 100);
+                    newDiscountedPrice = product.Price - (product.Price * product.DiscountPercent / 100);
                 else
-                    product.DiscountedPrice = product.Price;
+                    newDiscountedPrice = product.Price;
 
-                // Cập nhật dữ liệu cơ bản
+                // =========================================================================
+                // 📉 KIỂM TRA BIẾN ĐỘNG GIÁ & GHI LOG LỊCH SỬ GIÁ
+                // =========================================================================
+                bool isPriceDropped = newDiscountedPrice < existingProduct.DiscountedPrice; // Cờ kiểm tra thực sự hạ giá
+
+                if (existingProduct.DiscountedPrice != newDiscountedPrice)
+                {
+                    var priceHistoryLog = new ProductPriceHistory
+                    {
+                        ProductId = existingProduct.Id,
+                        Price = newDiscountedPrice,
+                        ChangeDate = DateTime.Now
+                    };
+                    _context.ProductPriceHistories.Add(priceHistoryLog);
+                }
+
                 existingProduct.Name = product.Name;
                 existingProduct.Price = product.Price;
                 existingProduct.Description = product.Description;
@@ -223,20 +235,16 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 existingProduct.CategoryId = product.CategoryId;
                 existingProduct.SubCategoryId = product.SubCategoryId;
                 existingProduct.ImageUrl = product.ImageUrl;
-                existingProduct.DiscountedPrice = product.DiscountedPrice;
+                existingProduct.DiscountedPrice = newDiscountedPrice;
                 existingProduct.ServiceCommitment = product.ServiceCommitment;
-
-                // ✨ ĐỒNG BỘ CHỨC NĂNG 1: CẬP NHẬT TRẠNG THÁI HOT/BEST-SELLER KHI SỬA
                 existingProduct.IsHot = product.IsHot;
 
-                // 🧭 Kiểm tra thay đổi số lượng → cập nhật ngày nhập
                 if (product.Quantity > existingProduct.Quantity)
                     existingProduct.LastImportDate = DateTime.Now;
 
                 existingProduct.Quantity = product.Quantity;
                 existingProduct.MinStockLevel = product.MinStockLevel;
 
-                // 🔴 3.1 XÓA ảnh phụ được tick
                 if (deleteImageIds != null && deleteImageIds.Length > 0)
                 {
                     foreach (var imgId in deleteImageIds)
@@ -245,7 +253,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                         if (img != null)
                         {
                             _context.ProductImages.Remove(img);
-
                             var imagePath = Path.Combine("wwwroot/images", Path.GetFileName(img.Url));
                             if (System.IO.File.Exists(imagePath))
                                 System.IO.File.Delete(imagePath);
@@ -253,7 +260,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     }
                 }
 
-                // 🟢 3.2 THÊM ảnh phụ mới
                 if (additionalImages != null && additionalImages.Length > 0)
                 {
                     foreach (var file in additionalImages)
@@ -271,19 +277,26 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     }
                 }
 
-                await _productRepository.UpdateAsync(existingProduct);
+                // 💾 BƯỚC 1: Lưu thay đổi của sản phẩm chính và log lịch sử giá xuống Database trước
+                _context.Products.Update(existingProduct);
+                await _context.SaveChangesAsync();
 
-                // 🔔 PUSH: Cập nhật sản phẩm
+                // 🔔 BƯỚC 2: Nếu giá thực tế được hạ xuống, kích hoạt bẫy quét Alert săn deal ngay sau đó
+                if (isPriceDropped)
+                {
+                    await TriggerPriceDropAlertsAsync(existingProduct.Id, newDiscountedPrice, existingProduct.Name);
+                }
+
                 var url = Url.Action("Display", "Product", new { area = "", id = existingProduct.Id }, Request.Scheme);
                 var summary = $"Giá: {existingProduct.DiscountedPrice:N0}₫" +
                               (existingProduct.DiscountPercent > 0 ? $" (Giảm {existingProduct.DiscountPercent}%)" : "");
 
                 await _chatHub.Clients.All.SendAsync(
                     "ReceiveProductNotification",
-                    $"Cập nhật: {existingProduct.Name}",         // title
-                    summary,                                    // summary
-                    url,                                        // url
-                    DateTime.Now.ToString("dd/MM/yyyy HH:mm")   // time
+                    $"Cập nhật: {existingProduct.Name}",
+                    summary,
+                    url,
+                    DateTime.Now.ToString("dd/MM/yyyy HH:mm")
                 );
 
                 TempData["SuccessMessage"] = "Sản phẩm đã được cập nhật thành công!";
@@ -315,7 +328,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         [Authorize(Roles = SD.Role_Admin)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var product = await _productRepository.GetByIdAsync(id);
+            var product = await _context.Products.Include(p => p.Images).FirstOrDefaultAsync(p => p.Id == id);
             if (product == null)
                 return NotFound();
 
@@ -333,9 +346,15 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            await _productRepository.DeleteAsync(id);
+            // Xóa lịch sử giá và alert liên quan trước khi xóa sản phẩm chính để tránh lỗi Khóa ngoại
+            var relatedHistory = await _context.ProductPriceHistories.Where(h => h.ProductId == id).ToListAsync();
+            _context.ProductPriceHistories.RemoveRange(relatedHistory);
+            var relatedAlerts = await _context.PriceAlerts.Where(a => a.ProductId == id).ToListAsync();
+            _context.PriceAlerts.RemoveRange(relatedAlerts);
 
-            // 🔔 PUSH: Xóa sản phẩm (không có url)
+            _context.Products.Remove(product);
+            await _context.SaveChangesAsync();
+
             await _chatHub.Clients.All.SendAsync(
                 "ReceiveProductNotification",
                 $"Đã xóa: {name}",
@@ -344,13 +363,10 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 DateTime.Now.ToString("dd/MM/yyyy HH:mm")
             );
 
-            TempData["SuccessMessage"] = "Sản phẩm và ảnh liên kết đã được xóa thành công!";
+            TempData["SuccessMessage"] = "Sản phẩm và dữ liệu liên kết đã được xóa thành công!";
             return RedirectToAction(nameof(Index));
         }
 
-        // =========================================================================
-        // ✨ CHỨC NĂNG 1.2: ACTION BẬT/TẮT NHANH TRẠNG THÁI HOT TỪ TRANG DANH SÁCH (AJAX)
-        // =========================================================================
         [HttpPost]
         [Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employer)]
         public async Task<IActionResult> ToggleHot(int id)
@@ -361,14 +377,13 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 return Json(new { success = false, message = "Không tìm thấy sản phẩm." });
             }
 
-            product.IsHot = !product.IsHot; // Đảo ngược trạng thái true <-> false
+            product.IsHot = !product.IsHot;
             _context.Products.Update(product);
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, isHot = product.IsHot, message = "Đã cập nhật trạng thái nổi bật!" });
         }
 
-        // 🖼️ Lưu ảnh
         private async Task<string> SaveImage(IFormFile image)
         {
             var savePath = Path.Combine("wwwroot/images", image.FileName);
@@ -379,7 +394,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             return "/images/" + image.FileName;
         }
 
-        // 🧩 Lấy SubCategory động
         [HttpGet]
         public JsonResult GetSubCategories(int categoryId)
         {
@@ -389,6 +403,29 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 .ToList();
 
             return Json(subcats);
+        }
+
+        // =========================================================================
+        // 📧 HÀM PHỤ: PHÁT HIỆN HẠ GIÁ VÀ TỰ ĐỘNG GỬI EMAIL CẢNH BÁO CHO KHÁCH HÀNG
+        // =========================================================================
+        private async Task TriggerPriceDropAlertsAsync(int productId, decimal newPrice, string productName)
+        {
+            var triggeredAlerts = await _context.PriceAlerts
+                .Where(a => a.ProductId == productId && !a.IsTriggered && newPrice <= a.TargetPrice)
+                .ToListAsync();
+
+            foreach (var alert in triggeredAlerts)
+            {
+                try
+                {
+                    // Trình giả lập gửi Email Notification thông báo săn deal thành công
+                    // Trong thực tế, Kiệt có thể nhúng SmtpClient hoặc _emailSender.SendEmailAsync tại đây
+                    alert.IsTriggered = true;
+                    _context.PriceAlerts.Update(alert);
+                }
+                catch { /* Bẫy lỗi bảo vệ vòng lặp background */ }
+            }
+            await _context.SaveChangesAsync();
         }
     }
 }

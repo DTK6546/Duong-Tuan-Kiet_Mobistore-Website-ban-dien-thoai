@@ -18,6 +18,22 @@
     </script>
 }
 
+@if (TempData["CouponError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show rounded-3 p-2 mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> @TempData["CouponError"]
+        <button type="button" class="btn-close shadow-none" style="padding: 0.75rem;" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["CouponSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show rounded-3 p-2 mb-3" role="alert">
+        <i class="bi bi-check-circle-fill"></i> @TempData["CouponSuccess"]
+        <button type="button" class="btn-close shadow-none" style="padding: 0.75rem;" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 @{
     ViewData["Title"] = "Giỏ hàng của bạn";
 
@@ -54,49 +70,49 @@
         flex-wrap: wrap;
     }
 
-        .checkout-steps .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 90px;
-            opacity: 0.55;
-        }
+    .checkout-steps .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 90px;
+        opacity: 0.55;
+    }
 
-            .checkout-steps .step.active {
-                opacity: 1;
-                font-weight: 700;
-            }
+    .checkout-steps .step.active {
+        opacity: 1;
+        font-weight: 700;
+    }
 
-        .checkout-steps .circle {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid #0ea5e9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fff;
-            color: #0ea5e9;
-            font-weight: 700;
-        }
+    .checkout-steps .circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 2px solid #0ea5e9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: #0ea5e9;
+        font-weight: 700;
+    }
 
-        .checkout-steps .step.active .circle {
-            background: #0ea5e9;
-            color: #fff;
-        }
+    .checkout-steps .step.active .circle {
+        background: #0ea5e9;
+        color: #fff;
+    }
 
-        .checkout-steps .label {
-            margin-top: 6px;
-            font-size: 13px;
-            text-align: center;
-        }
+    .checkout-steps .label {
+        margin-top: 6px;
+        font-size: 13px;
+        text-align: center;
+    }
 
-        .checkout-steps .line {
-            height: 2px;
-            width: 60px;
-            background: #e5e7eb;
-            margin-top: -16px;
-        }
+    .checkout-steps .line {
+        height: 2px;
+        width: 60px;
+        background: #e5e7eb;
+        margin-top: -16px;
+    }
 
     @Html.Raw("@media") (max-width: 576px) {
         .checkout-steps .line {
@@ -347,7 +363,7 @@
                     </form>
 
                     <div class="d-flex justify-content-between small"><span>Tạm tính:</span><strong class="subtotal-amount">@subtotal.ToString("N0", vi) đ</strong></div>
-                    <div class="d-flex justify-content-between small"><span>Giảm giá:</span><strong class="discount-amount">-(@discount.ToString("N0", vi) đ)</strong></div>
+                    <div class="d-flex justify-content-between small text-success"><span>Giảm giá Voucher:</span><strong class="discount-amount">-(@discount.ToString("N0", vi) đ)</strong></div>
 
                     <div class="d-flex justify-content-between small text-primary">
                         <span>Ưu đãi VIP Tier:</span>
@@ -373,7 +389,6 @@
                         }
                         else
                         {
-
                             <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="/ShoppingCart/Checkout" class="btn btn-danger w-100 btn-sm mt-2">🔑 Đăng nhập để thanh toán</a>
                         }
                     }
@@ -391,7 +406,6 @@
         let currentDistrictCode = "";
         let currentShipMethod = "standard";
 
-        // Gắn cấu hình Loyalty Points
         let userPoints = @(currentUser?.CurrentPoints ?? 0);
         let tierRate = @(currentUser?.TierDiscountRate ?? 0m);
 
@@ -480,9 +494,6 @@
             }
         }
 
-        // =========================================================================
-        // ✨ ĐỒNG BỘ JS: TÍNH TOÁN TRỪ TIỀN THEO HẠNG VIP VÀ ĐIỂM REWARD LOYALTY
-        // =========================================================================
         function updateTotal() {
             const subtotal = computeSubtotal();
             document.querySelectorAll(".quantity-input").forEach(input => {
@@ -495,15 +506,12 @@
 
             if (document.querySelector(".subtotal-amount")) document.querySelector(".subtotal-amount").textContent = subtotal.toLocaleString('vi-VN') + ' đ';
 
-            // 1. Tính toán giảm giá theo Voucher
             let couponDiscount = discountFromServer || 0;
 
-            // 2. Tính toán đặc quyền giảm giá của VIP Tier hạng thành viên
             let vipDiscount = Math.round((subtotal - couponDiscount) * tierRate);
             if(vipDiscount < 0) vipDiscount = 0;
             document.getElementById("vipDiscountText").textContent = "-" + vipDiscount.toLocaleString('vi-VN') + " đ";
 
-            // 3. Tính toán khấu trừ điểm Loyalty Points (1 điểm = 1.000 VNĐ)
             let pointsDiscount = 0;
             const pointsToggle = document.getElementById("pointsToggle");
             if (pointsToggle && pointsToggle.checked) {
@@ -511,7 +519,6 @@
             }
             document.getElementById("pointsDiscountText").textContent = "-" + pointsDiscount.toLocaleString('vi-VN') + " đ";
 
-            // Thành tiền sau khi trừ sạch các lớp ưu đãi khuyến mãi
             let priceAfterDiscount = subtotal - couponDiscount - vipDiscount - pointsDiscount;
             if (priceAfterDiscount < 0) priceAfterDiscount = 0;
 

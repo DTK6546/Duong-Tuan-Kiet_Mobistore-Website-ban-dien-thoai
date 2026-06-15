@@ -1,0 +1,115 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.BlogPost>
+@{
+    ViewData["Title"] = "Quản lý Bài viết - Tin tức";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"; // Đảm bảo ăn theo giao diện Admin gốc của Kiệt
+}
+
+<div class="container-fluid px-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800 fw-bold">📝 Quản lý Bài viết & Đánh giá</h1>
+        <a asp-action="Create" class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> Viết bài mới
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="min-width: 900px;">
+                    <thead class="table-light text-secondary small text-uppercase">
+                        <tr>
+                            <th class="ps-4" style="width: 100px;">Ảnh</th>
+                            <th>Tiêu đề bài viết</th>
+                            <th>Danh mục</th>
+                            <th>Ngày đăng</th>
+                            <th>Lượt xem</th>
+                            <th class="text-end pe-4" style="width: 180px;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted fst-italic">Hệ thống chưa có bài viết marketing nào.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr id="row-@item.Id">
+                                    <td class="ps-4">
+                                        <img src="@(string.IsNullOrEmpty(item.ThumbnailUrl) ? "/images/blog-default.jpg" : item.ThumbnailUrl)"
+                                             class="rounded-3 shadow-sm border" style="width: 60px; height: 45px; object-fit: cover;" alt="">
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-dark text-truncate" style="max-width: 350px;">@item.Title</div>
+                                        <small class="text-muted text-truncate d-block" style="max-width: 350px;">@item.Summary</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2.5 py-1.5 rounded-pill">
+                                            @item.BlogCategory?.Name
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <span class="fw-semibold text-info"><i class="bi bi-eye"></i> @item.ViewCount</span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning rounded-pill px-3 me-1">
+                                            <i class="bi bi-pencil-square"></i> Sửa
+                                        </a>
+                                        <button onclick="deletePost(@item.Id)" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                            <i class="bi bi-trash"></i> Xóa
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function deletePost(id) {
+        Swal.fire({
+        title: 'Kiệt chắc chắn muốn xóa?',
+        text: "Bài viết và toàn bộ bình luận liên quan sẽ biến mất vĩnh viễn khỏi Database!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Đồng ý xóa!',
+        cancelButtonText: 'Hủy'
+        }).then((result) => {
+        if (result.isConfirmed) {
+        $.ajax({
+        url: '/Admin/Blog/Delete/' + id,
+        type: 'POST',
+        success: function (response) {
+        if (response.success) {
+        Swal.fire('Đã xóa!', response.message, 'success');
+        $('#row-' + id).fadeOut(500, function() { $(this).remove(); });
+        } else {
+        Swal.fire('Lỗi!', response.message, 'error');
+        }
+        }
+        });
+        }
+        })
+        }
+    </script>
+}

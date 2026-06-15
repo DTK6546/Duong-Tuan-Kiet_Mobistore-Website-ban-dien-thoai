@@ -1,15 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Text.Json;
 using WebBanDienThoai.Extensions;
 using WebBanDienThoai.Models;
 using WebBanDienThoai.Repositories;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using System.Linq;
-using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace WebBanDienThoai.Controllers
 {
@@ -28,9 +25,6 @@ namespace WebBanDienThoai.Controllers
             _categoryRepository = categoryRepository;
         }
 
-        // =========================================================================
-        // 1) Index với tìm kiếm nhanh (Thanh Search góc màn hình)
-        // =========================================================================
         public async Task<IActionResult> Index(string query)
         {
             var products = await _productRepository.GetAllAsync();
@@ -81,24 +75,19 @@ namespace WebBanDienThoai.Controllers
             return View(products);
         }
 
-        // =========================================================================
-        // 2) Index với bộ lọc Sidebar và phân trang (Hàm chính xử lý trang /Product)
-        // =========================================================================
         [HttpGet]
-        public async Task<IActionResult> Index(int pageNumber = 1, int? categoryId = null, int? subCategoryId = null, decimal? minPrice = null, decimal? maxPrice = null, string query = "", string sortBy = "", string ram = "", string rom = "", string color = "")
+        public async Task<IActionResult> Index(int pageNumber = 1, int? categoryId = null, int? subCategoryId = null, decimal? minPrice = null, decimal? maxPrice = null, string query = "", string sortBy = "", string ram = "", string rom = "", string color = "", int? rating = null)
         {
             const int pageSize = 16;
             if (pageNumber < 1) pageNumber = 1;
 
-            // Khởi tạo Base query nối bảng
             IQueryable<Product> q = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
                 .Include(p => p.Variants)
-                .Include(p => p.Specs) // Gộp bảng thông số kỹ thuật gốc
+                .Include(p => p.Specs)
                 .AsNoTracking();
 
-            // --- Thực thi các tầng bộ lọc động (Dynamic Query) ---
             if (categoryId.HasValue && categoryId.Value != 0)
                 q = q.Where(p => p.CategoryId == categoryId.Value);
 
@@ -114,29 +103,20 @@ namespace WebBanDienThoai.Controllers
             if (!string.IsNullOrWhiteSpace(query))
                 q = q.Where(p => p.Name.Contains(query));
 
-            // =========================================================================
-            // ✨ CHỨC NĂNG 2: QUÉT SÂU THÔNG SỐ RAM / ROM / MÀU SẮC BIẾN THỂ
-            // =========================================================================
             if (!string.IsNullOrWhiteSpace(ram))
-            {
-                // Quét trực tiếp thông số RAM từ trường dữ liệu Storage của các biến thể (Variants)
                 q = q.Where(p => p.Variants.Any(v => v.Storage.Contains(ram.Trim())));
-            }
 
             if (!string.IsNullOrWhiteSpace(rom))
-            {
-                // Quét trực tiếp thông số ROM từ trường dữ liệu Storage của các biến thể (Variants)
                 q = q.Where(p => p.Variants.Any(v => v.Storage.Contains(rom.Trim())));
-            }
-            // =========================================================================
 
             if (!string.IsNullOrWhiteSpace(color))
-            {
                 q = q.Where(p => p.Variants.Any(v => v.Color.Contains(color.Trim())));
-            }
-            // =========================================================================
 
-            // Sắp xếp thứ tự danh sách (Sort)
+            if (rating.HasValue && rating.Value >= 1 && rating.Value <= 5)
+            {
+                q = q.Where(p => p.Rating >= rating.Value);
+            }
+
             switch (sortBy)
             {
                 case "giamgia":
@@ -148,7 +128,7 @@ namespace WebBanDienThoai.Controllers
                 case "giathapcao":
                     q = q.OrderBy(p => p.DiscountedPrice).ThenByDescending(p => p.Id);
                     break;
-                case "giacaothap":
+                case "gicaothap":
                     q = q.OrderByDescending(p => p.DiscountedPrice).ThenByDescending(p => p.Id);
                     break;
                 case "banchay":
@@ -168,11 +148,10 @@ namespace WebBanDienThoai.Controllers
                         .Select(x => x.p);
                     break;
                 default:
-                    q = q.OrderByDescending(p => p.IsHot).ThenByDescending(p => p.Id); // Ưu tiên hàng HOT lên đầu
+                    q = q.OrderByDescending(p => p.IsHot).ThenByDescending(p => p.Id);
                     break;
             }
 
-            // Thực thi phân trang (Paging)
             var totalItems = await q.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
             if (pageNumber > totalPages && totalPages > 0) pageNumber = totalPages;
@@ -184,7 +163,6 @@ namespace WebBanDienThoai.Controllers
 
             var productIds = pagedProducts.Select(p => p.Id).ToList();
 
-            // Tính số lượng đã bán (SoldCount)
             var soldDict = await _context.OrderDetails
                 .Where(od => productIds.Contains(od.ProductId) && od.Order.Status == OrderStatus.HoanTat)
                 .GroupBy(od => od.ProductId)
@@ -210,7 +188,6 @@ namespace WebBanDienThoai.Controllers
                 Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             }).ToList();
 
-            // Đồng bộ trạng thái bộ lọc ngược về phía giao diện (Maintain State)
             ViewBag.PageNumber = pageNumber;
             ViewBag.TotalPages = totalPages;
             ViewBag.Categories = (await _categoryRepository.GetAllAsync()).Where(c => c.Id != 16).ToList();
@@ -221,10 +198,10 @@ namespace WebBanDienThoai.Controllers
             ViewBag.SubCategoryId = subCategoryId ?? 0;
             ViewBag.SortBy = sortBy;
 
-            // Đẩy giá trị lọc nâng cao về View
             ViewBag.Ram = ram;
             ViewBag.Rom = rom;
             ViewBag.Color = color;
+            ViewBag.Rating = rating;
 
             var subcats = (categoryId.HasValue && categoryId.Value != 0)
                 ? await _context.SubCategories.Where(s => s.CategoryId == categoryId.Value).ToListAsync()
@@ -232,7 +209,6 @@ namespace WebBanDienThoai.Controllers
 
             ViewBag.SubCategories = subcats;
 
-            // Đổ hàng HOT ra khu vực Banner đầu trang
             var hotProductsData = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
@@ -274,18 +250,13 @@ namespace WebBanDienThoai.Controllers
         public async Task<IActionResult> Buy(int id)
         {
             var product = await _productRepository.GetByIdAsync(id);
-            if (product == null)
-            {
-                return NotFound();
-            }
+            if (product == null) return NotFound();
 
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
 
             var cartItem = cart.Items.FirstOrDefault(i => i.ProductId == product.Id);
             if (cartItem != null)
-            {
                 cartItem.Quantity += 1;
-            }
             else
             {
                 cart.Items.Add(new CartItem
@@ -297,8 +268,6 @@ namespace WebBanDienThoai.Controllers
                     ImageUrl = product.ImageUrl
                 });
             }
-
-            // Đồng bộ tồn kho: Nếu mua vượt quá số lượng hàng thì bạn có thể check thêm ở đây
 
             HttpContext.Session.SetObjectAsJson("Cart", cart);
             return RedirectToAction("Index", "ShoppingCart");
@@ -316,7 +285,6 @@ namespace WebBanDienThoai.Controllers
 
         public async Task<IActionResult> Display(int id, int? variantId, int? star, bool? hasImages, bool? verifiedOnly, string sort = "new", int page = 1)
         {
-            // 1) Product + related tables
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
@@ -327,12 +295,10 @@ namespace WebBanDienThoai.Controllers
             if (product == null) return NotFound();
             product.Images ??= new List<ProductImage>();
 
-            // 2) Sold count của sản phẩm hiện tại
             int soldCount = await _context.OrderDetails
                 .Where(od => od.ProductId == id && od.Order.Status == OrderStatus.HoanTat)
                 .SumAsync(od => (int?)od.Quantity) ?? 0;
 
-            // 3) Variants
             var variants = await _context.ProductVariants
                 .Where(v => v.ProductId == id)
                 .OrderBy(v => v.Storage)
@@ -351,9 +317,6 @@ namespace WebBanDienThoai.Controllers
             }
             ViewBag.SelectedVariant = selectedVariant;
 
-            // =========================================================================
-            // 4) REVIEW: stats + filter/sort + paging + verified badge (NO N+1)
-            // =========================================================================
             const int pageSize = 5;
             if (page < 1) page = 1;
 
@@ -455,7 +418,6 @@ namespace WebBanDienThoai.Controllers
             ViewBag.MyRating = myRating;
             ViewBag.CanReview = canReview;
 
-            // 5) Main ViewModel
             var displayModel = new ProductWithSoldCount
             {
                 Id = product.Id,
@@ -477,9 +439,6 @@ namespace WebBanDienThoai.Controllers
                 Variants = variants
             };
 
-            // =========================================================================
-            // 6) Related + Viewed (XỬ LÝ COOKIE & ĐỒNG BỘ THỨ TỰ THỜI GIAN)
-            // =========================================================================
             const string viewedCookieName = "RecentlyViewedProducts";
             List<int> viewedIds = new List<int>();
 
@@ -513,9 +472,47 @@ namespace WebBanDienThoai.Controllers
                                 ? p.SubCategoryId == product.SubCategoryId
                                 : p.CategoryId == product.CategoryId))
                 .OrderByDescending(p => p.IsHot)
-                .ThenByDescending(p => p.Id)
-                .Take(8)
+                .Take(4)
                 .ToListAsync();
+
+            var popularEntities = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Variants)
+                .Where(p => p.Id != id)
+                .OrderByDescending(p => p.IsHot)
+                .ThenByDescending(p => p.Rating)
+                .Take(4)
+                .ToListAsync();
+
+            var orderIdsWithCurrentProduct = await _context.OrderDetails
+                .Where(od => od.ProductId == id && od.Order.Status == OrderStatus.HoanTat)
+                .Select(od => od.OrderId)
+                .ToListAsync();
+
+            var coBoughtProductIds = await _context.OrderDetails
+                .Where(od => orderIdsWithCurrentProduct.Contains(od.OrderId) && od.ProductId != id)
+                .GroupBy(od => od.ProductId)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .Take(4)
+                .ToListAsync();
+
+            var coBoughtEntities = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Variants)
+                .Where(p => coBoughtProductIds.Contains(p.Id))
+                .ToListAsync();
+
+            if (!coBoughtEntities.Any())
+            {
+                coBoughtEntities = await _context.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.Variants)
+                    .Where(p => p.Id != id && p.CategoryId == product.CategoryId)
+                    .OrderByDescending(p => p.DiscountPercent)
+                    .Take(4)
+                    .ToListAsync();
+            }
 
             var rawViewedEntities = await _context.Products
                 .Include(p => p.Category)
@@ -529,7 +526,12 @@ namespace WebBanDienThoai.Controllers
                 .Where(p => p != null)
                 .ToList();
 
-            var allIds = relatedEntities.Select(p => p.Id).Concat(viewedEntities.Select(p => p.Id)).Distinct().ToList();
+            var allIds = relatedEntities.Select(p => p.Id)
+                .Concat(viewedEntities.Select(p => p.Id))
+                .Concat(popularEntities.Select(p => p.Id))
+                .Concat(coBoughtEntities.Select(p => p.Id))
+                .Distinct().ToList();
+
             var soldDict = allIds.Any()
                 ? await _context.OrderDetails
                     .Where(od => allIds.Contains(od.ProductId) && od.Order.Status == OrderStatus.HoanTat)
@@ -546,16 +548,16 @@ namespace WebBanDienThoai.Controllers
                 ImageUrl = p.ImageUrl,
                 Rating = p.Rating,
                 DiscountedPrice = p.DiscountedPrice,
+                DiscountPercent = p.DiscountPercent,
                 SoldCount = soldDict.TryGetValue(p.Id, out var sold) ? sold : 0,
                 Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             };
 
             ViewBag.RelatedProducts = relatedEntities.Select(MapToVm).ToList();
             ViewBag.ViewedProducts = viewedEntities.Select(MapToVm).ToList();
+            ViewBag.PopularProducts = popularEntities.Select(MapToVm).ToList();
+            ViewBag.CoBoughtProducts = coBoughtEntities.Select(MapToVm).ToList();
 
-            // =========================================================================
-            // 7) FAQ + Q&A
-            // =========================================================================
             var faqs = await _context.ProductFaqs
                 .AsNoTracking()
                 .Where(f => f.IsActive && (f.ProductId == null || f.ProductId == id))
@@ -597,10 +599,7 @@ namespace WebBanDienThoai.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var product = await _productRepository.GetByIdAsync(id);
-            if (product == null)
-            {
-                return NotFound();
-            }
+            if (product == null) return NotFound();
             return RedirectToAction("Index", "Product", new { area = "Admin" });
         }
 
@@ -615,15 +614,10 @@ namespace WebBanDienThoai.Controllers
         [Authorize]
         public async Task<IActionResult> SubmitRating(int productId, int stars, string comment, List<IFormFile>? images)
         {
-            if (stars < 1 || stars > 5)
-                return BadRequest("Điểm phải từ 1 đến 5 sao.");
-
+            if (stars < 1 || stars > 5) return BadRequest("Điểm phải từ 1 đến 5 sao.");
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Unauthorized();
 
-            // =========================================================================
-            // ✨ CHỨC NĂNG 8: KIỂM TRA TRẠNG THÁI KHÓA TÀI KHOẢN (BAN SYSTEM)
-            // =========================================================================
             if (user.IsBanned)
             {
                 TempData["ErrorMessage"] = "Tài khoản của bạn đã bị khóa chức năng viết bình luận/đánh giá do vi phạm tiêu chuẩn!";
@@ -646,13 +640,10 @@ namespace WebBanDienThoai.Controllers
                 .Include(r => r.Images)
                 .FirstOrDefaultAsync(r => r.ProductId == productId && r.UserId == user.Id);
 
-            // =========================================================================
-            // ✨ CHỨC NĂNG 8: BỘ LỌC KIỂM DUYỆT TỪ NGỮ ĐỘC HẠI TỰ ĐỘNG (CONTENT MODERATION)
-            // =========================================================================
             string checkContent = (comment ?? "").ToLower();
             string[] bannedWords = { "lừa đảo", "vcl", "dm", "đm", "hàng giả", "fake", "bú" };
             bool containsBadWords = bannedWords.Any(word => checkContent.Contains(word));
-            bool approveStatus = !containsBadWords; // Không dính từ cấm thì tự động duyệt hiển thị luôn
+            bool approveStatus = !containsBadWords;
 
             if (existing == null)
             {
@@ -671,7 +662,7 @@ namespace WebBanDienThoai.Controllers
             {
                 existing.Stars = stars;
                 existing.Comment = comment;
-                existing.UpdatedAt = DateTime.Now; // Đã xóa bỏ dòng lỗi bám chữ metadata
+                existing.UpdatedAt = DateTime.Now;
                 existing.IsApproved = approveStatus;
                 _context.ProductRatings.Update(existing);
             }
@@ -710,21 +701,17 @@ namespace WebBanDienThoai.Controllers
                 .Select(r => (double?)r.Stars)
                 .AverageAsync()) ?? 0.0;
 
-            var product = await _context.Products.FindAsync(productId);
-            if (product != null)
+            var dbProduct = await _context.Products.FindAsync(productId);
+            if (dbProduct != null)
             {
-                product.Rating = avgStars;
+                dbProduct.Rating = avgStars;
                 await _context.SaveChangesAsync();
             }
 
             if (containsBadWords)
-            {
                 TempData["SuccessMessage"] = "Đánh giá đã được gửi đi và đang nằm trong danh sách kiểm duyệt của Admin.";
-            }
             else
-            {
                 TempData["SuccessMessage"] = "Đánh giá của bạn đã được ghi nhận!";
-            }
 
             return RedirectToAction("Display", new { id = productId });
         }
@@ -847,9 +834,6 @@ namespace WebBanDienThoai.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Unauthorized();
 
-            // =========================================================================
-            // ✨ CHỨC NĂNG 8: CHẶN USER SPAMMER ĐẶT CÂU HỎI Q&A
-            // =========================================================================
             if (user.IsBanned)
             {
                 TempData["ErrorMessage"] = "Tài khoản của bạn đã bị khóa chức năng đặt câu hỏi thảo luận!";
@@ -870,9 +854,6 @@ namespace WebBanDienThoai.Controllers
                 return RedirectToAction("Display", new { id = productId });
             }
 
-            // =========================================================================
-            // ✨ CHỨC NĂNG 8: QUÉT TỪ CẤM TRONG KHỐI HỎI ĐÁP Q&A
-            // =========================================================================
             string checkContent = question.ToLower();
             string[] bannedWords = { "lừa đảo", "vcl", "dm", "đm", "hàng giả", "fake", "bú" };
             bool containsBadWords = bannedWords.Any(word => checkContent.Contains(word));
@@ -883,20 +864,16 @@ namespace WebBanDienThoai.Controllers
                 UserId = user.Id,
                 Question = question,
                 CreatedAt = DateTime.Now,
-                IsApproved = !containsBadWords // Nếu không dính từ cấm thì tự duyệt hiển thị, dính từ cấm bắt chờ duyệt
+                IsApproved = !containsBadWords
             };
 
             _context.ProductQuestions.Add(qa);
             await _context.SaveChangesAsync();
 
             if (containsBadWords)
-            {
                 TempData["SuccessMessage"] = "Câu hỏi của bạn chứa từ khóa cần xác minh và đã được chuyển đến bộ phận kiểm duyệt.";
-            }
             else
-            {
                 TempData["SuccessMessage"] = "Đã gửi câu hỏi! Câu hỏi sẽ hiển thị ngay lập tức.";
-            }
 
             return RedirectToAction("Display", new { id = productId });
         }
@@ -1053,6 +1030,78 @@ namespace WebBanDienThoai.Controllers
 
             TempData["SuccessMessage"] = "Đã xoá câu hỏi.";
             return RedirectToAction("Display", new { id = q.ProductId });
+        }
+
+        // =========================================================================
+        // 🚀 CẬP NHẬT 1: ACTION NHẬN FORM ĐĂNG KÝ THEO DÕI GIÁ MONG MUỐN (WISHLIST TRACK)
+        // =========================================================================
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CreatePriceAlert(int productId, decimal targetPrice)
+        {
+            if (targetPrice <= 0)
+                return Json(new { success = false, message = "Vui lòng nhập mức giá kỳ vọng hợp lệ!" });
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Json(new { success = false, message = "Bạn cần đăng nhập hệ thống!" });
+
+            // Kiểm tra khách đã đăng ký nhận thông báo cho sản phẩm này chưa
+            var existingAlert = await _context.PriceAlerts
+                .FirstOrDefaultAsync(a => a.ProductId == productId && a.UserId == user.Id && !a.IsTriggered);
+
+            if (existingAlert != null)
+            {
+                existingAlert.TargetPrice = targetPrice; // Cập nhật lại giá kỳ vọng mới
+                _context.PriceAlerts.Update(existingAlert);
+            }
+            else
+            {
+                var newAlert = new PriceAlert
+                {
+                    ProductId = productId,
+                    UserId = user.Id,
+                    Email = user.Email ?? "",
+                    TargetPrice = targetPrice,
+                    IsTriggered = false,
+                    CreatedDate = DateTime.Now
+                };
+                _context.PriceAlerts.Add(newAlert);
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = $"Đã bật theo dõi! Hệ thống sẽ thông báo tới Email ({user.Email}) khi giá giảm xuống mốc {targetPrice:N0} đ." });
+        }
+
+        // =========================================================================
+        // 🚀 CẬP NHẬT 2: ACTION TRẢ DỮ LIỆU JSON ĐỂ VẼ BIỂU ĐỒ LỊCH SỬ BIẾN ĐỘNG GIÁ
+        // =========================================================================
+        [HttpGet]
+        public async Task<IActionResult> GetPriceHistory(int productId)
+        {
+            var historyData = await _context.ProductPriceHistories
+                .Where(h => h.ProductId == productId)
+                .OrderBy(h => h.ChangeDate)
+                .ToListAsync();
+
+            // Nếu sản phẩm chưa từng có log đổi giá, gộp giá hiện tại của sản phẩm làm mốc gốc
+            if (!historyData.Any())
+            {
+                var product = await _context.Products.FindAsync(productId);
+                if (product != null)
+                {
+                    return Json(new
+                    {
+                        dates = new[] { DateTime.Now.ToString("dd/MM") },
+                        prices = new[] { product.DiscountedPrice }
+                    });
+                }
+            }
+
+            return Json(new
+            {
+                dates = historyData.Select(h => h.ChangeDate.ToString("dd/MM/yyyy")),
+                prices = historyData.Select(h => h.Price)
+            });
         }
     }
 }

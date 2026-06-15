@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebBanDienThoai.Models;
@@ -8,6 +12,7 @@ using WebBanDienThoai.Services.Email; // Nạp đường dẫn dịch vụ thôn
 namespace WebBanDienThoai.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = "Admin,Employer")]
     public class OrderController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -71,6 +76,77 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
 
             if (order == null) return NotFound();
 
+            // 📦 QUẢN LÝ KHO HÀNG: Kích hoạt tự động trừ kho & Ghi nhật ký khi chuyển sang Hoàn Tất
+            // Điều kiện: Trạng thái cũ CHƯA PHẢI Hoàn tất, nhưng trạng thái mới LÀ Hoàn tất
+            if (order.Status != OrderStatus.HoanTat && status == OrderStatus.HoanTat)
+            {
+                foreach (var item in order.OrderDetails)
+                {
+                    // 1. Tự động trừ số lượng tổng của Sản phẩm chính
+                    var product = _db.Products.FirstOrDefault(p => p.Id == item.ProductId);
+                    if (product != null)
+                    {
+                        product.Quantity -= item.Quantity; // Tự động giảm stock
+                        product.LastExportDate = DateTime.Now; // Cập nhật ngày xuất gần nhất
+                    }
+
+                    // 2. Tự động trừ số lượng của Biến thể (Màu sắc / Dung lượng) nếu có
+                    if (item.VariantId.HasValue)
+                    {
+                        var variant = _db.ProductVariants.FirstOrDefault(v => v.Id == item.VariantId.Value);
+                        if (variant != null)
+                        {
+                            variant.Stock -= item.Quantity; // Trừ kho biến thể cụ thể
+                        }
+                    }
+
+                    // 3. Ghi lại Lịch sử / Nhật ký xuất kho chi tiết (Stock history/logs)
+                    var inventoryLog = new InventoryLog
+                    {
+                        ProductId = item.ProductId,
+                        Type = "XUAT", // Loại xuất kho do bán hàng
+                        Quantity = item.Quantity,
+                        Note = $"Xuất kho tự động cho đơn hàng hoàn tất #{order.Id}",
+                        CreatedAt = DateTime.Now,
+                        ActionBy = User.Identity?.Name ?? "Hệ thống tự động"
+                    };
+                    _db.InventoryLogs.Add(inventoryLog);
+                }
+            }
+            // 🔄 Trường hợp ngược lại: Tiếp nhận trả hàng hoàn tiền (Cộng lại kho nếu cần)
+            else if (order.Status != OrderStatus.TraHang && status == OrderStatus.TraHang)
+            {
+                foreach (var item in order.OrderDetails)
+                {
+                    var product = _db.Products.FirstOrDefault(p => p.Id == item.ProductId);
+                    if (product != null)
+                    {
+                        product.Quantity += item.Quantity; // Hoàn lại kho tổng
+                    }
+
+                    if (item.VariantId.HasValue)
+                    {
+                        var variant = _db.ProductVariants.FirstOrDefault(v => v.Id == item.VariantId.Value);
+                        if (variant != null)
+                        {
+                            variant.Stock += item.Quantity; // Hoàn lại kho biến thể
+                        }
+                    }
+
+                    var inventoryLog = new InventoryLog
+                    {
+                        ProductId = item.ProductId,
+                        Type = "NHAP", // Hoàn trả tính là nhập lại kho
+                        Quantity = item.Quantity,
+                        Note = $"Hoàn kho tự động do đơn hàng chuyển trả #{order.Id}",
+                        CreatedAt = DateTime.Now,
+                        ActionBy = User.Identity?.Name ?? "Hệ thống tự động"
+                    };
+                    _db.InventoryLogs.Add(inventoryLog);
+                }
+            }
+
+            // Gán trạng thái mới cho đơn hàng
             order.Status = status;
 
             if (order.OrderLogs == null) order.OrderLogs = new List<OrderLog>();
@@ -95,60 +171,40 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 Location = "Hệ thống MobiStore"
             });
 
-            if (status == OrderStatus.HoanTat || status == OrderStatus.TraHang)
+            // Tích lũy điểm thành viên VIP khi đơn hàng hoàn tất
+            if (status == OrderStatus.HoanTat)
             {
-                foreach (var item in order.OrderDetails)
+                var user = _db.ApplicationUsers.FirstOrDefault(u => u.Id == order.UserId);
+                if (user != null)
                 {
-                    int delta = status == OrderStatus.HoanTat ? -item.Quantity : item.Quantity;
-                    ProductVariant variant = null;
-                    if (item.VariantId.HasValue)
-                    {
-                        variant = _db.ProductVariants.FirstOrDefault(v => v.Id == item.VariantId.Value);
-                    }
-                    var product = _db.Products.FirstOrDefault(p => p.Id == item.ProductId);
-                    if (variant != null) { variant.Stock += delta; }
-                    if (product != null)
-                    {
-                        product.Quantity += delta;
-                        if (status == OrderStatus.HoanTat) { product.LastExportDate = DateTime.Now; }
-                    }
-                }
+                    int pointsEarned = (int)(order.TotalPrice / 100000);
+                    user.CurrentPoints += pointsEarned;
+                    user.RankingPoints += pointsEarned;
 
-                if (status == OrderStatus.HoanTat)
-                {
-                    var user = _db.ApplicationUsers.FirstOrDefault(u => u.Id == order.UserId);
-                    if (user != null)
+                    if (!string.IsNullOrEmpty(user.Email) && order.OrderDetails != null && order.OrderDetails.Any())
                     {
-                        int pointsEarned = (int)(order.TotalPrice / 100000);
-                        user.CurrentPoints += pointsEarned;
-                        user.RankingPoints += pointsEarned;
+                        var firstItem = order.OrderDetails.First();
+                        var prodInfo = _db.Products.FirstOrDefault(p => p.Id == firstItem.ProductId);
 
-                        if (!string.IsNullOrEmpty(user.Email) && order.OrderDetails != null && order.OrderDetails.Any())
+                        if (prodInfo != null)
                         {
-                            var firstItem = order.OrderDetails.First();
-                            var prodInfo = _db.Products.FirstOrDefault(p => p.Id == firstItem.ProductId);
+                            string productUrl = $"{Request.Scheme}://{Request.Host}/Product/Display/{prodInfo.Id}";
+                            string requestEmailSubject = $"[MobiStore] Mời bạn đánh giá sản phẩm {prodInfo.Name}";
+                            string requestEmailBody = $@"
+                                <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;'>
+                                    <h2 style='color: #059669; text-align: center;'>Cảm ơn bạn đã tin tưởng mua sắm tại MobiStore!</h2>
+                                    <p>Xin chào <strong>{user.FullName}</strong>,</p>
+                                    <p>Đơn hàng <strong>#{order.Id}</strong> của bạn đã giao dịch thành công. Ý kiến của bạn là điều vô cùng quý giá để chúng tôi nâng cao chất lượng dịch vụ.</p>
+                                    <p>MobiStore trân trọng mời bạn chia sẻ cảm nhận thực tế về thiết bị <strong>{prodInfo.Name}</strong> mà bạn vừa sở hữu.</p>
+                                    <div style='text-align: center; margin: 30px 0;'>
+                                        <a href='{productUrl}#review-section' style='background-color: #059669; color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>✍️ Viết Đánh Giá Để Lấy Tích Xanh Ngay</a>
+                                    </div>
+                                    <p style='font-size: 13px; color: #666; font-style: italic; text-align: center;'>Bình luận của bạn sẽ được hiển thị kèm Huy hiệu xác minh đã mua hàng độc lập.</p>
+                                    <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;' />
+                                    <p style='font-size: 11px; color: #777; text-align: center;'>MobiStore - Uy tín kiến tạo niềm tin.</p>
+                                </div>";
 
-                            if (prodInfo != null)
-                            {
-                                string productUrl = $"{Request.Scheme}://{Request.Host}/Product/Display/{prodInfo.Id}";
-                                string requestEmailSubject = $"[MobiStore] Mời bạn đánh giá sản phẩm {prodInfo.Name}";
-                                string requestEmailBody = $@"
-                                    <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;'>
-                                        <h2 style='color: #059669; text-align: center;'>Cảm ơn bạn đã tin tưởng mua sắm tại MobiStore!</h2>
-                                        <p>Xin chào <strong>{user.FullName}</strong>,</p>
-                                        <p>Đơn hàng <strong>#{order.Id}</strong> của bạn đã giao dịch thành công. Ý kiến của bạn là điều vô cùng quý giá để chúng tôi nâng cao chất lượng dịch vụ.</p>
-                                        <p>MobiStore trân trọng mời bạn chia sẻ cảm nhận thực tế về thiết bị <strong>{prodInfo.Name}</strong> mà bạn vừa sở hữu.</p>
-                                        <div style='text-align: center; margin: 30px 0;'>
-                                            <a href='{productUrl}#review-section' style='background-color: #059669; color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>✍️ Viết Đánh Giá Để Lấy Tích Xanh Ngay</a>
-                                        </div>
-                                        <p style='font-size: 13px; color: #666; font-style: italic; text-align: center;'>Bình luận của bạn sẽ được hiển thị kèm Huy hiệu xác minh đã mua hàng độc lập.</p>
-                                        <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;' />
-                                        <p style='font-size: 11px; color: #777; text-align: center;'>MobiStore - Uy tín kiến tạo niềm tin.</p>
-                                    </div>";
-
-                                // Gọi luồng gửi Mail nền bất đồng bộ
-                                _ = Task.Run(() => _emailSender.SendEmailAsync(user.Email, requestEmailSubject, requestEmailBody));
-                            }
+                            _emailSender.SendEmailAsync(user.Email, requestEmailSubject, requestEmailBody);
                         }
                     }
                 }
@@ -193,8 +249,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                                 <p style='font-size: 11px; color: #777; text-align: center;'>Đây là email tự động từ hệ thống MobiStore, vui lòng không phản hồi lại email này.</p>
                             </div>";
 
-                        // Chạy nền tác vụ gửi Email thực tế để tránh làm chậm luồng phản hồi trang Admin
-                        _ = Task.Run(() => _emailSender.SendEmailAsync(customer.Email, emailSubject, emailBody));
+                        _emailSender.SendEmailAsync(customer.Email, emailSubject, emailBody);
                     }
                 }
             }

@@ -1,0 +1,140 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.BlogCategory>
+@{
+    ViewData["Title"] = "Quản lý Danh mục Blog";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid px-4 mt-4">
+    <h1 class="h3 mb-4 text-gray-800 fw-bold">📁 Quản lý Danh mục Blog</h1>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <h5 class="fw-bold text-dark mb-3">Thêm danh mục mới</h5>
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="form-group mb-3">
+                        <label class="form-label small fw-bold text-secondary">Tên danh mục</label>
+                        <input type="text" name="Name" class="form-control rounded-3" placeholder="Ví dụ: Đánh giá, Mẹo vặt..." required />
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 fw-bold rounded-pill">Tạo danh mục</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success rounded-3 small mb-3">
+                    <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+                </div>
+            }
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase">
+                            <tr>
+                                <th class="ps-4" style="width: 80px;">ID</th>
+                                <th>Tên danh mục</th>
+                                <th>Đường dẫn (Slug)</th>
+                                <th class="text-end pe-4" style="width: 120px;">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr id="cat-row-@item.Id">
+                                    <td class="ps-4 text-muted">@item.Id</td>
+                                    <td class="fw-bold text-dark">@item.Name</td>
+                                    <td class="text-muted">@item.Slug</td>
+                                    <td class="text-end pe-4">
+                                        <button onclick="editCategory(@item.Id, '@item.Name')" class="btn btn-sm btn-outline-warning rounded-pill px-3 me-1">
+                                            <i class="bi bi-pencil-square"></i> Sửa
+                                        </button>
+                                        <button onclick="deleteCategory(@item.Id)" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                            <i class="bi bi-trash"></i> Xóa
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function deleteCategory(id) {
+        Swal.fire({
+        title: 'Kiệt chắc chắn muốn xóa?',
+        text: "Danh mục này phải trống (không chứa bài viết) thì mới có thể xóa!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Xóa ngay!',
+        cancelButtonText: 'Hủy'
+        }).then((result) => {
+        if (result.isConfirmed) {
+        $.ajax({
+        url: '/Admin/BlogCategory/Delete/' + id,
+        type: 'POST',
+        success: function (response) {
+        if (response.success) {
+        Swal.fire('Đã xóa!', response.message, 'success');
+        $('#cat-row-' + id).fadeOut(500, function() { $(this).remove(); });
+        } else {
+        Swal.fire('Không thể xóa!', response.message, 'error');
+        }
+        }
+        });
+        }
+        })
+        }
+
+        function editCategory(id, currentName) {
+        Swal.fire({
+        title: 'Chỉnh sửa danh mục',
+        input: 'text',
+        inputLabel: 'Nhập tên danh mục mới:',
+        inputValue: currentName,
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Cập nhật',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+        if (!value || !value.trim()) {
+        return 'Tên danh mục không được để trống!'
+        }
+        }
+        }).then((result) => {
+        if (result.isConfirmed) {
+        // Gửi dữ liệu cập nhật qua Ajax lên Controller
+        $.ajax({
+        url: '/Admin/BlogCategory/Edit',
+        type: 'POST',
+        data: {
+        id: id,
+        name: result.value
+        },
+        success: function (response) {
+        if (response.success) {
+        Swal.fire('Thành công!', response.message, 'success').then(() => {
+        location.reload(); // Tải lại trang để cập nhật tên mới và slug mới
+        });
+        } else {
+        Swal.fire('Lỗi!', response.message, 'error');
+        }
+        }
+        });
+        }
+        })
+        }
+    </script>
+}

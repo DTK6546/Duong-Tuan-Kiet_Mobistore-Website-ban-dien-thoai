@@ -44,6 +44,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Shipper> Shippers { get; set; }
     public DbSet<OrderLog> OrderLogs { get; set; }
     public DbSet<ApplicationUser> ApplicationUsers { get; set; }
+    public DbSet<InventoryLog> InventoryLogs { get; set; }
+    public DbSet<LoyaltyReward> LoyaltyRewards { get; set; }
+    public DbSet<ProductPriceHistory> ProductPriceHistories { get; set; }
+    public DbSet<PriceAlert> PriceAlerts { get; set; }
+    public DbSet<BlogCategory> BlogCategories { get; set; }
+    public DbSet<BlogPost> BlogPosts { get; set; }
+    public DbSet<BlogComment> BlogComments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

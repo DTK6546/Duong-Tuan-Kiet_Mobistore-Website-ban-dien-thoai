@@ -38,6 +38,7 @@ namespace WebBanDienThoai.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
+            // ĐỒNG BỘ: Đảm bảo số tiền giảm từ đổi điểm được nạp đầy đủ vào ViewBag
             ViewBag.Cart = cart;
             ViewBag.CurrentUser = user;
 
@@ -398,7 +399,6 @@ namespace WebBanDienThoai.Controllers
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart") ?? new ShoppingCart();
 
-            // Nếu giỏ trống thì chắc chắn không còn giảm giá
             if (cart.Items == null || !cart.Items.Any())
             {
                 cart.CouponCode = null;
@@ -411,12 +411,10 @@ namespace WebBanDienThoai.Controllers
 
             if (string.IsNullOrWhiteSpace(couponCode))
             {
-                // Không sửa gì trong cart, chỉ báo lỗi
                 TempData["CouponError"] = "Vui lòng nhập mã giảm giá.";
                 return RedirectToAction("Index");
             }
 
-            // BẮT BUỘC ĐĂNG NHẬP MỚI DÙNG ĐƯỢC MÃ
             var user = _userManager.GetUserAsync(User).Result;
             if (user == null)
             {
@@ -427,57 +425,52 @@ namespace WebBanDienThoai.Controllers
             couponCode = couponCode.Trim();
             var now = DateTime.Now;
 
-            var coupon = _context.Coupons.FirstOrDefault(c => c.Code == couponCode);
+            // Tìm chính xác mã Voucher sinh ra từ hệ thống đổi điểm
+            var coupon = _context.Coupons.FirstOrDefault(c => c.Code.Trim().ToUpper() == couponCode.ToUpper());
 
-            if (coupon == null)
+            if (!coupon.IsActive || coupon.StartDate > DateTime.Now.AddDays(1) || coupon.EndDate < DateTime.Now.AddDays(-1))
             {
-                // Mã không tồn tại → xoá giảm giá cũ (nếu có)
                 cart.CouponCode = null;
                 cart.DiscountAmount = 0;
                 HttpContext.Session.SetObjectAsJson("Cart", cart);
 
-                TempData["CouponError"] = "Mã giảm giá không tồn tại.";
+                TempData["CouponError"] = "Mã giảm giá đã hết hạn hoặc chưa đến thời gian áp dụng.";
                 return RedirectToAction("Index");
             }
 
-            // 1. Check trạng thái + thời gian
             if (!coupon.IsActive || coupon.StartDate > now || coupon.EndDate < now)
             {
                 cart.CouponCode = null;
                 cart.DiscountAmount = 0;
                 HttpContext.Session.SetObjectAsJson("Cart", cart);
 
-                TempData["CouponError"] = "Mã giảm giá không còn hiệu lực.";
+                TempData["CouponError"] = "Mã giảm giá đã hết hạn hoặc chưa đến thời gian áp dụng.";
                 return RedirectToAction("Index");
             }
 
-            // 2. Check số lượt toàn hệ thống (CurrentUsage < Quantity)
             if (coupon.CurrentUsage >= coupon.Quantity)
             {
                 cart.CouponCode = null;
                 cart.DiscountAmount = 0;
                 HttpContext.Session.SetObjectAsJson("Cart", cart);
 
-                TempData["CouponError"] = "Mã giảm giá này đã được sử dụng hết.";
+                TempData["CouponError"] = "Mã giảm giá này đã được sử dụng hết lượt.";
                 return RedirectToAction("Index");
             }
 
-            // 3. Check user đã dùng mã này chưa (mỗi user chỉ 1 lần)
             bool hasUsed = _context.CouponUsages
                 .Any(x => x.CouponId == coupon.Id && x.UserId == user.Id);
 
             if (hasUsed)
             {
-                // ✅ QUAN TRỌNG: xoá luôn coupon + discount cũ
                 cart.CouponCode = null;
                 cart.DiscountAmount = 0;
                 HttpContext.Session.SetObjectAsJson("Cart", cart);
 
-                TempData["CouponError"] = "Bạn đã sử dụng mã này rồi, không thể dùng lại.";
+                TempData["CouponError"] = "Bạn đã sử dụng mã giảm giá này cho một đơn hàng trước đó rồi.";
                 return RedirectToAction("Index");
             }
 
-            // 4. Tính subtotal (có cả bảo hành)
             decimal subtotal = cart.Items.Sum(i =>
             {
                 decimal warrantyPerItem = i.Warranties?.Sum(w => w.Price) ?? 0m;
@@ -490,14 +483,11 @@ namespace WebBanDienThoai.Controllers
                 cart.DiscountAmount = 0;
                 HttpContext.Session.SetObjectAsJson("Cart", cart);
 
-                TempData["CouponError"] =
-                    $"Đơn hàng phải tối thiểu {coupon.MinOrderValue:N0} VNĐ mới dùng được mã này.";
+                TempData["CouponError"] = $"Đơn hàng phải tối thiểu {coupon.MinOrderValue:N0} VNĐ mới dùng được mã này.";
                 return RedirectToAction("Index");
             }
 
-            // 5. Tính số tiền giảm
             decimal discount = 0;
-
             var percent = coupon.DiscountPercent ?? 0;
             var amount = coupon.DiscountAmount ?? 0m;
 
@@ -516,7 +506,7 @@ namespace WebBanDienThoai.Controllers
                 cart.DiscountAmount = 0;
                 HttpContext.Session.SetObjectAsJson("Cart", cart);
 
-                TempData["CouponError"] = "Mã giảm giá hiện không áp dụng được cho đơn hàng này.";
+                TempData["CouponError"] = "Mã giảm giá không hợp lệ cho các sản phẩm hiện tại.";
                 return RedirectToAction("Index");
             }
 
@@ -525,13 +515,19 @@ namespace WebBanDienThoai.Controllers
                 discount = subtotal;
             }
 
-            // 6. LƯU VÀO CART (SESSION)
+            // 💾 LƯU CHẶT VÀO CART SESSION
             cart.CouponCode = coupon.Code;
             cart.DiscountAmount = discount;
             HttpContext.Session.SetObjectAsJson("Cart", cart);
 
-            TempData["CouponSuccess"] =
-                $"Áp dụng mã {coupon.Code} thành công! Bạn được giảm {discount:N0} VNĐ.";
+            TempData["CouponSuccess"] = $"Áp dụng mã {coupon.Code} thành công! Bạn được giảm {discount:N0} VNĐ.";
+
+            // ✨ THAY ĐỔI CHIẾN LƯỢC: Kiểm tra nếu khách đang thao tác ở trang checkout thì quay lại checkout
+            var referer = Request.Headers["Referer"].ToString();
+            if (referer.Contains("Checkout", StringComparison.OrdinalIgnoreCase))
+            {
+                return RedirectToAction("Checkout");
+            }
 
             return RedirectToAction("Index");
         }

@@ -96,6 +96,9 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-primary text-white fw-semibold d-flex justify-content-between align-items-center">
         <span>📦 Báo cáo tồn kho sản phẩm</span>
+        <a href="/Admin/Report/InventoryLogs" class="btn btn-info btn-sm fw-bold text-white">
+            <i class="bi bi-clock-history"></i> Xem Nhật Ký Kho
+        </a>
         <a href="@Url.Action("ExportInventoryToCsv", "Report", new { area = "Admin" })" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm">
             <i class="bi bi-download"></i> Xuất Excel Tồn Kho
         </a>

@@ -286,16 +286,35 @@
         padding: 10px 12px;
         margin-top: 8px;
     }
+
+    #recommendationTab .nav-link {
+        color: #4b5563;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+        #recommendationTab .nav-link.active {
+            background-color: #0ea5e9;
+            color: white !important;
+            box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2);
+        }
+
+        #recommendationTab .nav-link:hover:not(.active) {
+            background-color: #e5e7eb;
+            color: #000;
+        }
+
+    .border-dashed {
+        border-style: dashed !important;
+    }
 </style>
 
 <div class="container mt-5">
 
-    <!-- Anti-forgery token for AJAX -->
     <form id="antiForgeryForm">
         @Html.AntiForgeryToken()
     </form>
 
-    <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small bg-light rounded px-3 py-2 mb-3">
             <li class="breadcrumb-item">
@@ -311,7 +330,6 @@
     </nav>
 
     <div class="row">
-        <!-- Hình ảnh sản phẩm chính + gallery -->
         <div class="col-md-6 mb-4">
             @if (media.Count > 0)
             {
@@ -325,7 +343,7 @@
                                          class="d-block w-100 img-fluid rounded shadow-sm product-image"
                                          style="max-height:420px;object-fit:contain"
                                          alt="@Model.Name"
-                                         @(i == 0 ? "id=\"mainImage\"" : "") />
+                                    @(i == 0 ? "id=\"mainImage\"" : "") />
                                 </div>
                             }
                         </div>
@@ -359,7 +377,6 @@
             }
         </div>
 
-        <!-- Thông tin sản phẩm -->
         <div class="col-md-6">
             <h2 class="mb-2 text-uppercase text-dark">@Model.Name</h2>
             @{
@@ -369,7 +386,6 @@
                 SKU: <b id="variantSku">@(!string.IsNullOrWhiteSpace(selectedVariantSku?.Sku) ? selectedVariantSku.Sku : "—")</b>
             </div>
 
-            <!-- Rating + đã bán -->
             <div class="d-flex align-items-center mb-3 gap-3" style="font-size: 1.1rem;">
                 <span class="fw-bold me-1" style="color: #ffb300;">@avg.ToString("0.0")</span>
                 <i class="bi bi-star-fill text-warning"></i>
@@ -381,7 +397,6 @@
 
             <div style="height: 12px;"></div>
 
-            <!-- GIÁ + cập nhật theo biến thể -->
             <div class="mb-3">
                 @if (hasVariants)
                 {
@@ -415,335 +430,341 @@
                 }
             </div>
 
-            @functions {
-                public string GetColorHex(string color)
-                {
-                    if (string.IsNullOrWhiteSpace(color)) return "#cccccc";
-                    color = color.ToLower();
+@functions {
+    public string GetColorHex(string color)
+    {
+        if (string.IsNullOrWhiteSpace(color)) return "#cccccc";
+        color = color.ToLower();
 
-                    if (color.Contains("đen")) return "#000000";
-                    if (color.Contains("trắng")) return "#f8f8f8";
-                    if (color.Contains("xanh lá")) return "#2ecc71";
-                    if (color.Contains("xanh")) return "#3498db";
-                    if (color.Contains("đỏ")) return "#e74c3c";
-                    if (color.Contains("vàng") || color.Contains("gold")) return "#f1c40f";
-                    if (color.Contains("tím")) return "#9b59b6";
-                    if (color.Contains("titan")) return "#bdc3c7";
-                    if (color.Contains("xám") || color.Contains("ghi") || color.Contains("gray")) return "#7f8c8d";
+        if (color.Contains("đen")) return "#000000";
+        if (color.Contains("trắng")) return "#f8f8f8";
+        if (color.Contains("xanh lá")) return "#2ecc71";
+        if (color.Contains("xanh")) return "#3498db";
+        if (color.Contains("đỏ")) return "#e74c3c";
+        if (color.Contains("vàng") || color.Contains("gold")) return "#f1c40f";
+        if (color.Contains("tím")) return "#9b59b6";
+        if (color.Contains("titan")) return "#bdc3c7";
+        if (color.Contains("xám") || color.Contains("ghi") || color.Contains("gray")) return "#7f8c8d";
 
-                    return "#cccccc";
-                }
-            }
+        return "#cccccc";
+    }
+}
 
-            <!-- CHỌN PHIÊN BẢN -->
-            @if (hasVariants)
-            {
-                <div class="mb-2">
-                    <label class="form-label fw-semibold me-2">Dung lượng:</label>
-                    @foreach (var cap in variants.Select(v => v.Capacity).Distinct())
-                    {
-                        <button type="button"
-                                class="variant-pill variant-capacity-btn"
-                                data-capacity="@cap">
-                            @cap
-                        </button>
-                    }
-                </div>
+@if (hasVariants)
+{
+    <div class="mb-2">
+        <label class="form-label fw-semibold me-2">Dung lượng:</label>
+        @foreach (var cap in variants.Select(v => v.Capacity).Distinct())
+        {
+            <button type="button"
+                    class="variant-pill variant-capacity-btn"
+                    data-capacity="@cap">
+                @cap
+            </button>
+        }
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold me-2">Màu sắc:</label>
-                    @foreach (var color in variants.Select(v => v.Color).Distinct())
-                    {
-                        <button type="button"
-                                class="variant-pill variant-color-btn"
-                                data-color="@color">
-                            <span class="color-dot" style="background-color:@GetColorHex(color)"></span>
-                            <span>@color</span>
-                        </button>
-                    }
-                </div>
-            }
+    <div class="mb-3">
+        <label class="form-label fw-semibold me-2">Màu sắc:</label>
+        @foreach (var color in variants.Select(v => v.Color).Distinct())
+        {
+            <button type="button"
+                    class="variant-pill variant-color-btn"
+                    data-color="@color">
+                <span class="color-dot" style="background-color:@GetColorHex(color)"></span>
+                <span>@color</span>
+            </button>
+        }
+    </div>
+}
 
-            <!-- Tồn kho -->
-            <div class="mb-2">
-                <span class="fw-semibold">Tình trạng: </span>
-                <span id="stockBadge" class="badge"></span>
-                <span id="stockText" class="ms-2 small text-muted"></span>
-            </div>
+<div class="mb-2">
+    <span class="fw-semibold">Tình trạng: </span>
+    <span id="stockBadge" class="badge"></span>
+    <span id="stockText" class="ms-2 small text-muted"></span>
+</div>
 
-            <!-- Giao hàng -->
-            <div class="border rounded-3 p-3 mb-3" style="background:#fcfcfd;">
-                <div class="fw-semibold mb-2">
-                    <i class="bi bi-truck me-1"></i> Giao đến
-                </div>
+<div class="border rounded-3 p-3 mb-3" style="background:#fcfcfd;">
+    <div class="fw-semibold mb-2">
+        <i class="bi bi-truck me-1"></i> Giao đến
+    </div>
 
-                <div class="row g-2">
-                    <div class="col-md-6">
-                        <select class="form-select" id="shipProvince">
-                            <option value="">-- Chọn Tỉnh/TP --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <select class="form-select" id="shipDistrict" disabled>
-                            <option value="">-- Toàn tỉnh --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="mt-2 small">
-                    <div>Phí ship: <b id="shipFee">—</b></div>
-                    <div>Giao dự kiến: <b id="shipEta">—</b></div>
-                </div>
-            </div>
-
-            <!-- PROMO -->
-            <div class="border rounded-3 p-3 mb-3" style="background:#fff7ed;">
-                <div class="fw-semibold mb-2">
-                    <i class="bi bi-gift me-1"></i> Khuyến mãi / Ưu đãi
-                </div>
-
-                <ul class="mb-2 small">
-                    <li>Mã giảm giá / quà tặng kèm (tuỳ đợt).</li>
-                    <li>Ưu đãi ngân hàng / hoàn tiền (nếu áp dụng).</li>
-                    <li class="text-muted">* Điều kiện áp dụng theo thời gian, số lượt, và biến thể.</li>
-                </ul>
-
-                @if (promoCoupons.Any())
-                {
-                    <div class="list-group">
-                        @foreach (var c in promoCoupons)
-                        {
-                            var remain = c.Quantity - c.CurrentUsage;
-                            <div class="list-group-item d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="fw-semibold">
-                                        <span class="badge bg-danger me-2">@c.Code</span>
-                                        @if (c.DiscountPercent.HasValue && c.DiscountPercent.Value > 0)
-                                        {
-                                            <span>Giảm @c.DiscountPercent% </span>
-                                        }
-                                        else if (c.DiscountAmount.HasValue && c.DiscountAmount.Value > 0)
-                                        {
-                                            <span>Giảm @c.DiscountAmount.Value.ToString("N0", vi) VNĐ</span>
-                                        }
-                                    </div>
-
-                                    <div class="small text-muted">
-                                        Đơn tối thiểu: @c.MinOrderValue.ToString("N0", vi) VNĐ •
-                                        Còn: @(remain > 0 ? remain.ToString() : "0") lượt •
-                                        @c.StartDate.ToString("dd/MM") - @c.EndDate.ToString("dd/MM")
-                                    </div>
-                                </div>
-
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-dark copy-coupon-btn"
-                                        data-code="@c.Code">
-                                    Copy
-                                </button>
-                            </div>
-                        }
-                    </div>
-
-                    <div class="small text-muted mt-2">
-                        * Bạn áp mã tại trang giỏ hàng/checkout.
-                    </div>
-                }
-                else
-                {
-                    <div class="small text-muted">
-                        Hiện chưa có mã hiển thị ở trang sản phẩm.
-                    </div>
-                }
-            </div>
-
-            <!-- Trả góp -->
-            <div class="border rounded-3 p-3 mb-3" style="background:#f8fafc;">
-                <div class="fw-semibold mb-2">
-                    <i class="bi bi-credit-card-2-front me-1"></i> Trả góp (ước tính)
-                </div>
-
-                <div class="row g-2 align-items-end">
-                    <div class="col-6">
-                        <label class="form-label small mb-1">Kỳ hạn</label>
-                        <select id="installmentMonths" class="form-select form-select-sm">
-                            <option value="3">3 tháng</option>
-                            <option value="6" selected>6 tháng</option>
-                            <option value="12">12 tháng</option>
-                        </select>
-                    </div>
-
-                    <div class="col-6">
-                        <label class="form-label small mb-1">Trả trước (VNĐ)</label>
-                        <input id="installmentDown" class="form-control form-control-sm" value="0" />
-                    </div>
-                </div>
-
-                <div class="mt-2 small">
-                    <div>Giá đang chọn: <b id="installmentPriceText">—</b></div>
-                    <div>Mỗi tháng (ước tính): <b id="installmentPerMonth">—</b></div>
-                    <div class="text-muted">* Bảng tính tham khảo, thực tế tuỳ ngân hàng/cổng trả góp.</div>
-                </div>
-            </div>
-
-            <!-- Số lượng -->
-            <div class="mb-4">
-                <label for="quantity" class="form-label">Số lượng:</label>
-                <input type="number" class="form-control" id="quantity" value="1" min="1" style="width: 120px;">
-            </div>
-
-            <!-- Nút mua / yêu thích / so sánh -->
-            <div class="d-flex flex-wrap gap-2">
-                @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin") && !User.IsInRole("Employer"))
-                {
-                    <form id="addToCartForm" asp-controller="ShoppingCart" asp-action="AddToCart" method="post">
-                        <input type="hidden" name="productId" value="@Model.Id" />
-                        <input type="hidden" name="quantity" id="cartQuantity" value="1" />
-                        <input type="hidden" name="variantId" id="SelectedVariantId" />
-
-                        <button class="btn btn-cart px-4 py-2 shadow" type="submit" id="addToCartButton">
-                            <i class="bi bi-cart-fill me-2"></i> Thêm vào giỏ hàng
-                        </button>
-                    </form>
-
-                    <form id="buyNowForm" asp-controller="ShoppingCart" asp-action="BuyNow" method="post">
-                        <input type="hidden" name="productId" value="@Model.Id" />
-                        <input type="hidden" name="quantity" id="buyNowQuantity" value="1" />
-                        <input type="hidden" name="variantId" id="BuyNowVariantId" />
-                        <button class="btn btn-danger px-4 py-2 shadow" type="submit" id="buyNowButton">
-                            <i class="bi bi-lightning-charge-fill me-2"></i> Mua ngay
-                        </button>
-                    </form>
-                }
-                else if (User.IsInRole("Admin") || User.IsInRole("Employer"))
-                {
-                    <button class="btn btn-secondary px-4 py-2 shadow" disabled>
-                        <i class="bi bi-cart-fill me-2"></i> Thêm vào giỏ hàng
-                    </button>
-                    <button class="btn btn-secondary px-4 py-2 shadow" disabled>
-                        <i class="bi bi-lightning-charge-fill me-2"></i> Mua ngay
-                    </button>
-                }
-                else
-                {
-                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-secondary px-4 py-2 shadow">
-                        <i class="bi bi-cart-fill me-2"></i> Thêm vào giỏ hàng
-                    </a>
-                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-danger px-4 py-2 shadow">
-                        <i class="bi bi-lightning-charge-fill me-2"></i> Mua ngay
-                    </a>
-                }
-
-                @if (User.Identity.IsAuthenticated)
-                {
-                    <form id="addToWishlistForm" asp-controller="Wishlist" asp-action="AddToWishlist" method="post">
-                        <input type="hidden" name="productId" value="@Model.Id" />
-                        <input type="hidden" name="variantId" id="WishlistVariantId" />
-
-                        <button type="submit" class="btn btn-heart px-4 py-2 shadow" id="addToWishlistButton">
-                            <i class="bi bi-heart me-2"></i> Yêu thích
-                        </button>
-                    </form>
-                }
-                else
-                {
-                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-heart px-4 py-2 shadow">
-                        <i class="bi bi-heart me-2"></i> Yêu thích
-                    </a>
-                }
-
-                <a href="javascript:void(0)" id="btnCompare" class="btn btn-outline-primary px-4 py-2 shadow">
-                    So sánh
-                </a>
-            </div>
-
-            <div class="mt-4">
-                <h5 class="mb-3">Thông tin sản phẩm:</h5>
-                <ul class="list-unstyled">
-                    <li><strong>Danh mục:</strong> @Model.Category?.Name</li>
-                    @if (Model.SubCategory != null)
-                    {
-                        <li><strong>Hãng:</strong> @Model.SubCategory?.Name</li>
-                    }
-                    <li><strong>Mã sản phẩm:</strong> @Model.Id</li>
-                </ul>
-            </div>
+    <div class="row g-2">
+        <div class="col-md-6">
+            <select class="form-select" id="shipProvince">
+                <option value="">-- Chọn Tỉnh/TP --</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <select class="form-select" id="shipDistrict" disabled>
+                <option value="">-- Toàn tỉnh --</option>
+            </select>
         </div>
     </div>
 
-    <!-- MÔ TẢ -->
-    @if (!string.IsNullOrEmpty(Model.Description))
-    {
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="product-description-box p-4">
-                    <h5 class="mb-3">Mô tả sản phẩm</h5>
-                    @Html.Raw(Model.Description)
-                </div>
-            </div>
-        </div>
-    }
+    <div class="mt-2 small">
+        <div>Phí ship: <b id="shipFee">—</b></div>
+        <div>Giao dự kiến: <b id="shipEta">—</b></div>
+    </div>
+</div>
 
-    <!-- CAM KẾT -->
-    @if (!string.IsNullOrWhiteSpace(Model.ServiceCommitment))
+<div class="border rounded-3 p-3 mb-3" style="background:#fff7ed;">
+    <div class="fw-semibold mb-2">
+        <i class="bi bi-gift me-1"></i> Khuyến mãi / Ưu đãi
+    </div>
+
+    <ul class="mb-2 small">
+        <li>Mã giảm giá / quà tặng kèm (tuỳ đợt).</li>
+        <li>Ưu đãi ngân hàng / hoàn tiền (nếu áp dụng).</li>
+        <li class="text-muted">* Điều kiện áp dụng theo thời gian, số lượt, và biến thể.</li>
+    </ul>
+
+    @if (promoCoupons.Any())
     {
-        <div class="mt-4">
-            <h5 class="mb-3 fw-semibold">Cam kết dịch vụ</h5>
-            <div class="row g-3">
-                @foreach (var line in Model.ServiceCommitment.Split('\n'))
-                {
-                    if (!string.IsNullOrWhiteSpace(line))
-                    {
-                        <div class="col-md-6 d-flex align-items-start">
-                            <div class="me-2">
-                                <i class="bi bi-patch-check-fill" style="color:#3b82f6; font-size:20px;"></i>
-                            </div>
-                            <div class="text-dark" style="line-height:1.4;">
-                                @line.Trim()
-                            </div>
+        <div class="list-group">
+            @foreach (var c in promoCoupons)
+            {
+                var remain = c.Quantity - c.CurrentUsage;
+                <div class="list-group-item d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="fw-semibold">
+                            <span class="badge bg-danger me-2">@c.Code</span>
+                            @if (c.DiscountPercent.HasValue && c.DiscountPercent.Value > 0)
+                            {
+                                <span>Giảm @c.DiscountPercent% </span>
+                            }
+                            else if (c.DiscountAmount.HasValue && c.DiscountAmount.Value > 0)
+                            {
+                                <span>Giảm @c.DiscountAmount.Value.ToString("N0", vi) VNĐ</span>
+                            }
                         </div>
-                    }
-                }
-            </div>
+
+                        <div class="small text-muted">
+                            Đơn tối thiểu: @c.MinOrderValue.ToString("N0", vi) VNĐ •
+                            Còn: @(remain > 0 ? remain.ToString() : "0") lượt •
+                            @c.StartDate.ToString("dd/MM") - @c.EndDate.ToString("dd/MM")
+                        </div>
+                    </div>
+
+                    <button type="button"
+                            class="btn btn-sm btn-outline-dark copy-coupon-btn"
+                            data-code="@c.Code">
+                        Copy
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="small text-muted mt-2">
+            * Bạn áp mã tại trang giỏ hàng/checkout.
         </div>
     }
-
-    <!-- THÔNG SỐ KỸ THUẬT -->
-    @if (Model.Specs != null)
+    else
     {
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="product-description-box p-4">
-                    <h5 class="mb-3">Thông số kỹ thuật</h5>
+        <div class="small text-muted">
+            Hiện chưa có mã hiển thị ở trang sản phẩm.
+        </div>
+    }
+</div>
 
-                    <div class="accordion" id="specsAccordion">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="headingCfg">
-                                <button class="accordion-button" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#collapseCfg"
-                                        aria-expanded="true" aria-controls="collapseCfg">
-                                    Cấu hình & Bộ nhớ
-                                </button>
-                            </h2>
-                            <div id="collapseCfg" class="accordion-collapse collapse show" aria-labelledby="headingCfg">
-                                <div class="accordion-body p-0">
-                                    <table class="table table-sm mb-0">
-                                        <tr><th style="width:230px">Hệ điều hành</th><td>@Model.Specs.Os</td></tr>
-                                        <tr><th>Chip xử lý (CPU)</th><td>@Model.Specs.Cpu</td></tr>
-                                        <tr><th>Tốc độ CPU</th><td>@Model.Specs.CpuSpeed</td></tr>
-                                        <tr><th>Chip đồ họa (GPU)</th><td>@Model.Specs.Gpu</td></tr>
-                                        <tr><th>RAM</th><td>@Model.Specs.Ram</td></tr>
-                                        <tr>
-                                            <th>Dung lượng lưu trữ</th>
-                                            <td id="specStorage">
-                                                @(hasVariants && variants.Any() ? variants.First().Storage : Model.Specs.Storage)
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th>Dung lượng còn lại (khả dụng)</th>
-                                            <td id="specStorageAvailable">
-                                                @(hasVariants && variants.Any()
-                                                                                            ? (variants.First().StorageAvailable ?? Model.Specs.StorageAvailable)
-                                                                                            : Model.Specs.StorageAvailable)
+<div class="card p-3 border-dashed rounded-4 my-3 bg-light shadow-sm">
+    <h6 class="fw-bold text-dark"><i class="bi bi-bell-fill text-warning"></i> Nhận thông báo khi giảm giá</h6>
+    <p class="small text-muted mb-2">Hệ thống sẽ tự động gửi email cho bạn khi sản phẩm này có giá bằng hoặc thấp hơn mức bạn mong muốn.</p>
+
+    <div class="row g-2">
+        <div class="col-7">
+            <input type="number" id="targetPriceInput" class="form-control form-control-sm" placeholder="Giá kỳ vọng (Ví dụ: 18000000)" />
+        </div>
+        <div class="col-5">
+            <button class="btn btn-sm btn-outline-danger w-100 rounded-pill fw-bold" onclick="registerPriceAlert(@Model.Id)">
+                <i class="bi bi-bookmark-heart"></i> Theo dõi giá
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="border rounded-3 p-3 mb-3" style="background:#f8fafc;">
+    <div class="fw-semibold mb-2">
+        <i class="bi bi-credit-card-2-front me-1"></i> Trả góp (ước tính)
+    </div>
+
+    <div class="row g-2 align-items-end">
+        <div class="col-6">
+            <label class="form-label small mb-1">Kỳ hạn</label>
+            <select id="installmentMonths" class="form-select form-select-sm">
+                <option value="3">3 tháng</option>
+                <option value="6" selected>6 tháng</option>
+                <option value="12">12 tháng</option>
+            </select>
+        </div>
+
+        <div class="col-6">
+            <label class="form-label small mb-1">Trả trước (VNĐ)</label>
+            <input id="installmentDown" class="form-control form-control-sm" value="0" />
+        </div>
+    </div>
+
+    <div class="mt-2 small">
+        <div>Giá đang chọn: <b id="installmentPriceText">—</b></div>
+        <div>Mỗi tháng (ước tính): <b id="installmentPerMonth">—</b></div>
+        <div class="text-muted">* Bảng tính tham khảo, thực tế tuỳ ngân hàng/cổng trả góp.</div>
+    </div>
+</div>
+
+<div class="mb-4">
+    <label for="quantity" class="form-label">Số lượng:</label>
+    <input type="number" class="form-control" id="quantity" value="1" min="1" style="width: 120px;">
+</div>
+
+<div class="d-flex flex-wrap gap-2">
+    @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin") && !User.IsInRole("Employer"))
+    {
+        <form id="addToCartForm" asp-controller="ShoppingCart" asp-action="AddToCart" method="post">
+            <input type="hidden" name="productId" value="@Model.Id" />
+            <input type="hidden" name="quantity" id="cartQuantity" value="1" />
+            <input type="hidden" name="variantId" id="SelectedVariantId" />
+
+            <button class="btn btn-cart px-4 py-2 shadow" type="submit" id="addToCartButton">
+                <i class="bi bi-cart-fill me-2"></i> Thêm vào giỏ hàng
+            </button>
+        </form>
+
+        <form id="buyNowForm" asp-controller="ShoppingCart" asp-action="BuyNow" method="post">
+            <input type="hidden" name="productId" value="@Model.Id" />
+            <input type="hidden" name="quantity" id="buyNowQuantity" value="1" />
+            <input type="hidden" name="variantId" id="BuyNowVariantId" />
+            <button class="btn btn-danger px-4 py-2 shadow" type="submit" id="buyNowButton">
+                <i class="bi bi-lightning-charge-fill me-2"></i> Mua ngay
+            </button>
+        </form>
+    }
+    else if (User.IsInRole("Admin") || User.IsInRole("Employer"))
+    {
+        <button class="btn btn-secondary px-4 py-2 shadow" disabled>
+            <i class="bi bi-cart-fill me-2"></i> Thêm vào giỏ hàng
+        </button>
+        <button class="btn btn-secondary px-4 py-2 shadow" disabled>
+            <i class="bi bi-lightning-charge-fill me-2"></i> Mua ngay
+        </button>
+    }
+    else
+    {
+        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-secondary px-4 py-2 shadow">
+            <i class="bi bi-cart-fill me-2"></i> Thêm vào giỏ hàng
+        </a>
+        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-danger px-4 py-2 shadow">
+            <i class="bi bi-lightning-charge-fill me-2"></i> Mua ngay
+        </a>
+    }
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <form id="addToWishlistForm" asp-controller="Wishlist" asp-action="AddToWishlist" method="post">
+            <input type="hidden" name="productId" value="@Model.Id" />
+            <input type="hidden" name="variantId" id="WishlistVariantId" />
+
+            <button type="submit" class="btn btn-heart px-4 py-2 shadow" id="addToWishlistButton">
+                <i class="bi bi-heart me-2"></i> Yêu thích
+            </button>
+        </form>
+    }
+    else
+    {
+        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-heart px-4 py-2 shadow">
+            <i class="bi bi-heart me-2"></i> Yêu thích
+        </a>
+    }
+
+    <a href="javascript:void(0)" id="btnCompare" class="btn btn-outline-primary px-4 py-2 shadow">
+        So sánh
+    </a>
+</div>
+
+<div class="mt-4">
+    <h5 class="mb-3">Thông tin sản phẩm:</h5>
+    <ul class="list-unstyled">
+        <li><strong>Danh mục:</strong> @Model.Category?.Name</li>
+        @if (Model.SubCategory != null)
+        {
+            <li><strong>Hãng:</strong> @Model.SubCategory?.Name</li>
+        }
+        <li><strong>Mã sản phẩm:</strong> @Model.Id</li>
+    </ul>
+</div>
+</div>
+</div>
+
+    @if (!string.IsNullOrEmpty(Model.Description))
+{
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="product-description-box p-4">
+                <h5 class="mb-3">Mô tả sản phẩm</h5>
+                @Html.Raw(Model.Description)
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ServiceCommitment))
+{
+    <div class="mt-4">
+        <h5 class="mb-3 fw-semibold">Cam kết dịch vụ</h5>
+        <div class="row g-3">
+            @foreach (var line in Model.ServiceCommitment.Split('\n'))
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    <div class="col-md-6 d-flex align-items-start">
+                        <div class="me-2">
+                            <i class="bi bi-patch-check-fill" style="color:#3b82f6; font-size:20px;"></i>
+                        </div>
+                        <div class="text-dark" style="line-height:1.4;">
+                            @line.Trim()
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}
+
+@if (Model.Specs != null)
+{
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="product-description-box p-4">
+                <h5 class="mb-3">Thông số kỹ thuật</h5>
+
+                <div class="accordion" id="specsAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingCfg">
+                            <button class="accordion-button" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseCfg"
+                                    aria-expanded="true" aria-controls="collapseCfg">
+                                Cấu hình & Bộ nhớ
+                            </button>
+                        </h2>
+                        <div id="collapseCfg" class="accordion-collapse collapse show" aria-labelledby="headingCfg">
+                            <div class="accordion-body p-0">
+                                <table class="table table-sm mb-0">
+                                    <tr><th style="width:230px">Hệ điều hành</th><td>@Model.Specs.Os</td></tr>
+                                    <tr><th>Chip xử lý (CPU)</th><td>@Model.Specs.Cpu</td></tr>
+                                    <tr><th>Tốc độ CPU</th><td>@Model.Specs.CpuSpeed</td></tr>
+                                    <tr><th>Chip đồ họa (GPU)</th><td>@Model.Specs.Gpu</td></tr>
+                                    <tr><th>RAM</th><td>@Model.Specs.Ram</td></tr>
+                                    <tr>
+                                        <th>Dung lượng lưu trữ</th>
+                                        <td id="specStorage">
+                                            @(hasVariants && variants.Any() ? variants.First().Storage : Model.Specs.Storage)
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Dung lượng còn lại (khả dụng)</th>
+                                        <td id="specStorageAvailable">
+                                            @(hasVariants && variants.Any()
+                                                ? (variants.First().StorageAvailable ?? Model.Specs.StorageAvailable)
+                                                : Model.Specs.StorageAvailable)
                                         </td>
                                     </tr>
                                     <tr><th>Danh bạ</th><td>@Model.Specs.ContactLimit</td></tr>
@@ -752,145 +773,248 @@
                         </div>
                     </div>
 
-                        <!-- (các accordion item khác giữ nguyên giống file bạn) -->
-                        <!-- Camera & Màn hình -->
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="headingCam">
-                                <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#collapseCam"
-                                        aria-expanded="false" aria-controls="collapseCam">
-                                    Camera & Màn hình
-                                </button>
-                            </h2>
-                            <div id="collapseCam" class="accordion-collapse collapse" aria-labelledby="headingCam">
-                                <div class="accordion-body p-0">
-                                    <table class="table table-sm mb-0">
-                                        <tr><th style="width:230px">Độ phân giải camera sau</th><td>@Model.Specs.RearCameraResolution</td></tr>
-                                        <tr><th>Độ phân giải camera trước</th><td>@Model.Specs.FrontCameraResolution</td></tr>
-                                        <tr><th>Quay video (sau)</th><td>@Model.Specs.RearVideoModes</td></tr>
-                                        <tr><th>Quay video (trước)</th><td>@Model.Specs.FrontVideoModes</td></tr>
-                                        <tr><th>Tính năng camera sau</th><td>@Model.Specs.RearCameraFeatures</td></tr>
-                                        <tr><th>Tính năng camera trước</th><td>@Model.Specs.FrontCameraFeatures</td></tr>
-                                        <tr><th>Công nghệ màn hình</th><td>@Model.Specs.ScreenTech</td></tr>
-                                        <tr><th>Độ phân giải màn hình</th><td>@Model.Specs.ScreenResolution</td></tr>
-                                        <tr><th>Kích thước & tần số quét</th><td>@Model.Specs.ScreenSize</td></tr>
-                                        <tr><th>Độ sáng tối đa</th><td>@Model.Specs.ScreenBrightness</td></tr>
-                                        <tr><th>Mặt kính cảm ứng</th><td>@Model.Specs.ScreenGlass</td></tr>
-                                    </table>
-                                </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingCam">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseCam"
+                                    aria-expanded="false" aria-controls="collapseCam">
+                                Camera & Màn hình
+                            </button>
+                        </h2>
+                        <div id="collapseCam" class="accordion-collapse collapse" aria-labelledby="headingCam">
+                            <div class="accordion-body p-0">
+                                <table class="table table-sm mb-0">
+                                    <tr><th style="width:230px">Độ phân giải camera sau</th><td>@Model.Specs.RearCameraResolution</td></tr>
+                                    <tr><th>Độ phân giải camera trước</th><td>@Model.Specs.FrontCameraResolution</td></tr>
+                                    <tr><th>Quay video (sau)</th><td>@Model.Specs.RearVideoModes</td></tr>
+                                    <tr><th>Quay video (trước)</th><td>@Model.Specs.FrontVideoModes</td></tr>
+                                    <tr><th>Tính năng camera sau</th><td>@Model.Specs.RearCameraFeatures</td></tr>
+                                    <tr><th>Tính năng camera trước</th><td>@Model.Specs.FrontCameraFeatures</td></tr>
+                                    <tr><th>Công nghệ màn hình</th><td>@Model.Specs.ScreenTech</td></tr>
+                                    <tr><th>Độ phân giải màn hình</th><td>@Model.Specs.ScreenResolution</td></tr>
+                                    <tr><th>Kích thước & tần số quét</th><td>@Model.Specs.ScreenSize</td></tr>
+                                    <tr><th>Độ sáng tối đa</th><td>@Model.Specs.ScreenBrightness</td></tr>
+                                    <tr><th>Mặt kính cảm ứng</th><td>@Model.Specs.ScreenGlass</td></tr>
+                                </table>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Pin & Sạc -->
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="headingPin">
-                                <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#collapsePin"
-                                        aria-expanded="false" aria-controls="collapsePin">
-                                    Pin & Sạc
-                                </button>
-                            </h2>
-                            <div id="collapsePin" class="accordion-collapse collapse" aria-labelledby="headingPin">
-                                <div class="accordion-body p-0">
-                                    <table class="table table-sm mb-0">
-                                        <tr><th style="width:230px">Thời lượng pin</th><td>@Model.Specs.BatteryUsageTime</td></tr>
-                                        <tr><th>Loại pin</th><td>@Model.Specs.BatteryType</td></tr>
-                                        <tr><th>Công suất sạc tối đa</th><td>@Model.Specs.MaxChargePower</td></tr>
-                                        <tr><th>Công nghệ pin</th><td>@Model.Specs.BatteryTech</td></tr>
-                                    </table>
-                                </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingPin">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapsePin"
+                                    aria-expanded="false" aria-controls="collapsePin">
+                                Pin & Sạc
+                            </button>
+                        </h2>
+                        <div id="collapsePin" class="accordion-collapse collapse" aria-labelledby="headingPin">
+                            <div class="accordion-body p-0">
+                                <table class="table table-sm mb-0">
+                                    <tr><th style="width:230px">Thời lượng pin</th><td>@Model.Specs.BatteryUsageTime</td></tr>
+                                    <tr><th>Loại pin</th><td>@Model.Specs.BatteryType</td></tr>
+                                    <tr><th>Công suất sạc tối đa</th><td>@Model.Specs.MaxChargePower</td></tr>
+                                    <tr><th>Công nghệ pin</th><td>@Model.Specs.BatteryTech</td></tr>
+                                </table>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Tiện ích -->
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="headingTienIch">
-                                <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#collapseTienIch"
-                                        aria-expanded="false" aria-controls="collapseTienIch">
-                                    Tiện ích
-                                </button>
-                            </h2>
-                            <div id="collapseTienIch" class="accordion-collapse collapse" aria-labelledby="headingTienIch">
-                                <div class="accordion-body p-0">
-                                    <table class="table table-sm mb-0">
-                                        <tr><th style="width:230px">Bảo mật</th><td>@Model.Specs.Security</td></tr>
-                                        <tr><th>Kháng nước bụi</th><td>@Model.Specs.WaterDustResist</td></tr>
-                                        <tr><th>Tính năng đặc biệt</th><td>@Model.Specs.SpecialFeatures</td></tr>
-                                        <tr><th>Ghi âm</th><td>@Model.Specs.Recorder</td></tr>
-                                        <tr><th>Định dạng phim</th><td>@Model.Specs.VideoFormats</td></tr>
-                                        <tr><th>Định dạng nhạc</th><td>@Model.Specs.AudioFormats</td></tr>
-                                    </table>
-                                </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingTienIch">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseTienIch"
+                                    aria-expanded="false" aria-controls="collapseTienIch">
+                                Tiện ích
+                            </button>
+                        </h2>
+                        <div id="collapseTienIch" class="accordion-collapse collapse" aria-labelledby="headingTienIch">
+                            <div class="accordion-body p-0">
+                                <table class="table table-sm mb-0">
+                                    <tr><th style="width:230px">Bảo mật</th><td>@Model.Specs.Security</td></tr>
+                                    <tr><th>Kháng nước bụi</th><td>@Model.Specs.WaterDustResist</td></tr>
+                                    <tr><th>Tính năng đặc biệt</th><td>@Model.Specs.SpecialFeatures</td></tr>
+                                    <tr><th>Ghi âm</th><td>@Model.Specs.Recorder</td></tr>
+                                    <tr><th>Định dạng phim</th><td>@Model.Specs.VideoFormats</td></tr>
+                                    <tr><th>Định dạng nhạc</th><td>@Model.Specs.AudioFormats</td></tr>
+                                </table>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Kết nối -->
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="headingKetNoi">
-                                <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#collapseKetNoi"
-                                        aria-expanded="false" aria-controls="collapseKetNoi">
-                                    Kết nối
-                                </button>
-                            </h2>
-                            <div id="collapseKetNoi" class="accordion-collapse collapse" aria-labelledby="headingKetNoi">
-                                <div class="accordion-body p-0">
-                                    <table class="table table-sm mb-0">
-                                        <tr><th style="width:230px">Mạng di động</th><td>@Model.Specs.MobileNetwork</td></tr>
-                                        <tr><th>SIM</th><td>@Model.Specs.Sim</td></tr>
-                                        <tr><th>WiFi</th><td>@Model.Specs.Wifi</td></tr>
-                                        <tr><th>GPS</th><td>@Model.Specs.Gps</td></tr>
-                                        <tr><th>Bluetooth</th><td>@Model.Specs.Bluetooth</td></tr>
-                                        <tr><th>Cổng sạc</th><td>@Model.Specs.ChargingPort</td></tr>
-                                        <tr><th>Jack tai nghe</th><td>@Model.Specs.HeadphoneJack</td></tr>
-                                        <tr><th>Kết nối khác</th><td>@Model.Specs.OtherConnections</td></tr>
-                                    </table>
-                                </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingKetNoi">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseKetNoi"
+                                    aria-expanded="false" aria-controls="collapseKetNoi">
+                                Kết nối
+                            </button>
+                        </h2>
+                        <div id="collapseKetNoi" class="accordion-collapse collapse" aria-labelledby="headingKetNoi">
+                            <div class="accordion-body p-0">
+                                <table class="table table-sm mb-0">
+                                    <tr><th style="width:230px">Mạng di động</th><td>@Model.Specs.MobileNetwork</td></tr>
+                                    <tr><th>SIM</th><td>@Model.Specs.Sim</td></tr>
+                                    <tr><th>WiFi</th><td>@Model.Specs.Wifi</td></tr>
+                                    <tr><th>GPS</th><td>@Model.Specs.Gps</td></tr>
+                                    <tr><th>Bluetooth</th><td>@Model.Specs.Bluetooth</td></tr>
+                                    <tr><th>Cổng sạc</th><td>@Model.Specs.ChargingPort</td></tr>
+                                    <tr><th>Jack tai nghe</th><td>@Model.Specs.HeadphoneJack</td></tr>
+                                    <tr><th>Kết nối khác</th><td>@Model.Specs.OtherConnections</td></tr>
+                                </table>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Thiết kế -->
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="headingDesign">
-                                <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#collapseDesign"
-                                        aria-expanded="false" aria-controls="collapseDesign">
-                                    Thiết kế & Chất liệu
-                                </button>
-                            </h2>
-                            <div id="collapseDesign" class="accordion-collapse collapse" aria-labelledby="headingDesign">
-                                <div class="accordion-body p-0">
-                                    <table class="table table-sm mb-0">
-                                        <tr><th style="width:230px">Thiết kế</th><td>@Model.Specs.DesignStyle</td></tr>
-                                        <tr><th>Chất liệu</th><td>@Model.Specs.Material</td></tr>
-                                        <tr><th>Kích thước</th><td>@Model.Specs.Dimensions</td></tr>
-                                        <tr><th>Khối lượng</th><td>@Model.Specs.Weight</td></tr>
-                                        <tr><th>Thời điểm ra mắt</th><td>@Model.Specs.ReleaseTime</td></tr>
-                                        <tr><th>Hãng</th><td>@Model.Specs.BrandInfo</td></tr>
-                                    </table>
-                                </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingDesign">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseDesign"
+                                    aria-expanded="false" aria-controls="collapseDesign">
+                                Thiết kế & Chất liệu
+                            </button>
+                        </h2>
+                        <div id="collapseDesign" class="accordion-collapse collapse" aria-labelledby="headingDesign">
+                            <div class="accordion-body p-0">
+                                <table class="table table-sm mb-0">
+                                    <tr><th style="width:230px">Thiết kế</th><td>@Model.Specs.DesignStyle</td></tr>
+                                    <tr><th>Chất liệu</th><td>@Model.Specs.Material</td></tr>
+                                    <tr><th>Kích thước</th><td>@Model.Specs.Dimensions</td></tr>
+                                    <tr><th>Khối lượng</th><td>@Model.Specs.Weight</td></tr>
+                                    <tr><th>Thời điểm ra mắt</th><td>@Model.Specs.ReleaseTime</td></tr>
+                                    <tr><th>Hãng</th><td>@Model.Specs.BrandInfo</td></tr>
+                                </table>
                             </div>
                         </div>
-
-                    </div><!-- /accordion -->
+                    </div>
                 </div>
             </div>
         </div>
-        }
+    </div>
+}
 
-    @{
-        var faqs = ViewBag.Faqs as List<WebBanDienThoai.Models.ProductFaq> ?? new();
-        var qas = ViewBag.QAs as List<WebBanDienThoai.Models.ProductQuestion> ?? new();
-    }
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-graph-down-arrow text-primary"></i> Biểu đồ lịch sử biến động giá</h5>
+            <div style="width: 100%; height: 260px;">
+                <canvas id="priceHistoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- =========================
-         FAQ + Q&A
-         ========================= -->
+<div class="mt-5">
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <ul class="nav nav-pills nav-justified mb-4 p-1 bg-light rounded-3" id="recommendationTab" role="tablist" style="border: 1px solid #eee;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold py-2" id="related-tab" data-bs-toggle="tab" data-bs-target="#related-panel" type="button" role="tab">
+                    📌 Thiết bị cùng hãng
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold py-2" id="cobought-tab" data-bs-toggle="tab" data-bs-target="#cobought-panel" type="button" role="tab">
+                    🛒 Khách thường mua kèm
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold py-2" id="popular-tab" data-bs-toggle="tab" data-bs-target="#popular-panel" type="button" role="tab">
+                    🔥 Xem & Yêu thích nhiều
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold py-2" id="viewed-tab" data-bs-toggle="tab" data-bs-target="#viewed-panel" type="button" role="tab">
+                    👀 Đã xem gần đây
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="recommendationTabContent">
+            <div class="tab-pane fade show active" id="related-panel" role="tabpanel">
+                <div class="row g-3">
+                    @if (ViewBag.RelatedProducts != null && ((IEnumerable<dynamic>)ViewBag.RelatedProducts).Any())
+                    {
+                        foreach (var prod in ViewBag.RelatedProducts)
+                        {
+                            <div class="col-6 col-md-3">
+                                @await Html.PartialAsync("_ProductCard", (ProductWithSoldCount)prod)
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted small">Không có sản phẩm cùng hãng tương đương.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="cobought-panel" role="tabpanel">
+                <div class="row g-3">
+                    @if (ViewBag.CoBoughtProducts != null && ((IEnumerable<dynamic>)ViewBag.CoBoughtProducts).Any())
+                    {
+                        foreach (var prod in ViewBag.CoBoughtProducts)
+                        {
+                            <div class="col-6 col-md-3">
+                                @await Html.PartialAsync("_ProductCard", (ProductWithSoldCount)prod)
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted small">Chưa có dữ liệu mua kèm của khách hàng.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="popular-panel" role="tabpanel">
+                <div class="row g-3">
+                    @if (ViewBag.PopularProducts != null && ((IEnumerable<dynamic>)ViewBag.PopularProducts).Any())
+                    {
+                        foreach (var prod in ViewBag.PopularProducts)
+                        {
+                            <div class="col-6 col-md-3">
+                                @await Html.PartialAsync("_ProductCard", (ProductWithSoldCount)prod)
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted small">Chưa có sản phẩm nổi bật.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="viewed-panel" role="tabpanel">
+                <div class="row g-3">
+                    @if (ViewBag.ViewedProducts != null && ((IEnumerable<dynamic>)ViewBag.ViewedProducts).Any())
+                    {
+                        foreach (var prod in ViewBag.ViewedProducts)
+                        {
+                            <div class="col-6 col-md-3">
+                                @await Html.PartialAsync("_ProductCard", (ProductWithSoldCount)prod)
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted small">Bạn chưa xem thêm thiết bị nào khác.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+@{
+    var faqs = ViewBag.Faqs as List<WebBanDienThoai.Models.ProductFaq> ?? new();
+    var qas = ViewBag.QAs as List<WebBanDienThoai.Models.ProductQuestion> ?? new();
+}
+
+<div class="container mt-4">
     <div class="mt-5">
-        <h4 class="mb-3">Hỏi & Đáp / FAQ</h4>
+        <h4 class="mb-3">Hỏi & Đạp / FAQ</h4>
 
-        <!-- FAQ -->
         @if (faqs.Any())
         {
             <div class="mb-4">
@@ -920,7 +1044,6 @@
             </div>
         }
 
-        <!-- Q&A -->
         <div class="border rounded-3 p-3" style="background:#fff;">
             <h5 class="mb-3">Hỏi đáp về sản phẩm</h5>
 
@@ -928,7 +1051,6 @@
                 bool isStaff = User.IsInRole("Admin") || User.IsInRole("Employer");
             }
 
-            @* Khách (không phải staff) mới được hỏi *@
             @if (User.Identity.IsAuthenticated && !isStaff)
             {
                 <form asp-action="AskQuestion" asp-controller="Product" method="post" class="mb-3">
@@ -985,7 +1107,6 @@
                                 }
                             </div>
 
-                            @* Staff tools: Duyệt/Ẩn + Xóa *@
                             @if (isStaff)
                             {
                                 <div class="d-flex gap-2">
@@ -1006,7 +1127,6 @@
                                         </form>
                                     }
 
-                                    @* (Tuỳ chọn) nếu bạn đã thêm action DeleteQuestion trong controller *@
                                     @if (User.IsInRole("Admin"))
                                     {
                                         <form asp-action="DeleteQuestion" asp-controller="Product" method="post" class="d-inline"
@@ -1022,7 +1142,6 @@
 
                         <div class="mt-1">@q.Question</div>
 
-                        @* Replies *@
                         @if (q.Replies != null && q.Replies.Any())
                         {
                             <div class="ms-3 mt-2">
@@ -1086,7 +1205,6 @@
                             </div>
                         }
 
-                        @* Staff reply form *@
                         @if (isStaff)
                         {
                             <form asp-action="ReplyQuestion" asp-controller="Product" method="post" class="mt-2 ms-3">
@@ -1094,7 +1212,7 @@
                                 <input type="hidden" name="questionId" value="@q.Id" />
                                 <div class="input-group input-group-sm">
                                     <textarea name="content" class="form-control" rows="2" required
-                                  placeholder="Phản hồi câu hỏi này..."></textarea>
+                                              placeholder="Phản hồi câu hỏi này..."></textarea>
                                     <button class="btn btn-outline-secondary" type="submit">Trả lời</button>
                                 </div>
                                 <div class="small text-muted mt-1">
@@ -1106,10 +1224,8 @@
                 }
             }
         </div>
+    </div>
 
-    <!-- =========================
-         REVIEW SECTION (UPDATED)
-         ========================= -->
     <div class="mt-5">
         <h4 class="mb-3">Đánh giá sản phẩm</h4>
 
@@ -1123,19 +1239,16 @@
                 }
                 else if (i == fullStars + 1 && hasHalf)
                 {
-
                     <i class="bi bi-star-half text-warning"></i>
                 }
                 else
                 {
-
                     <i class="bi bi-star text-warning"></i>
                 }
             }
             <span class="ms-2 text-muted">(@((int)(ViewBag.TotalRatings ?? 0)) đánh giá)</span>
         </div>
 
-        <!-- Filter / Sort -->
         <form asp-action="Display" asp-route-id="@Model.Id" method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3">
             <input type="hidden" name="variantId" value="@(ViewBag.SelectedVariant?.Id)" />
 
@@ -1169,7 +1282,6 @@
             <button class="btn btn-outline-primary" type="submit">Lọc</button>
         </form>
 
-        <!-- Form đánh giá (chỉ khi đã mua) -->
         @if (User.Identity.IsAuthenticated)
         {
             var myRating = ViewBag.MyRating as WebBanDienThoai.Models.ProductRating;
@@ -1198,7 +1310,7 @@
                                 {
                                     <input type="radio" name="stars" id="star-@i" value="@i"
                                            style="display:none;"
-                                           @(myRating != null && myRating.Stars == i ? "checked" : "") required />
+                                    @(myRating != null && myRating.Stars == i ? "checked" : "") required />
                                     <label for="star-@i" class="star-label" style="cursor:pointer; margin:0 2px;">
                                         <i class="bi bi-star-fill"></i>
                                     </label>
@@ -1229,7 +1341,6 @@
             </div>
         }
 
-        <!-- Stats box -->
         <div class="row bg-white p-4 rounded-3 shadow-sm mb-4 border align-items-center">
             <div class="col-md-4 text-center border-end">
                 <h1 class="display-3 fw-bold text-primary mb-0">@avg.ToString("0.0")</h1>
@@ -1260,7 +1371,6 @@
             </div>
         </div>
 
-        <!-- Danh sách đánh giá -->
         <div>
             @if (!ratings.Any(r => r.IsApproved || (User.Identity.IsAuthenticated && r.UserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)))
             {
@@ -1270,7 +1380,6 @@
             {
                 @foreach (var r in ratings)
                 {
-                    // ✨ CHỨC NĂNG 8: CHỈ HIỂN THỊ NẾU ĐÃ DUYỆT HOẶC CHÍNH CHỦ TỰ XEM BÀI VIẾT CỦA MÌNH
                     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                     if (r.IsApproved || (User.Identity.IsAuthenticated && r.UserId == currentUserId))
                     {
@@ -1397,614 +1506,489 @@
                 }
             }
         </div>
-
-        <!-- Paging -->
-        @if (ratingTotalPages > 1)
-        {
-            <nav class="mt-3">
-                <ul class="pagination">
-                    @for (int p = 1; p <= ratingTotalPages; p++)
-                    {
-                        <li class="page-item @(p == ratingPage ? "active" : "")">
-                            <a class="page-link"
-                               asp-action="Display" asp-route-id="@Model.Id"
-                               asp-route-page="@p"
-                               asp-route-star="@filterStar"
-                               asp-route-hasImages="@filterHasImages"
-                               asp-route-verifiedOnly="@filterVerifiedOnly"
-                               asp-route-sort="@filterSort">
-                                @p
-                            </a>
-                        </li>
-                    }
-                </ul>
-            </nav>
-        }
-    </div>
-
-    @* Viewed + Related *@
-    @{
-        var viewedProducts = ViewBag.ViewedProducts as List<WebBanDienThoai.Models.ProductWithSoldCount>;
-        var relatedProducts = ViewBag.RelatedProducts as List<WebBanDienThoai.Models.ProductWithSoldCount>;
-    }
-
-    @if (viewedProducts != null && viewedProducts.Any())
-    {
-        <div class="mt-5">
-            <h4 class="mb-3">Sản phẩm đã xem</h4>
-            <div class="row g-3">
-                @foreach (var p in viewedProducts)
-                {
-                    <div class="col-6 col-md-3">
-                        @await Html.PartialAsync("_ProductCard", p)
-                    </div>
-                }
-            </div>
-        </div>
-    }
-
-    @if (relatedProducts != null && relatedProducts.Any())
-    {
-        <div class="mt-5">
-            <h4 class="mb-3">Sản phẩm liên quan</h4>
-            <div class="row g-3">
-                @foreach (var p in relatedProducts)
-                {
-                    <div class="col-6 col-md-3">
-                        @await Html.PartialAsync("_ProductCard", p)
-                    </div>
-                }
-            </div>
-        </div>
-    }
-
-    <!-- Popup -->
-    <div id="custom-popup-success" class="custom-popup" style="display:none;">
-        <div class="custom-popup-content">
-            <div class="custom-popup-icon">
-                <i class="bi bi-check2-circle"></i>
-            </div>
-            <span id="custom-popup-message"></span>
-        </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
 
-      function showPopup(message, time = 1600) {
-        const popup = document.getElementById('custom-popup-success');
-        const msg = document.getElementById('custom-popup-message');
-        if (!popup || !msg) return;
-        msg.innerHTML = message;
-        popup.style.display = 'flex';
-        setTimeout(() => { popup.style.display = 'none'; }, time);
-      }
-
-      function updateCartCount() {
-        fetch('/ShoppingCart/GetCartCount')
-          .then(res => res.json())
-          .then(data => {
-            const el = document.getElementById('cartCount');
-            if (el) el.innerText = data.count;
-          });
-      }
-
-      function parseVndFromText(text) {
-        if (!text) return 0;
-        const digits = String(text).replace(/[^\d]/g, '');
-        return digits ? Number(digits) : 0;
-      }
-      function formatVnd(n) {
-        return Number(n || 0).toLocaleString('vi-VN') + ' VNĐ';
-      }
-
-      // Anti-forgery token for ajax
-      const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value;
-
-      // Copy coupon
-      document.querySelectorAll('.copy-coupon-btn').forEach(btn => {
-        btn.addEventListener('click', async function () {
-          const code = this.getAttribute('data-code');
-          try {
-            await navigator.clipboard.writeText(code);
-            showPopup(`Đã copy mã: <b>${code}</b>`);
-          } catch {
-            alert('Không copy được, bạn copy thủ công: ' + code);
-          }
-        });
-      });
-
-      // Gallery thumbs sync
-      const carousels = document.querySelectorAll('[id^="productGallery_"]');
-      carousels.forEach(function (carouselEl) {
-        const thumbs = carouselEl.parentElement.querySelectorAll('.tgdd-thumb');
-        carouselEl.addEventListener('slide.bs.carousel', function (e) {
-          const index = e.to;
-          thumbs.forEach(function (t, i) { t.classList.toggle('active', i === index); });
-        });
-        thumbs.forEach(function (thumb) {
-          thumb.addEventListener('click', function () {
-            thumbs.forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-          });
-        });
-      });
-
-      // Installment calculator
-      function updateInstallment() {
-        const priceEl = document.getElementById('displayPrice');
-        const monthsEl = document.getElementById('installmentMonths');
-        const downEl = document.getElementById('installmentDown');
-
-        const price = parseVndFromText(priceEl?.textContent || "");
-        const months = Number(monthsEl?.value || 6);
-
-        let down = parseVndFromText(downEl?.value || "0");
-        if (down < 0) down = 0;
-        if (down > price) down = price;
-
-        const remain = price - down;
-        const perMonth = months > 0 ? Math.round(remain / months) : 0;
-
-        document.getElementById('installmentPriceText').textContent = formatVnd(price);
-        document.getElementById('installmentPerMonth').textContent = formatVnd(perMonth);
-      }
-      document.getElementById('installmentMonths')?.addEventListener('change', updateInstallment);
-      document.getElementById('installmentDown')?.addEventListener('input', updateInstallment);
-
-      // Variants logic (giữ của bạn)
-      const variants = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(variantDtos));
-      const hasVariants = Array.isArray(variants) && variants.length > 0;
-      window.hasProductVariants = hasVariants;
-
-      const addToCartBtn = document.getElementById('addToCartButton');
-      const buyNowBtn = document.getElementById('buyNowButton');
-
-      let selectedCapacity = null;
-      let selectedColor = null;
-
-      const qtyInput = document.getElementById('quantity');
-      const cartQtyHidden = document.getElementById('cartQuantity');
-      const buyNowQtyHidden = document.getElementById('buyNowQuantity');
-
-      function syncQtyToHidden() {
-        const v = qtyInput?.value || "1";
-        if (cartQtyHidden) cartQtyHidden.value = v;
-        if (buyNowQtyHidden) buyNowQtyHidden.value = v;
-      }
-      qtyInput?.addEventListener('input', syncQtyToHidden);
-      syncQtyToHidden();
-
-      const priceEl = document.getElementById('displayPrice');
-      const specStorageEl = document.getElementById('specStorage');
-      const specStorageAvailEl = document.getElementById('specStorageAvailable');
-
-      const basePriceText = priceEl ? priceEl.textContent : '—';
-      const baseStorageText = specStorageEl ? specStorageEl.textContent : '';
-      const baseStorageAvailText = specStorageAvailEl ? specStorageAvailEl.textContent : '';
-
-      function restoreBaseUI() {
-        if (priceEl) priceEl.textContent = basePriceText || '—';
-        if (specStorageEl) specStorageEl.textContent = baseStorageText || '';
-        if (specStorageAvailEl) specStorageAvailEl.textContent = baseStorageAvailText || '';
-        updateInstallment();
-      }
-
-      function setHiddenVariantId(variantId) {
-        document.getElementById('SelectedVariantId')?.setAttribute('value', variantId || "");
-        const w = document.getElementById('WishlistVariantId'); if (w) w.value = variantId || "";
-        const b = document.getElementById('BuyNowVariantId'); if (b) b.value = variantId || "";
-      }
-
-      function setPrice(priceNumber) {
-        if (!priceEl) return;
-        priceEl.textContent = Number(priceNumber || 0).toLocaleString('vi-VN') + ' VNĐ';
-      }
-
-      function setSpecs(storage, storageAvailable) {
-        if (specStorageEl) specStorageEl.textContent = storage || '';
-        if (specStorageAvailEl) specStorageAvailEl.textContent = storageAvailable || '';
-      }
-
-      function setSku(sku) {
-        const el = document.getElementById('variantSku');
-        if (el) el.textContent = (sku && String(sku).trim()) ? sku : '—';
-      }
-
-      function setVariantImage(imageUrl) {
-        if (!imageUrl) return;
-        const firstSlideImg = document.querySelector('[id^="productGallery_"] .carousel-item:first-child img');
-        if (firstSlideImg) firstSlideImg.src = imageUrl;
-        const firstThumb = document.querySelector('.tgdd-thumb-list .tgdd-thumb:first-child');
-        if (firstThumb) firstThumb.src = imageUrl;
-        const mainImage = document.getElementById('mainImage');
-        if (mainImage && !firstSlideImg) mainImage.src = imageUrl;
-      }
-
-      function setActiveButtons(capacity, color) {
-        document.querySelectorAll('.variant-capacity-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.getAttribute('data-capacity') === capacity);
-        });
-        document.querySelectorAll('.variant-color-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.getAttribute('data-color') === color);
-        });
-      }
-
-      function setStockUIState(state, stock = 0) {
-        const badge = document.getElementById('stockBadge');
-        const text = document.getElementById('stockText');
-
-        if (state === 'unselected') {
-          if (badge) { badge.className = "badge bg-secondary"; badge.textContent = "Chưa chọn phiên bản"; }
-          if (text) text.textContent = "Vui lòng chọn Dung lượng và Màu sắc";
-          if (addToCartBtn) addToCartBtn.disabled = true;
-          if (buyNowBtn) buyNowBtn.disabled = true;
-          if (qtyInput) { qtyInput.min = 1; qtyInput.max = "1"; qtyInput.value = 1; syncQtyToHidden(); }
-          return;
-        }
-
-        if (state === 'notfound') {
-          if (badge) { badge.className = "badge bg-warning text-dark"; badge.textContent = "Không có phiên bản"; }
-          if (text) text.textContent = "Tổ hợp dung lượng + màu này không tồn tại";
-          if (addToCartBtn) addToCartBtn.disabled = true;
-          if (buyNowBtn) buyNowBtn.disabled = true;
-          if (qtyInput) { qtyInput.min = 1; qtyInput.max = "1"; qtyInput.value = 1; syncQtyToHidden(); }
-          return;
-        }
-
-        const qty = parseInt(stock || 0);
-        const inStock = qty > 0;
-
-        if (badge) {
-          badge.className = inStock ? "badge bg-success" : "badge bg-danger";
-          badge.textContent = inStock ? "Còn hàng" : "Hết hàng";
-        }
-        if (text) text.textContent = inStock ? `Còn ${qty} sản phẩm` : "Tạm hết hàng";
-
-        if (addToCartBtn) addToCartBtn.disabled = !inStock;
-        if (buyNowBtn) buyNowBtn.disabled = !inStock;
-
-        if (qtyInput) {
-          qtyInput.min = 1;
-          qtyInput.value = 1;
-          qtyInput.max = inStock ? String(qty) : "1";
-          syncQtyToHidden();
-        }
-      }
-
-      function capacityHasStock(capacity, colorFilter) {
-        return variants.some(v => v.capacity === capacity && (!colorFilter || v.color === colorFilter) && (v.stock || 0) > 0);
-      }
-      function colorHasStock(color, capacityFilter) {
-        return variants.some(v => v.color === color && (!capacityFilter || v.capacity === capacityFilter) && (v.stock || 0) > 0);
-      }
-      function updateOptionAvailability() {
-        document.querySelectorAll('.variant-capacity-btn').forEach(btn => {
-          const cap = btn.getAttribute('data-capacity');
-          btn.disabled = !capacityHasStock(cap, selectedColor);
-        });
-        document.querySelectorAll('.variant-color-btn').forEach(btn => {
-          const c = btn.getAttribute('data-color');
-          btn.disabled = !colorHasStock(c, selectedCapacity);
-        });
-      }
-
-      function applyVariantExact(variant) {
-        setHiddenVariantId(variant.id);
-        setSku(variant.sku);
-        setVariantImage(variant.imageUrl);
-        setPrice(variant.discountedPrice);
-        setSpecs(variant.storage || variant.capacity || '', variant.storageAvailable || '');
-        setStockUIState('selected', parseInt(variant.stock || 0));
-        updateInstallment();
-        syncQtyToHidden();
-      }
-
-      function resolveSelection() {
-        setActiveButtons(selectedCapacity, selectedColor);
-        updateOptionAvailability();
-
-        if (!selectedCapacity || !selectedColor) {
-          setHiddenVariantId("");
-          setSku("");
-          setStockUIState('unselected');
-          restoreBaseUI();
-          return;
-        }
-
-        const exact = variants.find(v => v.capacity === selectedCapacity && v.color === selectedColor);
-        if (!exact) {
-          setHiddenVariantId("");
-          setSku("");
-          setStockUIState('notfound');
-          restoreBaseUI();
-          return;
-        }
-
-        applyVariantExact(exact);
-      }
-
-      if (hasVariants) {
-        selectedCapacity = null;
-        selectedColor = null;
-
-        setHiddenVariantId("");
-        setSku("");
-        setStockUIState('unselected');
-        restoreBaseUI();
-        updateOptionAvailability();
-
-        const urlVarId = new URLSearchParams(window.location.search).get('variantId');
-        if (urlVarId) {
-          const pre = variants.find(v => String(v.id) === String(urlVarId));
-          if (pre) {
-            selectedCapacity = pre.capacity || null;
-            selectedColor = pre.color || null;
-            resolveSelection();
-          }
-        }
-
-        document.querySelectorAll('.variant-capacity-btn').forEach(btn => {
-          btn.addEventListener('click', function () {
-            if (this.disabled) return;
-            const cap = this.getAttribute('data-capacity');
-            selectedCapacity = (selectedCapacity === cap) ? null : cap;
-            resolveSelection();
-          });
-        });
-
-        document.querySelectorAll('.variant-color-btn').forEach(btn => {
-          btn.addEventListener('click', function () {
-            if (this.disabled) return;
-            const c = this.getAttribute('data-color');
-            selectedColor = (selectedColor === c) ? null : c;
-            resolveSelection();
-          });
-        });
-      } else {
-        setSku('');
-        updateInstallment();
-        syncQtyToHidden();
-      }
-
-      // Shipping
-      const provSel = document.getElementById('shipProvince');
-      const distSel = document.getElementById('shipDistrict');
-      const feeEl = document.getElementById('shipFee');
-      const etaEl = document.getElementById('shipEta');
-
-      function money(v) { return Number(v || 0).toLocaleString('vi-VN') + ' đ'; }
-      function formatDate(d) {
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const yy = d.getFullYear();
-        return `${dd}/${mm}/${yy}`;
-      }
-      function etaText(minDays, maxDays) {
-        minDays = Number(minDays || 0);
-        maxDays = Number(maxDays || 0);
-        if (!minDays && !maxDays) return '—';
-        const now = new Date();
-        const d1 = new Date(now); d1.setDate(now.getDate() + (minDays || 0));
-        const d2 = new Date(now); d2.setDate(now.getDate() + (maxDays || minDays || 0));
-        return (minDays === maxDays) ? formatDate(d1) : `${formatDate(d1)} - ${formatDate(d2)}`;
-      }
-
-      async function loadProvinces() {
-        const res = await fetch('/Shipping/Provinces');
-        const data = await res.json();
-        provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
-        data.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.code;
-          opt.textContent = `${p.name} (${p.code})`;
-          provSel.appendChild(opt);
-        });
-      }
-
-      async function loadDistricts(provinceCode) {
-        distSel.disabled = true;
-        distSel.innerHTML = `<option value="">-- Toàn tỉnh --</option>`;
-        if (!provinceCode) return;
-
-        const res = await fetch('/Shipping/Districts?provinceCode=' + encodeURIComponent(provinceCode));
-        const data = await res.json();
-
-        data.forEach(d => {
-          const opt = document.createElement('option');
-          opt.value = d.code;
-          opt.textContent = `${d.name} (${d.code})`;
-          distSel.appendChild(opt);
-        });
-
-        distSel.disabled = false;
-      }
-
-      async function quote(provinceCode, districtCode) {
-        if (!provinceCode) {
-          feeEl.textContent = '—';
-          etaEl.textContent = '—';
-          return;
-        }
-
-        const url = '/Shipping/Quote?provinceCode=' + encodeURIComponent(provinceCode)
-          + '&districtCode=' + encodeURIComponent(districtCode || '');
-        const res = await fetch(url);
-        const data = await res.json();
-
-        feeEl.textContent = money(data.fee);
-        etaEl.textContent = etaText(data.minDays, data.maxDays);
-      }
-
-      if (provSel && distSel && feeEl && etaEl) {
-        const savedProvince = localStorage.getItem('ship_province') || '';
-        const savedDistrict = localStorage.getItem('ship_district') || '';
-
-        loadProvinces().then(async () => {
-          provSel.value = savedProvince;
-          await loadDistricts(provSel.value);
-          distSel.value = savedDistrict;
-          await quote(provSel.value, distSel.value);
-        });
-
-        provSel.addEventListener('change', async () => {
-          localStorage.setItem('ship_province', provSel.value);
-          localStorage.setItem('ship_district', '');
-          await loadDistricts(provSel.value);
-          distSel.value = '';
-          await quote(provSel.value, '');
-        });
-
-        distSel.addEventListener('change', async () => {
-          localStorage.setItem('ship_district', distSel.value);
-          await quote(provSel.value, distSel.value);
-        });
-      }
-
-      // Rating stars hover/select
-      (function initRatingStars() {
-        const stars = document.querySelectorAll('.rating-select input[type="radio"]');
-        const starLabels = document.querySelectorAll('.rating-select .star-label');
-        if (!stars.length || !starLabels.length) return;
-
-        function updateStars(value) {
-          starLabels.forEach((lbl, idx) => {
-            if ((starLabels.length - idx) <= value) lbl.classList.add('selected');
-            else lbl.classList.remove('selected');
-          });
-        }
-
-        const checked = document.querySelector('.rating-select input[type="radio"]:checked');
-        if (checked) updateStars(Number(checked.value));
-
-        stars.forEach((star, idx) => {
-          star.addEventListener('change', function () { updateStars(Number(star.value)); });
-          starLabels[idx].addEventListener('mouseenter', function () {
-            updateStars(starLabels.length - idx);
-          });
-          starLabels[idx].addEventListener('mouseleave', function () {
-            const checked2 = document.querySelector('.rating-select input[type="radio"]:checked');
-            updateStars(checked2 ? Number(checked2.value) : 0);
-          });
-        });
-      })();
-
-      // AJAX AddToCart
-      document.getElementById('addToCartForm')?.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        if (window.hasProductVariants) {
-          const variantId = document.getElementById('SelectedVariantId')?.value;
-          if (!variantId) { alert('Vui lòng chọn dung lượng và màu sắc trước khi thêm vào giỏ.'); return; }
-          const v = variants.find(x => String(x.id) === String(variantId));
-          if (v && parseInt(v.stock || 0) <= 0) { alert('Phiên bản này đã hết hàng.'); return; }
-        }
-
-        syncQtyToHidden();
-
-        const form = this;
-        const formData = new FormData(form);
-
-        fetch(form.action, {
-          method: 'POST',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          body: formData
-        })
-        .then(res => {
-          if (res.ok) { showPopup('Sản phẩm đã được thêm vào giỏ hàng!'); updateCartCount(); }
-          else { showPopup('Có lỗi khi thêm vào giỏ hàng!', 2000); }
-        })
-        .catch(() => showPopup('Lỗi mạng!', 2000));
-      });
-
-      // AJAX Wishlist
-      document.getElementById('addToWishlistForm')?.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        if (window.hasProductVariants) {
-          const variantId = document.getElementById('WishlistVariantId')?.value;
-          if (!variantId) { alert('Vui lòng chọn dung lượng và màu sắc trước khi thêm yêu thích.'); return; }
-        }
-
-        const form = this;
-        const formData = new FormData(form);
-
-        fetch(form.action, {
-          method: 'POST',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          body: formData
-        })
-        .then(res => {
-          if (res.ok) showPopup('Đã thêm vào danh sách yêu thích!');
-          else showPopup('Có lỗi khi thêm vào yêu thích!', 2000);
-        })
-        .catch(() => showPopup('Lỗi mạng!', 2000));
-      });
-
-      // BuyNow validation
-      document.getElementById('buyNowForm')?.addEventListener('submit', function (e) {
-        if (window.hasProductVariants) {
-          const variantId = document.getElementById('BuyNowVariantId')?.value;
-          if (!variantId) { e.preventDefault(); alert('Vui lòng chọn dung lượng và màu sắc trước khi mua ngay.'); return; }
-          const v = variants.find(x => String(x.id) === String(variantId));
-          if (v && parseInt(v.stock || 0) <= 0) { e.preventDefault(); alert('Phiên bản này đã hết hàng.'); return; }
-        }
-        syncQtyToHidden();
-      });
-
-      // Compare
-      const btnCompare = document.getElementById('btnCompare');
-      if (btnCompare) {
-        btnCompare.addEventListener('click', function () {
-          const baseUrl = '@Url.Action("Add", "Compare")';
-          const productId = '@Model.Id';
-          let url = baseUrl + '?productId=' + productId;
-
-          if (window.hasProductVariants) {
-            const variantId = document.getElementById('SelectedVariantId')?.value;
-            if (!variantId) { alert('Vui lòng chọn dung lượng và màu sắc trước khi so sánh.'); return; }
-            url += '&variantId=' + encodeURIComponent(variantId);
-          }
-
-          window.location.href = url;
-        });
-      }
-
-      // ===== Vote / Report =====
-      window.voteRating = async function(id, isLike) {
-        const res = await fetch('/Product/VoteRating', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            ...(token ? { 'RequestVerificationToken': token } : {})
-          },
-          body: `ratingId=${id}&isLike=${isLike}`
-        });
-
-        if (!res.ok) { alert('Không vote được'); return; }
-        const data = await res.json();
-        document.getElementById(`like-${id}`).innerText = data.like;
-        document.getElementById(`dislike-${id}`).innerText = data.dislike;
-      }
-
-      window.reportRating = async function(id) {
-        const reason = prompt("Lý do báo cáo (tối đa 200 ký tự)?");
-        if (!reason) return;
-
-        const res = await fetch('/Product/ReportRating', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            ...(token ? { 'RequestVerificationToken': token } : {})
-          },
-          body: `ratingId=${id}&reason=${encodeURIComponent(reason)}`
-        });
-
-        if (!res.ok) { alert('Không gửi báo cáo được'); return; }
-        const data = await res.json();
-        alert(data.ok ? "Đã gửi báo cáo" : (data.message || "Không gửi được"));
-      }
+    function showPopup(message, time = 1600) {
+    const popup = document.getElementById('custom-popup-success');
+    const msg = document.getElementById('custom-popup-message');
+    if (!popup || !msg) return;
+    msg.innerHTML = message;
+    popup.style.display = 'flex';
+    setTimeout(() => { popup.style.display = 'none'; }, time);
+    }
+
+    function updateCartCount() {
+    fetch('/ShoppingCart/GetCartCount')
+    .then(res => res.json())
+    .then(data => {
+    const el = document.getElementById('cartCount');
+    if (el) el.innerText = data.count;
+    });
+    }
+
+    function parseVndFromText(text) {
+    if (!text) return 0;
+    const digits = String(text).replace(/[^\d]/g, '');
+    return digits ? Number(digits) : 0;
+    }
+
+    function formatVnd(n) {
+    return Number(n || 0).toLocaleString('vi-VN') + ' VNĐ';
+    }
+
+    const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value;
+
+    // =========================================================================
+    // 📉 ✨ SCRIPT 1: AJAX ĐĂNG KÝ MỐC ALERT KHẤU TRỪ THEO DÕI GIÁ GIẢM
+    // =========================================================================
+    window.registerPriceAlert = function(productId) {
+    const price = document.getElementById("targetPriceInput").value;
+    if(!price || price <= 0) { alert("Vui lòng nhập giá mong muốn hợp lệ!"); return; }
+
+    fetch('/Product/CreatePriceAlert', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `productId=${productId}&targetPrice=${price}`
+    })
+    .then(res => res.json())
+    .then(data => {
+    alert(data.message);
+    if(data.success) document.getElementById("targetPriceInput").value = '';
+    });
+    }
+
+    // =========================================================================
+    // 📊 ✨ SCRIPT 2: FETCH DATA VÀ RENDER BIỂU ĐỒ LỊCH SỬ GIÁ SẢN PHẨM
+    // =========================================================================
+    fetch('/Product/GetPriceHistory?productId=' + @Model.Id)
+    .then(res => res.json())
+    .then(data => {
+    const ctx = document.getElementById('priceHistoryChart').getContext('2d');
+    new Chart(ctx, {
+    type: 'line',
+    data: {
+    labels: data.dates,
+    datasets: [{
+    label: 'Giá thực tế (đ)',
+    data: data.prices,
+    borderColor: '#0ea5e9',
+    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+    borderWidth: 2,
+    tension: 0.3,
+    fill: true
+    }]
+    },
+    options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+    y: {
+    ticks: { callback: function(value) { return value.toLocaleString('vi-VN') + ' đ'; } }
+    }
+    }
+    }
+    });
+    });
+
+    // Copy coupon
+    document.querySelectorAll('.copy-coupon-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+    const code = this.getAttribute('data-code');
+    try {
+    await navigator.clipboard.writeText(code);
+    showPopup(`Đã copy mã: <b>${code}</b>`);
+    } catch {
+    alert('Không copy được, bạn copy thủ công: ' + code);
+    }
+    });
+    });
+
+    // Gallery thumbs sync
+    const carousels = document.querySelectorAll('[id^="productGallery_"]');
+    carousels.forEach(function (carouselEl) {
+    const thumbs = carouselEl.parentElement.querySelectorAll('.tgdd-thumb');
+    carouselEl.addEventListener('slide.bs.carousel', function (e) {
+    const index = e.to;
+    thumbs.forEach(function (t, i) { t.classList.toggle('active', i === index); });
+    });
+    thumbs.forEach(function (thumb) {
+    thumb.addEventListener('click', function () {
+    thumbs.forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    });
+    });
+    });
+
+    // Installment calculator
+    function updateInstallment() {
+    const priceEl = document.getElementById('displayPrice');
+    const monthsEl = document.getElementById('installmentMonths');
+    const downEl = document.getElementById('installmentDown');
+
+    const price = parseVndFromText(priceEl?.textContent || "");
+    const months = Number(monthsEl?.value || 6);
+
+    let down = parseVndFromText(downEl?.value || "0");
+    if (down < 0) down = 0;
+    if (down > price) down = price;
+
+    const remain = price - down;
+    const perMonth = months > 0 ? Math.round(remain / months) : 0;
+
+    document.getElementById('installmentPriceText').textContent = formatVnd(price);
+    document.getElementById('installmentPerMonth').textContent = formatVnd(perMonth);
+    }
+    document.getElementById('installmentMonths')?.addEventListener('change', updateInstallment);
+    document.getElementById('installmentDown')?.addEventListener('input', updateInstallment);
+
+    // Variants logic
+    const variants = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(variantDtos));
+    const hasVariants = Array.isArray(variants) && variants.length > 0;
+    window.hasProductVariants = hasVariants;
+
+    const addToCartBtn = document.getElementById('addToCartButton');
+    const buyNowBtn = document.getElementById('buyNowButton');
+
+    let selectedCapacity = null;
+    let selectedColor = null;
+
+    const qtyInput = document.getElementById('quantity');
+    const cartQtyHidden = document.getElementById('cartQuantity');
+    const buyNowQtyHidden = document.getElementById('buyNowQuantity');
+
+    function syncQtyToHidden() {
+    const v = qtyInput?.value || "1";
+    if (cartQtyHidden) cartQtyHidden.value = v;
+    if (buyNowQtyHidden) buyNowQtyHidden.value = v;
+    }
+    qtyInput?.addEventListener('input', syncQtyToHidden);
+    syncQtyToHidden();
+
+    const priceEl = document.getElementById('displayPrice');
+    const specStorageEl = document.getElementById('specStorage');
+    const specStorageAvailEl = document.getElementById('specStorageAvailable');
+
+    const basePriceText = priceEl ? priceEl.textContent : '—';
+    const baseStorageText = specStorageEl ? specStorageEl.textContent : '';
+    const baseStorageAvailText = specStorageAvailEl ? specStorageAvailEl.textContent : '';
+
+    function restoreBaseUI() {
+    if (priceEl) priceEl.textContent = basePriceText || '—';
+    if (specStorageEl) specStorageEl.textContent = baseStorageText || '';
+    if (specStorageAvailEl) specStorageAvailEl.textContent = baseStorageAvailText || '';
+    updateInstallment();
+    }
+
+    function setHiddenVariantId(variantId) {
+    document.getElementById('SelectedVariantId')?.setAttribute('value', variantId || "");
+    const w = document.getElementById('WishlistVariantId'); if (w) w.value = variantId || "";
+    const b = document.getElementById('BuyNowVariantId'); if (b) b.value = variantId || "";
+    }
+
+    function setPrice(priceNumber) {
+    if (!priceEl) return;
+    priceEl.textContent = Number(priceNumber || 0).toLocaleString('vi-VN') + ' VNĐ';
+    }
+
+    function setSpecs(storage, storageAvailable) {
+    if (specStorageEl) specStorageEl.textContent = storage || '';
+    if (specStorageAvailEl) specStorageAvailEl.textContent = storageAvailable || '';
+    }
+
+    /*  */
+
+    function setSku(sku) {
+    const el = document.getElementById('variantSku');
+    if (el) el.textContent = (sku && String(sku).trim()) ? sku : '—';
+    }
+
+    function setVariantImage(imageUrl) {
+    if (!imageUrl) return;
+    const firstSlideImg = document.querySelector('[id^="productGallery_"] .carousel-item:first-child img');
+    if (firstSlideImg) firstSlideImg.src = imageUrl;
+    const firstThumb = document.querySelector('.tgdd-thumb-list .tgdd-thumb:first-child');
+    if (firstThumb) firstThumb.src = imageUrl;
+    const mainImage = document.getElementById('mainImage');
+    if (mainImage && !firstSlideImg) mainImage.src = imageUrl;
+    }
+
+    function setActiveButtons(capacity, color) {
+    document.querySelectorAll('.variant-capacity-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-capacity') === capacity);
+    });
+    document.querySelectorAll('.variant-color-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-color') === color);
+    });
+    }
+
+    function setStockUIState(state, stock = 0) {
+    const badge = document.getElementById('stockBadge');
+    const text = document.getElementById('stockText');
+
+    if (state === 'unselected') {
+    if (badge) { badge.className = "badge bg-secondary"; badge.textContent = "Chưa chọn phiên bản"; }
+    if (text) text.textContent = "Vui lòng chọn Dung lượng và Màu sắc";
+    if (addToCartBtn) addToCartBtn.disabled = true;
+    if (buyNowBtn) buyNowBtn.disabled = true;
+    if (qtyInput) { qtyInput.min = 1; qtyInput.max = "1"; qtyInput.value = 1; syncQtyToHidden(); }
+    return;
+    }
+
+    if (state === 'notfound') {
+    if (badge) { badge.className = "badge bg-warning text-dark"; badge.textContent = "Không có phiên bản"; }
+    if (text) text.textContent = "Tổ hợp dung lượng + màu này không tồn tại";
+    if (addToCartBtn) addToCartBtn.disabled = true;
+    if (buyNowBtn) buyNowBtn.disabled = true;
+    if (qtyInput) { qtyInput.min = 1; qtyInput.max = "1"; qtyInput.value = 1; syncQtyToHidden(); }
+    return;
+    }
+
+    const qty = parseInt(stock || 0);
+    const inStock = qty > 0;
+
+    if (badge) {
+    badge.className = inStock ? "badge bg-success" : "badge bg-danger";
+    badge.textContent = inStock ? "Còn hàng" : "Hết hàng";
+    }
+    if (text) text.textContent = inStock ? `Còn ${qty} sản phẩm` : "Tạm hết hàng";
+
+    if (addToCartBtn) addToCartBtn.disabled = !inStock;
+    if (buyNowBtn) buyNowBtn.disabled = !inStock;
+
+    if (qtyInput) {
+    qtyInput.min = 1;
+    qtyInput.value = 1;
+    qtyInput.max = inStock ? String(qty) : "1";
+    syncQtyToHidden();
+    }
+    }
+
+    function capacityHasStock(capacity, colorFilter) {
+    return variants.some(v => v.capacity === capacity && (!colorFilter || v.color === colorFilter) && (v.stock || 0) > 0);
+    }
+
+    function colorHasStock(color, capacityFilter) {
+    return variants.some(v => v.color === color && (!capacityFilter || v.capacity === capacityFilter) && (v.stock || 0) > 0);
+    }
+
+    function updateOptionAvailability() {
+    document.querySelectorAll('.variant-capacity-btn').forEach(btn => {
+    const cap = btn.getAttribute('data-capacity');
+    btn.disabled = !capacityHasStock(cap, selectedColor);
+    });
+    document.querySelectorAll('.variant-color-btn').forEach(btn => {
+    const c = btn.getAttribute('data-color');
+    btn.disabled = !colorHasStock(c, selectedCapacity);
+    });
+    }
+
+    function applyVariantExact(variant) {
+    setHiddenVariantId(variant.id);
+    setSku(variant.sku);
+    setVariantImage(variant.imageUrl);
+    setPrice(variant.discountedPrice);
+    setSpecs(variant.storage || variant.capacity || '', variant.storageAvailable || '');
+    setStockUIState('selected', parseInt(variant.stock || 0));
+    updateInstallment();
+    syncQtyToHidden();
+    }
+
+    function resolveSelection() {
+    setActiveButtons(selectedCapacity, selectedColor);
+    updateOptionAvailability();
+
+    if (!selectedCapacity || !selectedColor) {
+    setHiddenVariantId("");
+    setSku("");
+    setStockUIState('unselected');
+    restoreBaseUI();
+    return;
+    }
+
+    const exact = variants.find(v => v.capacity === selectedCapacity && v.color === selectedColor);
+    if (!exact) {
+    setHiddenVariantId("");
+    setSku("");
+    setStockUIState('notfound');
+    restoreBaseUI();
+    return;
+    }
+
+    applyVariantExact(exact);
+    }
+
+    if (hasVariants) {
+    selectedCapacity = null;
+    selectedColor = null;
+
+    setHiddenVariantId("");
+    setSku("");
+    setStockUIState('unselected');
+    restoreBaseUI();
+    updateOptionAvailability();
+
+    const urlVarId = new URLSearchParams(window.location.search).get('variantId');
+    if (urlVarId) {
+    const pre = variants.find(v => String(v.id) === String(urlVarId));
+    if (pre) {
+    selectedCapacity = pre.capacity || null;
+    selectedColor = pre.color || null;
+    resolveSelection();
+    }
+    }
+
+    document.querySelectorAll('.variant-capacity-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+    if (this.disabled) return;
+    const cap = this.getAttribute('data-capacity');
+    selectedCapacity = (selectedCapacity === cap) ? null : cap;
+    resolveSelection();
+    });
+    });
+
+    document.querySelectorAll('.variant-color-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+    if (this.disabled) return;
+    const c = this.getAttribute('data-color');
+    selectedColor = (selectedColor === c) ? null : c;
+    resolveSelection();
+    });
+    });
+    } else {
+    setSku('');
+    updateInstallment();
+    syncQtyToHidden();
+    }
+
+    const provSel = document.getElementById('shipProvince');
+    const distSel = document.getElementById('shipDistrict');
+    const feeEl = document.getElementById('shipFee');
+    const etaEl = document.getElementById('shipEta');
+
+    function money(v) { return Number(v || 0).toLocaleString('vi-VN') + ' đ'; }
+    function formatDate(d) {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()}`;
+    }
+    function etaText(minDays, maxDays) {
+    minDays = Number(minDays || 0); maxDays = Number(maxDays || 0);
+    if (!minDays && !maxDays) return '—';
+    const now = new Date();
+    const d1 = new Date(now); d1.setDate(now.getDate() + minDays);
+    const d2 = new Date(now); d2.setDate(now.getDate() + (maxDays || minDays));
+    return (minDays === maxDays) ? formatDate(d1) : `${formatDate(d1)} - ${formatDate(d2)}`;
+    }
+
+    async function loadProvinces() {
+    const res = await fetch('/Shipping/Provinces');
+    const data = await res.json();
+    if (provSel) {
+    provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
+    data.forEach(p => {
+    const opt = document.createElement('option');
+    // SỬA CHỖ NÀY: Quét cả 2 kiểu chữ thường và chữ hoa để chấp hết mọi loại cấu hình JSON
+    opt.value = p.code || p.Code;
+    opt.textContent = p.name || p.Name;
+    provSel.appendChild(opt);
+    });
+    }
+    }
+
+    async function loadDistricts(provinceCode) {
+    if (!distSel) return;
+    distSel.disabled = true;
+    distSel.innerHTML = `<option value="">-- Toàn tỉnh --</option>`;
+    if (!provinceCode) return;
+    const res = await fetch('/Shipping/Districts?provinceCode=' + encodeURIComponent(provinceCode));
+    const data = await res.json();
+    data.forEach(d => {
+    const opt = document.createElement('option');
+    // SỬA CHỖ NÀY LUÔN: Đồng bộ bẫy lỗi mapping cho Quận/Huyện
+    opt.value = d.code || d.Code;
+    opt.textContent = d.name || d.Name;
+    distSel.appendChild(opt);
+    });
+    distSel.disabled = false;
+    }
+
+    async function quote(provinceCode, districtCode) {
+    if (!feeEl || !etaEl) return;
+    if (!provinceCode) { feeEl.textContent = '—'; etaEl.textContent = '—'; return; }
+    const res = await fetch(`/Shipping/Quote?provinceCode=${encodeURIComponent(provinceCode)}&districtCode=${encodeURIComponent(districtCode || '')}`);
+    const data = await res.json();
+    feeEl.textContent = money(data.fee);
+    etaEl.textContent = etaText(data.minDays, data.maxDays);
+    }
+
+    // Khởi chạy ngầm và lắng nghe sự kiện thay đổi trên UI
+    if (provSel && distSel) {
+    const savedProvince = localStorage.getItem('ship_province') || '';
+    const savedDistrict = localStorage.getItem('ship_district') || '';
+
+    loadProvinces().then(async () => {
+    if (savedProvince) {
+    provSel.value = savedProvince;
+    await loadDistricts(provSel.value);
+    if (savedDistrict) distSel.value = savedDistrict;
+    await quote(provSel.value, distSel.value);
+    }
+    });
+
+    provSel.addEventListener('change', async function() {
+    localStorage.setItem('ship_province', this.value);
+    localStorage.setItem('ship_district', '');
+    await loadDistricts(this.value);
+    await quote(this.value, '');
+    });
+
+    distSel.addEventListener('change', async function() {
+    localStorage.setItem('ship_district', this.value);
+    await quote(provSel.value, this.value);
+    });
+    }
+
+    // ===== Vote / Report =====
+    window.voteRating = async function(id, isLike) {
+    const res = await fetch('/Product/VoteRating', {
+    method: 'POST',
+    headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    ...(token ? { 'RequestVerificationToken': token } : {})
+    },
+    body: `ratingId=${id}&isLike=${isLike}`
+    });
+
+    if (!res.ok) { alert('Không vote được'); return; }
+    const data = await res.json();
+    document.getElementById(`like-${id}`).innerText = data.like;
+    document.getElementById(`dislike-${id}`).innerText = data.dislike;
+    }
+
+    window.reportRating = async function(id) {
+    const reason = prompt("Lý do báo cáo (tối đa 200 ký tự)?");
+    if (!reason) return;
+
+    const res = await fetch('/Product/ReportRating', {
+    method: 'POST',
+    headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    ...(token ? { 'RequestVerificationToken': token } : {})
+    },
+    body: `ratingId=${id}&reason=${encodeURIComponent(reason)}`
+    });
+
+    if (!res.ok) { alert('Không gửi báo cáo được'); return; }
+    const data = await res.json();
+    alert(data.ok ? "Đã gửi báo cáo" : (data.message || "Không gửi được"));
+    }
 
     });
 </script>

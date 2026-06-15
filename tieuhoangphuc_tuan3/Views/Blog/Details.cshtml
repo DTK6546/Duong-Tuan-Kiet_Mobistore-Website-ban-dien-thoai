@@ -1,0 +1,82 @@
+﻿@model WebBanDienThoai.Models.BlogPost
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container mt-4" style="max-width: 850px;">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small bg-light rounded px-3 py-2 mb-4">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/Blog" class="text-decoration-none">Blog</a></li>
+            <li class="breadcrumb-item active text-muted">@Model.BlogCategory?.Name</li>
+        </ol>
+    </nav>
+
+    <h1 class="fw-bold text-dark mb-2">@Model.Title</h1>
+
+    <div class="d-flex gap-3 text-muted small mb-4 pb-3 border-bottom">
+        <span><i class="bi bi-calendar3"></i> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+        <span>|</span>
+        <span><i class="bi bi-eye"></i> @Model.ViewCount lượt xem</span>
+        <span>|</span>
+        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">@Model.BlogCategory?.Name</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.VideoEmbedUrl))
+    {
+        <div class="ratio ratio-16x9 mb-4 rounded-4 overflow-hidden shadow-sm">
+            <iframe src="@Model.VideoEmbedUrl" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+    }
+
+    <div class="article-content text-dark mb-5 lh-lg" style="font-size: 1.1rem;">
+        @Html.Raw(Model.Content)
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mt-5">
+        <h4 class="fw-bold text-dark mb-4"><i class="bi bi-chat-left-text text-primary me-2"></i> Thảo luận cởi mở</h4>
+
+        @if (User.Identity.IsAuthenticated)
+        {
+            <form asp-action="SubmitComment" asp-controller="Blog" method="post" class="mb-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="blogPostId" value="@Model.Id" />
+                <div class="form-group mb-2">
+                    <textarea name="content" class="form-control border-light-subtle bg-light bg-opacity-50" rows="3" placeholder="Chia sẻ suy nghĩ, thắc mắc về hướng dẫn hoặc review này..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary fw-bold px-4 rounded-pill">Gửi bình luận</button>
+            </form>
+        }
+        else
+        {
+            <div class="alert alert-warning rounded-3 small">
+                Bạn cần <a href="/Identity/Account/Login" class="fw-bold">đăng nhập</a> để tham gia thảo luận cùng MobiStore.
+            </div>
+        }
+
+        <div class="comment-list mt-3">
+            @if (Model.BlogComments == null || !Model.BlogComments.Any())
+            {
+                <div class="text-muted small fst-italic">Chưa có lượt thảo luận nào cho bài viết này. Hãy là người đầu tiên!</div>
+            }
+            else
+            {
+                foreach (var c in Model.BlogComments.OrderByDescending(x => x.CreatedAt))
+                {
+                    <div class="d-flex align-items-start gap-3 border-top pt-3 mt-3">
+                        <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary border d-flex align-items-center justify-content-center fw-bold text-uppercase" style="width:40px; height:40px; flex-shrink:0;">
+                            @((c.User?.FullName ?? c.User?.UserName ?? "U")[0])
+                        </div>
+                        <div>
+                            <div class="mb-1">
+                                <span class="fw-bold text-dark me-2">@(c.User?.FullName ?? c.User?.UserName ?? "Người dùng")</span>
+                                <span class="text-muted small" style="font-size: 11px;">@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            <div class="text-dark small word-break-all">@c.Content</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>

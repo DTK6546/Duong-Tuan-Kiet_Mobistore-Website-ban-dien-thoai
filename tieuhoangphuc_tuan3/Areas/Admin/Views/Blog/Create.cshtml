@@ -1,0 +1,64 @@
+﻿@model WebBanDienThoai.Models.BlogPost
+@{
+    ViewData["Title"] = "Tạo Bài viết Mới";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container mt-4" style="max-width: 900px;">
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <h3 class="fw-bold text-dark mb-4"><i class="bi bi-journal-plus text-primary me-2"></i> Soạn thảo bài viết mới</h3>
+
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="form-group mb-3">
+                        <label asp-for="Title" class="form-label fw-semibold text-dark">Tiêu đề bài viết <span class="text-danger">*</span></label>
+                        <input asp-for="Title" class="form-control rounded-3" placeholder="Ví dụ: Đánh giá chi tiết iPhone 15 Pro Max sau 6 tháng..." required />
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-dark">Danh mục bài viết</label>
+                        <select asp-for="BlogCategoryId" class="form-select rounded-3" asp-items="ViewBag.BlogCategoryId"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Summary" class="form-label fw-semibold text-dark">Tóm tắt ngắn</label>
+                <textarea asp-for="Summary" class="form-control rounded-3" rows="2" placeholder="Nội dung tóm tắt hiển thị ngoài trang danh sách tin tức..."></textarea>
+                <span asp-validation-for="Summary" class="text-danger small"></span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-dark">Ảnh đại diện bài viết (Thumbnail)</label>
+                        <input type="file" name="thumbnailFile" class="form-control rounded-3" accept="image/*" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="VideoEmbedUrl" class="form-label fw-semibold text-dark">Link Video Review (YouTube)</label>
+                        <input asp-for="VideoEmbedUrl" class="form-control rounded-3" placeholder="Dán link thường hoặc link share tùy ý, hệ thống tự convert..." />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mb-4">
+                <label asp-for="Content" class="form-label fw-semibold text-dark">Nội dung chi tiết bài viết <span class="text-danger">*</span></label>
+                <textarea asp-for="Content" id="BlogContentEditor" class="form-control rounded-3" rows="12" placeholder="Viết nội dung bài hướng dẫn sử dụng hoặc review tại đây (Hỗ trợ HTML)..." required></textarea>
+                <span asp-validation-for="Content" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+                <a asp-action="Index" class="btn btn-light rounded-pill px-4">Quay lại</a>
+                <button type="submit" class="btn btn-primary fw-bold rounded-pill px-5">Đăng bài viết</button>
+            </div>
+        </form>
+    </div>
+</div>

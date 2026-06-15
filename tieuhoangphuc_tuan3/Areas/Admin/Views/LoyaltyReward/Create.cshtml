@@ -1,0 +1,46 @@
+﻿@model WebBanDienThoai.Models.LoyaltyReward
+@{
+    ViewData["Title"] = "Thêm mới phần thưởng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="content-wrapper p-3">
+    <div class="card shadow-sm border-0 rounded-3 p-4 bg-white" style="max-width: 600px; margin: 0 auto;">
+        <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-plus-circle"></i> Thêm cấu hình đổi điểm mới</h5>
+
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Tên Voucher / Quà tặng:</label>
+                <input asp-for="Title" class="form-control form-control-sm" placeholder="Ví dụ: Voucher giảm giá 50.000 ₫" required />
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Số điểm yêu cầu:</label>
+                    <input asp-for="PointsRequired" type="number" class="form-control form-control-sm" min="1" required />
+                </div>
+                <div class="col-6">
+                    <label class="form-label small fw-bold">Số tiền giảm thực tế (đ):</label>
+                    <input asp-for="DiscountAmount" type="number" class="form-control form-control-sm" min="1000" required />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Tiền tố mã Voucher sinh ra (Prefix):</label>
+                <input asp-for="CouponCodePrefix" class="form-control form-control-sm" placeholder="LOYALTY" />
+            </div>
+
+            <div class="mb-4 form-check">
+                <input asp-for="IsActive" class="form-check-input" type="checkbox" checked />
+                <label class="form-check-label small fw-bold" for="IsActive">Kích hoạt áp dụng quà tặng này ngay</label>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">Lưu lại</button>
+                <a href="@Url.Action("Index", "LoyaltyReward", new { area = "Admin" })" class="btn btn-sm btn-outline-secondary">Hủy bỏ</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,63 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.BlogPost>
+@{
+    ViewData["Title"] = "Tin Tức & Đánh Giá Công Nghệ";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm p-3 bg-white rounded-3">
+                <h5 class="fw-bold mb-3">📁 Danh mục Blog</h5>
+                <div class="list-group list-group-flush">
+                    <a href="@Url.Action("Index", "Blog")" class="list-group-item list-group-item-action @(ViewBag.SelectedCategory == null ? "active bg-primary text-white border-0" : "")">
+                        Tất cả bài viết
+                    </a>
+                    @foreach (var cat in ViewBag.Categories as List<WebBanDienThoai.Models.BlogCategory> ?? new())
+                    {
+                        <a href="@Url.Action("Index", "Blog", new { categoryId = cat.Id })"
+                           class="list-group-item list-group-item-action @(ViewBag.SelectedCategory == cat.Id ? "active bg-primary text-white border-0" : "")">
+                            @cat.Name
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <form method="get" action="@Url.Action("Index", "Blog")" class="mb-4">
+                <input type="hidden" name="categoryId" value="@ViewBag.SelectedCategory" />
+                <div class="input-group shadow-sm">
+                    <input type="text" name="searchTerm" class="form-control border-0" value="@ViewBag.SearchTerm" placeholder="Tìm kiếm bài viết, hướng dẫn, review..." />
+                    <button class="btn btn-primary px-4" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
+                </div>
+            </form>
+
+            <div class="row g-4">
+                @if (!Model.Any())
+                {
+                    <div class="text-center py-5 text-muted">Chưa có bài viết nào thuộc danh mục này.</div>
+                }
+                else
+                {
+                    foreach (var post in Model)
+                    {
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+                                <img src="@(string.IsNullOrEmpty(post.ThumbnailUrl) ? "/images/blog-default.jpg" : post.ThumbnailUrl)" class="card-img-top" style="height: 200px; object-fit: cover;" alt="@post.Title">
+                                <div class="card-body">
+                                    <span class="badge bg-info-subtle text-info border mb-2">@post.BlogCategory?.Name</span>
+                                    <h5 class="card-title fw-bold text-dark text-truncate">@post.Title</h5>
+                                    <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">@post.Summary</p>
+                                </div>
+                                <div class="card-footer bg-transparent border-0 d-flex justify-content-between align-items-center pb-3">
+                                    <span class="text-muted small"><i class="bi bi-calendar3"></i> @post.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                    <a href="@Url.Action("Details", "Blog", new { id = post.Id })" class="btn btn-sm btn-outline-primary fw-bold px-3 rounded-pill">Đọc tiếp</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
