@@ -33,6 +33,9 @@ namespace WebBanDienThoai.Migrations
                     FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Age = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CurrentPoints = table.Column<int>(type: "int", nullable: false),
+                    RankingPoints = table.Column<int>(type: "int", nullable: false),
+                    IsBanned = table.Column<bool>(type: "bit", nullable: false),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -51,6 +54,20 @@ namespace WebBanDienThoai.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BlogCategories",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Slug = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BlogCategories", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -90,9 +107,9 @@ namespace WebBanDienThoai.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Code = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     DiscountPercent = table.Column<int>(type: "int", nullable: true),
-                    MinOrderValue = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    MinOrderValue = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     CurrentUsage = table.Column<int>(type: "int", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -102,6 +119,24 @@ namespace WebBanDienThoai.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Coupons", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "LoyaltyRewards",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PointsRequired = table.Column<int>(type: "int", nullable: false),
+                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    CouponCodePrefix = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LoyaltyRewards", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -119,6 +154,23 @@ namespace WebBanDienThoai.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Shippers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    VehicleNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CompanyName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Shippers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ShippingRates",
                 columns: table => new
                 {
@@ -126,13 +178,13 @@ namespace WebBanDienThoai.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ProvinceCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DistrictCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Fee = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Fee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     MinDays = table.Column<int>(type: "int", nullable: false),
                     MaxDays = table.Column<int>(type: "int", nullable: false),
-                    ExpressFee = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ExpressFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     ExpressMinDays = table.Column<int>(type: "int", nullable: false),
                     ExpressMaxDays = table.Column<int>(type: "int", nullable: false),
-                    FreeShipMinOrder = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
+                    FreeShipMinOrder = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -269,6 +321,33 @@ namespace WebBanDienThoai.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "BlogPosts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Title = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Summary = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ThumbnailUrl = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
+                    VideoEmbedUrl = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ViewCount = table.Column<int>(type: "int", nullable: false),
+                    BlogCategoryId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BlogPosts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BlogPosts_BlogCategories_BlogCategoryId",
+                        column: x => x.BlogCategoryId,
+                        principalTable: "BlogCategories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SubCategories",
                 columns: table => new
                 {
@@ -364,22 +443,51 @@ namespace WebBanDienThoai.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "BlogComments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Content = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    BlogPostId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BlogComments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BlogComments_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_BlogComments_BlogPosts_BlogPostId",
+                        column: x => x.BlogPostId,
+                        principalTable: "BlogPosts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Products",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CategoryId = table.Column<int>(type: "int", nullable: false),
                     Rating = table.Column<double>(type: "float", nullable: false),
                     DiscountPercent = table.Column<int>(type: "int", nullable: false),
-                    DiscountedPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    DiscountedPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     SubCategoryId = table.Column<int>(type: "int", nullable: true),
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     MinStockLevel = table.Column<int>(type: "int", nullable: false),
+                    IsHot = table.Column<bool>(type: "bit", nullable: false),
                     LastImportDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastExportDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ServiceCommitment = table.Column<string>(type: "nvarchar(max)", nullable: true)
@@ -433,6 +541,54 @@ namespace WebBanDienThoai.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InventoryLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ActionBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InventoryLogs_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PriceAlerts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    TargetPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsTriggered = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PriceAlerts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PriceAlerts_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProductFaqs",
                 columns: table => new
                 {
@@ -478,6 +634,27 @@ namespace WebBanDienThoai.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProductPriceHistories",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    ChangeDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductPriceHistories", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProductPriceHistories_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProductQuestions",
                 columns: table => new
                 {
@@ -519,7 +696,8 @@ namespace WebBanDienThoai.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LikeCount = table.Column<int>(type: "int", nullable: false),
-                    DislikeCount = table.Column<int>(type: "int", nullable: false)
+                    DislikeCount = table.Column<int>(type: "int", nullable: false),
+                    IsApproved = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -609,7 +787,7 @@ namespace WebBanDienThoai.Migrations
                     ProductId = table.Column<int>(type: "int", nullable: false),
                     Color = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Storage = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Stock = table.Column<int>(type: "int", nullable: false),
                     Ram = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     StorageAvailable = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -634,7 +812,7 @@ namespace WebBanDienThoai.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -657,10 +835,10 @@ namespace WebBanDienThoai.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TotalPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    VatAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    VatAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     CouponCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ShippingAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Notes = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -669,7 +847,13 @@ namespace WebBanDienThoai.Migrations
                     StoreId = table.Column<int>(type: "int", nullable: true),
                     ProvinceCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DistrictCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ShippingFee = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                    ShippingFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    PaymentMethod = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PaymentStatus = table.Column<int>(type: "int", nullable: false),
+                    InstallmentBank = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    InstallmentMonths = table.Column<int>(type: "int", nullable: true),
+                    ShipperId = table.Column<int>(type: "int", nullable: true),
+                    TrackingNumber = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -680,6 +864,11 @@ namespace WebBanDienThoai.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Orders_Shippers_ShipperId",
+                        column: x => x.ShipperId,
+                        principalTable: "Shippers",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Orders_Stores_StoreId",
                         column: x => x.StoreId,
@@ -858,7 +1047,7 @@ namespace WebBanDienThoai.Migrations
                     MomoOrderId = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     OrderInfo = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     DatePaid = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -883,7 +1072,7 @@ namespace WebBanDienThoai.Migrations
                     VariantId = table.Column<int>(type: "int", nullable: true),
                     ProductName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -903,6 +1092,28 @@ namespace WebBanDienThoai.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "OrderLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderId = table.Column<int>(type: "int", nullable: false),
+                    StatusDescription = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LogDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Location = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrderLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrderLogs_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "OrderDetailWarranties",
                 columns: table => new
                 {
@@ -911,7 +1122,7 @@ namespace WebBanDienThoai.Migrations
                     OrderDetailId = table.Column<int>(type: "int", nullable: false),
                     WarrantyOptionId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Months = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -965,6 +1176,21 @@ namespace WebBanDienThoai.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BlogComments_BlogPostId",
+                table: "BlogComments",
+                column: "BlogPostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BlogComments_UserId",
+                table: "BlogComments",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BlogPosts_BlogCategoryId",
+                table: "BlogPosts",
+                column: "BlogCategoryId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ChatMessages_UserId",
                 table: "ChatMessages",
                 column: "UserId");
@@ -983,6 +1209,11 @@ namespace WebBanDienThoai.Migrations
                 name: "IX_Districts_ProvinceId",
                 table: "Districts",
                 column: "ProvinceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryLogs_ProductId",
+                table: "InventoryLogs",
+                column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MomoInfos_OrderId",
@@ -1010,6 +1241,16 @@ namespace WebBanDienThoai.Migrations
                 column: "OrderDetailId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrderLogs_OrderId",
+                table: "OrderLogs",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_ShipperId",
+                table: "Orders",
+                column: "ShipperId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Orders_StoreId",
                 table: "Orders",
                 column: "StoreId");
@@ -1020,6 +1261,11 @@ namespace WebBanDienThoai.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PriceAlerts_ProductId",
+                table: "PriceAlerts",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProductFaqs_ProductId_IsActive_SortOrder",
                 table: "ProductFaqs",
                 columns: new[] { "ProductId", "IsActive", "SortOrder" });
@@ -1027,6 +1273,11 @@ namespace WebBanDienThoai.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_ProductImages_ProductId",
                 table: "ProductImages",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductPriceHistories_ProductId",
+                table: "ProductPriceHistories",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
@@ -1168,6 +1419,9 @@ namespace WebBanDienThoai.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "BlogComments");
+
+            migrationBuilder.DropTable(
                 name: "ChatMessages");
 
             migrationBuilder.DropTable(
@@ -1175,6 +1429,12 @@ namespace WebBanDienThoai.Migrations
 
             migrationBuilder.DropTable(
                 name: "CouponUsages");
+
+            migrationBuilder.DropTable(
+                name: "InventoryLogs");
+
+            migrationBuilder.DropTable(
+                name: "LoyaltyRewards");
 
             migrationBuilder.DropTable(
                 name: "MomoInfos");
@@ -1186,10 +1446,19 @@ namespace WebBanDienThoai.Migrations
                 name: "OrderDetailWarranties");
 
             migrationBuilder.DropTable(
+                name: "OrderLogs");
+
+            migrationBuilder.DropTable(
+                name: "PriceAlerts");
+
+            migrationBuilder.DropTable(
                 name: "ProductFaqs");
 
             migrationBuilder.DropTable(
                 name: "ProductImages");
+
+            migrationBuilder.DropTable(
+                name: "ProductPriceHistories");
 
             migrationBuilder.DropTable(
                 name: "ProductQuestionReplies");
@@ -1222,6 +1491,9 @@ namespace WebBanDienThoai.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
+                name: "BlogPosts");
+
+            migrationBuilder.DropTable(
                 name: "Coupons");
 
             migrationBuilder.DropTable(
@@ -1237,6 +1509,9 @@ namespace WebBanDienThoai.Migrations
                 name: "ProductVariants");
 
             migrationBuilder.DropTable(
+                name: "BlogCategories");
+
+            migrationBuilder.DropTable(
                 name: "Orders");
 
             migrationBuilder.DropTable(
@@ -1244,6 +1519,9 @@ namespace WebBanDienThoai.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Shippers");
 
             migrationBuilder.DropTable(
                 name: "Stores");
