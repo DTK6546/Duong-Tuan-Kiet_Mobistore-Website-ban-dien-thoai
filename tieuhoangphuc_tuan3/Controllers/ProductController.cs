@@ -76,7 +76,7 @@ namespace WebBanDienThoai.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(int pageNumber = 1, int? categoryId = null, int? subCategoryId = null, decimal? minPrice = null, decimal? maxPrice = null, string query = "", string sortBy = "", string ram = "", string rom = "", string color = "", int? rating = null)
+        public async Task<IActionResult> Index(int pageNumber = 1, int? categoryId = null, int? subCategoryId = null, decimal? minPrice = null, decimal? maxPrice = null, string query = "", string sortBy = "", string ram = "", string rom = "", string color = "", int? rating = null, string cpu = "")
         {
             const int pageSize = 16;
             if (pageNumber < 1) pageNumber = 1;
@@ -85,9 +85,10 @@ namespace WebBanDienThoai.Controllers
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)
                 .Include(p => p.Variants)
-                .Include(p => p.Specs)
+                .Include(p => p.Specs) // Đảm bảo bảng thông số Specs được nạp đầy đủ
                 .AsNoTracking();
 
+            // --- Lọc cơ bản ---
             if (categoryId.HasValue && categoryId.Value != 0)
                 q = q.Where(p => p.CategoryId == categoryId.Value);
 
@@ -103,20 +104,23 @@ namespace WebBanDienThoai.Controllers
             if (!string.IsNullOrWhiteSpace(query))
                 q = q.Where(p => p.Name.Contains(query));
 
+            // --- 🚀 CẬP NHẬT: LỌC NÂNG CAO CHO ĐỒ ÁN (SO SÁNH QUA BẢNG SPECS CỦA KIỆT) ---
+            if (!string.IsNullOrWhiteSpace(cpu))
+                q = q.Where(p => p.Specs != null && p.Specs.Cpu.Contains(cpu.Trim()));
+
             if (!string.IsNullOrWhiteSpace(ram))
-                q = q.Where(p => p.Variants.Any(v => v.Storage.Contains(ram.Trim())));
+                q = q.Where(p => p.Specs != null && p.Specs.Ram.Contains(ram.Trim()));
 
             if (!string.IsNullOrWhiteSpace(rom))
-                q = q.Where(p => p.Variants.Any(v => v.Storage.Contains(rom.Trim())));
+                q = q.Where(p => p.Specs != null && p.Specs.Storage.Contains(rom.Trim()));
 
             if (!string.IsNullOrWhiteSpace(color))
                 q = q.Where(p => p.Variants.Any(v => v.Color.Contains(color.Trim())));
 
             if (rating.HasValue && rating.Value >= 1 && rating.Value <= 5)
-            {
                 q = q.Where(p => p.Rating >= rating.Value);
-            }
 
+            // --- Sắp xếp kết quả ---
             switch (sortBy)
             {
                 case "giamgia":
@@ -128,7 +132,7 @@ namespace WebBanDienThoai.Controllers
                 case "giathapcao":
                     q = q.OrderBy(p => p.DiscountedPrice).ThenByDescending(p => p.Id);
                     break;
-                case "gicaothap":
+                case "giacaothap":
                     q = q.OrderByDescending(p => p.DiscountedPrice).ThenByDescending(p => p.Id);
                     break;
                 case "banchay":
@@ -152,6 +156,7 @@ namespace WebBanDienThoai.Controllers
                     break;
             }
 
+            // --- Xử lý phân trang mẫu ---
             var totalItems = await q.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
             if (pageNumber > totalPages && totalPages > 0) pageNumber = totalPages;
@@ -188,6 +193,7 @@ namespace WebBanDienThoai.Controllers
                 Variants = p.Variants?.ToList() ?? new List<ProductVariant>()
             }).ToList();
 
+            // --- Đồng bộ đóng gói dữ liệu đẩy ra View ---
             ViewBag.PageNumber = pageNumber;
             ViewBag.TotalPages = totalPages;
             ViewBag.Categories = (await _categoryRepository.GetAllAsync()).Where(c => c.Id != 16).ToList();
@@ -202,6 +208,41 @@ namespace WebBanDienThoai.Controllers
             ViewBag.Rom = rom;
             ViewBag.Color = color;
             ViewBag.Rating = rating;
+            ViewBag.Cpu = cpu; // Đẩy thêm biến CPU ra View
+
+            // Tạo danh sách cứng cho CPU Đồ án
+            ViewBag.CpuList = await _context.ProductSpecs
+    .AsNoTracking()
+    .Where(s => !string.IsNullOrEmpty(s.Cpu))
+    .Select(s => s.Cpu!.Trim())
+    .Distinct()
+    .ToListAsync();
+
+            // 🌟 QUÉT ĐỘNG DANH SÁCH RAM VÀ ROM THỰC TẾ ĐANG CÓ TRONG DATABASE
+            ViewBag.RamList = await _context.ProductSpecs
+                .AsNoTracking()
+                .Where(s => !string.IsNullOrEmpty(s.Ram))
+                .Select(s => s.Ram!.Trim())
+                .Distinct()
+                .OrderBy(r => r) // Sắp xếp theo thứ tự tăng dần cho đẹp
+                .ToListAsync();
+
+            ViewBag.RomList = await _context.ProductSpecs
+                .AsNoTracking()
+                .Where(s => !string.IsNullOrEmpty(s.Storage))
+                .Select(s => s.Storage!.Trim())
+                .Distinct()
+                .OrderBy(r => r)
+                .ToListAsync();
+
+            // 🌟 QUÉT ĐỘNG DANH SÁCH MÀU SẮC THỰC TẾ ĐANG CÓ TRONG BẢNG BIẾN THỂ (VARIANTS)
+            ViewBag.ColorList = await _context.ProductVariants
+                .AsNoTracking()
+                .Where(v => !string.IsNullOrEmpty(v.Color))
+                .Select(v => v.Color!.Trim())
+                .Distinct()
+                .OrderBy(c => c) // Sắp xếp theo bảng chữ cái A-Z cho ngăn nắp
+                .ToListAsync();
 
             var subcats = (categoryId.HasValue && categoryId.Value != 0)
                 ? await _context.SubCategories.Where(s => s.CategoryId == categoryId.Value).ToListAsync()
@@ -209,6 +250,7 @@ namespace WebBanDienThoai.Controllers
 
             ViewBag.SubCategories = subcats;
 
+            // --- Phần bốc danh sách hàng HOT (Giữ nguyên logic của Kiệt) ---
             var hotProductsData = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.SubCategory)

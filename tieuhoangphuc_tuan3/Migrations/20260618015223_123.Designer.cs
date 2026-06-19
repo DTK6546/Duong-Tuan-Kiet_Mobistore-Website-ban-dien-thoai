@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace WebBanDienThoai.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260617151215_123")]
+    [Migration("20260618015223_123")]
     partial class _123
     {
         /// <inheritdoc />

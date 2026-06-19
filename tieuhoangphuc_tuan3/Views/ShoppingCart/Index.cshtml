@@ -400,14 +400,15 @@
 
 @section Scripts {
     <script>
-        var discountFromServer = @discount;
+        // ✅ ÉP SỬA DẤU CHẤM THẬP PHÂN: Không cho C# tự sinh dấu phẩy vào JavaScript
+        var discountFromServer = @discount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         let currentShippingFee = 0;
         let currentProvinceCode = "";
         let currentDistrictCode = "";
         let currentShipMethod = "standard";
 
         let userPoints = @(currentUser?.CurrentPoints ?? 0);
-        let tierRate = @(currentUser?.TierDiscountRate ?? 0m);
+        let tierRate = @((currentUser?.TierDiscountRate ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture)); // ✅ Đã sửa dứt điểm lỗi 645
 
         function computeSubtotal() {
             let subtotal = 0;

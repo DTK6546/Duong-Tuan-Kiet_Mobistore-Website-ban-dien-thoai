@@ -1303,21 +1303,34 @@
                     <input type="hidden" name="productId" value="@Model.Id" />
 
                     <div class="mb-2">
-                        <label class="form-label">Số sao:</label>
+                        <label class="form-label fw-bold text-secondary">Chọn số sao đánh giá:</label>
                         <div class="text-start">
-                            <div id="star-group" class="rating-select d-flex flex-row-reverse" style="font-size:2rem; width:fit-content;">
-                                @for (int i = 5; i >= 1; i--)
+                            <div id="star-group" class="d-flex gap-1" style="font-size: 2rem; direction: ltr;">
+                                @for (int i = 1; i <= 5; i++)
                                 {
+                                    var myRating = ViewBag.MyRating as WebBanDienThoai.Models.ProductRating;
+                                    bool isChecked = myRating != null && myRating.Stars == i;
+
                                     <input type="radio" name="stars" id="star-@i" value="@i"
-                                           style="display:none;"
-                                    @(myRating != null && myRating.Stars == i ? "checked" : "") required />
-                                    <label for="star-@i" class="star-label" style="cursor:pointer; margin:0 2px;">
+                                           class="star-radio-input" style="position: absolute; opacity: 0; width: 0; height: 0;"
+                                    @(isChecked ? "checked" : "") required />
+
+                                    <label for="star-@i" class="star-label-item" data-value="@i" style="cursor: pointer; color: #ddd; transition: color 0.15s;">
                                         <i class="bi bi-star-fill"></i>
                                     </label>
                                 }
                             </div>
                         </div>
                     </div>
+
+                    <style>
+                                    /* Style mồi khi hover và khi được chọn */
+                                    .star-label-item:hover,
+                                    .star-label-item.hovered,
+                                    .star-label-item.selected {
+                                        color: #ffb300 !important;
+                                    }
+                    </style>
 
                     <div class="mb-2">
                         <label class="form-label">Nhận xét:</label>
@@ -1393,18 +1406,18 @@
 
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center flex-wrap gap-2">
-                                        <span class="fw-bold text-dark">@displayName</span>
+                                        <span class="fw-bold text-dark fs-6">@displayName</span>
 
                                         @if (r.IsVerifiedPurchase)
                                         {
-                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 small" style="font-size: 11px; border-radius: 4px;">
-                                                <i class="bi bi-patch-check-fill me-1"></i> Đã mua tại MobiStore
+                                            <span class="badge bg-success-subtle text-success border border-success border-opacity-50 px-2.5 py-1.5 small d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 11px; font-weight: 600; border-radius: 20px;">
+                                                <i class="bi bi-patch-check-fill text-success" style="font-size: 13px;"></i> ✓ Đã mua hàng tại MobiStore
                                             </span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-light text-secondary border px-2 py-1 small" style="font-size: 11px; border-radius: 4px;">
-                                                <i class="bi bi-info-circle me-1"></i> Khách vãng lai
+                                            <span class="badge bg-light text-muted border border-secondary border-opacity-25 px-2.5 py-1.5 small d-inline-flex align-items-center gap-1" style="font-size: 11px; font-weight: 500; border-radius: 20px;">
+                                                <i class="bi bi-person-fill text-secondary"></i> Khách vãng lai
                                             </span>
                                         }
 
@@ -1990,5 +2003,54 @@
     alert(data.ok ? "Đã gửi báo cáo" : (data.message || "Không gửi được"));
     }
 
+    });
+
+    // === 🚀 KHỐI XỬ LÝ CLICK SÁNG ĐÈN NGÔI SAO ĐÁNH GIÁ ===
+    const starLabels = document.querySelectorAll('.star-label-item');
+    const starInputs = document.querySelectorAll('.star-radio-input');
+
+    function highlightStars(value) {
+    starLabels.forEach(label => {
+    const val = parseInt(label.getAttribute('data-value'));
+    if (val <= value) {
+    label.classList.add('selected');
+    } else {
+    label.classList.remove('selected');
+    }
+    });
+    }
+
+    // Kiểm tra xem nếu đã có đánh giá cũ thì làm sáng sẵn số sao tương ứng
+    const checkedInput = document.querySelector('.star-radio-input:checked');
+    if (checkedInput) {
+    highlightStars(parseInt(checkedInput.value));
+    }
+
+    starLabels.forEach(label => {
+    // Khi click chọn sao
+    label.addEventListener('click', function () {
+    const value = parseInt(this.getAttribute('data-value'));
+    highlightStars(value);
+    });
+
+    // Khi di chuột vào (Hover)
+    label.addEventListener('mouseenter', function () {
+    const value = parseInt(this.getAttribute('data-value'));
+    starLabels.forEach(l => {
+    const v = parseInt(l.getAttribute('data-value'));
+    l.classList.toggle('hovered', v <= value);
+    });
+    });
+    });
+
+    // Khi rà chuột ra ngoài thì trả về trạng thái sao đã chọn ban đầu
+    document.getElementById('star-group').addEventListener('mouseleave', function () {
+    starLabels.forEach(l => l.classList.remove('hovered'));
+    const currentChecked = document.querySelector('.star-radio-input:checked');
+    if (currentChecked) {
+    highlightStars(parseInt(currentChecked.value));
+    } else {
+    starLabels.forEach(l => l.classList.remove('selected'));
+    }
     });
 </script>

@@ -215,9 +215,10 @@
 
                         <hr />
                         <div class="fw-semibold mb-2">Phương thức thanh toán</div>
+
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="PayMethod" id="payCod" value="COD" checked>
-                            <label class="form-check-label" for="payCod">COD (Thanh toán khi nhận hàng)</label>
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payCOD" value="COD" checked>
+                            <label class="form-check-label" for="payCOD">COD (Thanh toán khi nhận hàng)</label>
                         </div>
 
                         <div class="form-check mt-1">
@@ -255,16 +256,18 @@
                         </div>
 
                         <div class="form-check mt-1">
-                            <input class="form-check-input" type="radio" name="PayMethod" id="payVnpay" value="VNPAY">
-                            <label class="form-check-label" for="payVnpay">VNPay</label>
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payVNPAY" value="VNPAY">
+                            <label class="form-check-label" for="payVNPAY">Thanh toán qua VNPAY</label>
                         </div>
+
                         <div class="form-check mt-1">
-                            <input class="form-check-input" type="radio" name="PayMethod" id="payMomo" value="MOMO">
-                            <label class="form-check-label" for="payMomo">MoMo</label>
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payMOMO" value="MOMO">
+                            <label class="form-check-label" for="payMOMO">Thanh toán qua MoMo</label>
                         </div>
+
                         <div class="form-check mt-1">
-                            <input class="form-check-input" type="radio" name="PayMethod" id="payPaypal" value="PAYPAL">
-                            <label class="form-check-label" for="payPaypal">PayPal</label>
+                            <input class="form-check-input" type="radio" name="PayMethod" id="payPAYPAL" value="PAYPAL">
+                            <label class="form-check-label" for="payPAYPAL">Thanh toán qua PayPal</label>
                         </div>
 
                         <button type="submit" class="btn btn-danger w-100 py-2 mt-3">
@@ -321,8 +324,14 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const subtotal = @subtotal; const discount = @discount; const vat = @vat;
+            // ✅ SỬA LỖI DẤU PHẨY CHÍ MẠNG: Ép Razor C# xuất số dạng dấu chấm chuẩn JavaScript bằng InvariantCulture
+            const subtotal = @subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            const discount = @discount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            const vat = @vat.ToString(System.Globalization.CultureInfo.InvariantCulture);
             const orderValueAfterDiscount = Math.max(0, subtotal - discount);
+
+            // ⚠️ MÈO HOANG NHẮC NHỞ: Nếu dự án của bạn có biến let tierRate ở file khác hoặc đoạn dưới,
+            // bạn nhớ cũng phải thêm đuôi .ToString(System.Globalization.CultureInfo.InvariantCulture) tương tự nhé!
 
             const shipFeeText = document.getElementById('shipFeeText');
             const shipEtaText = document.getElementById('shipEtaText');
@@ -339,7 +348,7 @@
             const AmountHidden = document.getElementById('AmountHidden');
             const PaymentMethodHidden = document.getElementById('PaymentMethodHidden');
 
-            // Khai báo chuẩn nhóm camelCase (Đã kết nối với ID mới đổi)
+            // Khai báo chuẩn nhóm camelCase
             const deliveryMethod2 = document.getElementById('deliveryMethodCamel');
             const storeId2 = document.getElementById('storeIdCamel');
             const province2 = document.getElementById('provinceCodeCamel');
@@ -382,6 +391,7 @@
                 syncForPayment();
             }
 
+            // Đồng bộ sự kiện đổi phương thức thanh toán sang Input ẩn
             document.querySelectorAll('input[name="PayMethod"]').forEach(radio => {
                 radio.addEventListener('change', function() {
                     if (this.value === "Installment") {
@@ -389,11 +399,15 @@
                         PaymentMethodHidden.value = "Installment";
                     } else {
                         installmentBox.style.display = 'none';
-                        PaymentMethodHidden.value = this.value;
+                        PaymentMethodHidden.value = this.value; // Gán chuẩn: COD, VNPAY, MOMO, PAYPAL
                     }
                     recalcTotal();
                 });
             });
+
+            // Gán giá trị mặc định lúc ban đầu cho ô ẩn trùng với radio đang check
+            const initialPayMode = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
+            PaymentMethodHidden.value = initialPayMode;
 
             installmentMonthsSelect?.addEventListener('change', recalcTotal);
 
@@ -458,7 +472,6 @@
             }
 
             async function quote(provinceCode, districtCode) {
-                // ✨ FIX LỖI ĐỒNG BỘ: Ép gán dữ liệu vào ô ẩn lập tức khi người dùng click chọn
                 ProvinceCodeHidden.value = provinceCode || "";
                 DistrictCodeHidden.value = districtCode || "";
 
@@ -496,42 +509,61 @@
                 });
             } else { recalcTotal(); }
 
+            // 🚀 BỘ ĐỊNH TUYẾN SUBMIT FORM
             const form = document.getElementById('checkoutForm');
-            form.addEventListener('submit', function (e) {
-                if (DeliveryMethodHidden.value === "PickupAtStore" && !StoreIdHidden.value) {
-                    e.preventDefault(); alert('Vui lòng chọn cửa hàng nhận.'); return;
-                }
-
-                // Đồng bộ ép buộc dữ liệu lại một lần nữa trước khi bấm gửi đi
-                if (DeliveryMethodHidden.value === "ShipToHome") {
-                    ProvinceCodeHidden.value = provSel.value || "";
-                    DistrictCodeHidden.value = distSel.value || "";
-
-                    if (!ProvinceCodeHidden.value) {
-                        e.preventDefault(); alert('Vui lòng chọn Tỉnh/TP để tính phí ship.'); return;
-                    }
-                }
-
-                recalcTotal();
-                const pay = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
-
-                if (pay === "COD" || pay === "Installment") {
-                    form.action = '/ShoppingCart/Checkout';
-                    form.method = 'post';
-                    return;
-                }
-                if (pay === "VNPAY") { form.action = '/Payment/PaymentVNPay'; form.method = 'post'; return; }
-                if (pay === "MOMO") { form.action = '/Payment/CreatePaymentMomo'; form.method = 'post'; return; }
-                if (pay === "PAYPAL") {
+            if (form) {
+                form.addEventListener('submit', function (e) {
                     e.preventDefault();
-                    const qs = new URLSearchParams({
-                        amount: AmountHidden.value, deliveryMethod: DeliveryMethodHidden.value, storeId: StoreIdHidden.value,
-                        provinceCode: ProvinceCodeHidden.value, districtCode: DistrictCodeHidden.value, shippingFee: ShippingFeeHidden.value, shipMethod: ShipMethodHidden.value
-                    });
-                    window.location.href = '/Payment/Paypal?' + qs.toString();
-                    return;
-                }
-            });
+
+                    if (DeliveryMethodHidden.value === "PickupAtStore" && !StoreIdHidden.value) {
+                        alert('Vui lòng chọn cửa hàng nhận.');
+                        return;
+                    }
+
+                    if (DeliveryMethodHidden.value === "ShipToHome") {
+                        ProvinceCodeHidden.value = provSel.value || "";
+                        DistrictCodeHidden.value = distSel.value || "";
+
+                        if (!ProvinceCodeHidden.value) {
+                            alert('Vui lòng chọn Tỉnh/TP để tính phí ship.');
+                            return;
+                        }
+                    }
+
+                    recalcTotal();
+
+                    // Lấy chính xác giá trị radio đang được chọn
+                    const pay = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
+
+                    if (pay === "COD" || pay === "Installment") {
+                        form.action = '/ShoppingCart/Checkout';
+                        form.method = 'post';
+                        HTMLFormElement.prototype.submit.call(form);
+                    }
+                    else if (pay === "VNPAY") {
+                        form.action = '/Payment/PaymentVNPay';
+                        form.method = 'post';
+                        HTMLFormElement.prototype.submit.call(form);
+                    }
+                    else if (pay === "MOMO") {
+                        form.action = '/Payment/CreatePaymentMomo';
+                        form.method = 'post';
+                        HTMLFormElement.prototype.submit.call(form);
+                    }
+                    else if (pay === "PAYPAL") {
+                        const qs = new URLSearchParams({
+                            amount: AmountHidden.value,
+                            deliveryMethod: DeliveryMethodHidden.value,
+                            storeId: StoreIdHidden.value,
+                            provinceCode: ProvinceCodeHidden.value,
+                            districtCode: DistrictCodeHidden.value,
+                            shippingFee: ShippingFeeHidden.value,
+                            shipMethod: ShipMethodHidden.value
+                        });
+                        window.location.href = '/Payment/Paypal?' + qs.toString();
+                    }
+                });
+            }
 
             toggleDelivery();
             recalcTotal();
