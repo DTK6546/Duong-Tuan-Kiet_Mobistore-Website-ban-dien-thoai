@@ -77,7 +77,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             if (order == null) return NotFound();
 
             // 📦 QUẢN LÝ KHO HÀNG: Kích hoạt tự động trừ kho & Ghi nhật ký khi chuyển sang Hoàn Tất
-            // Điều kiện: Trạng thái cũ CHƯA PHẢI Hoàn tất, nhưng trạng thái mới LÀ Hoàn tất
             if (order.Status != OrderStatus.HoanTat && status == OrderStatus.HoanTat)
             {
                 foreach (var item in order.OrderDetails)
@@ -90,7 +89,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                         product.LastExportDate = DateTime.Now; // Cập nhật ngày xuất gần nhất
                     }
 
-                    // 2. Tự động trừ số lượng của Biến thể (Màu sắc / Dung lượng) nếu có
+                    // 2. Tự động trừ số lượng của Biến thể nếu có
                     if (item.VariantId.HasValue)
                     {
                         var variant = _db.ProductVariants.FirstOrDefault(v => v.Id == item.VariantId.Value);
@@ -100,11 +99,11 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                         }
                     }
 
-                    // 3. Ghi lại Lịch sử / Nhật ký xuất kho chi tiết (Stock history/logs)
+                    // 3. Ghi lại Lịch sử / Nhật ký xuất kho chi tiết
                     var inventoryLog = new InventoryLog
                     {
                         ProductId = item.ProductId,
-                        Type = "XUAT", // Loại xuất kho do bán hàng
+                        Type = "XUAT",
                         Quantity = item.Quantity,
                         Note = $"Xuất kho tự động cho đơn hàng hoàn tất #{order.Id}",
                         CreatedAt = DateTime.Now,
@@ -113,7 +112,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     _db.InventoryLogs.Add(inventoryLog);
                 }
             }
-            // 🔄 Trường hợp ngược lại: Tiếp nhận trả hàng hoàn tiền (Cộng lại kho nếu cần)
+            // 🔄 Trường hợp ngược lại: Tiếp nhận trả hàng hoàn tiền (Cộng lại kho)
             else if (order.Status != OrderStatus.TraHang && status == OrderStatus.TraHang)
             {
                 foreach (var item in order.OrderDetails)
@@ -136,7 +135,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     var inventoryLog = new InventoryLog
                     {
                         ProductId = item.ProductId,
-                        Type = "NHAP", // Hoàn trả tính là nhập lại kho
+                        Type = "NHAP",
                         Quantity = item.Quantity,
                         Note = $"Hoàn kho tự động do đơn hàng chuyển trả #{order.Id}",
                         CreatedAt = DateTime.Now,
@@ -171,9 +170,22 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 Location = "Hệ thống MobiStore"
             });
 
-            // Tích lũy điểm thành viên VIP khi đơn hàng hoàn tất
             if (status == OrderStatus.HoanTat)
             {
+                var productIdsInOrder = order.OrderDetails.Select(od => od.ProductId).ToArray();
+
+                // 2. Sử dụng phương thức .Contains() để EF Core dịch thành câu lệnh SQL "IN (...)" hợp lệ
+                var tradeInRequest = _db.TradeIns
+                    .FirstOrDefault(t => t.UserId == order.UserId
+                                         && productIdsInOrder.Contains(t.TargetProductId)
+                                         && !t.IsApplied);
+
+                if (tradeInRequest != null)
+                {
+                    tradeInRequest.IsApplied = true; // Chuyển trạng thái sang Đã áp dụng / Hoàn tất thành công!
+                }
+                // =========================================================================
+
                 var user = _db.ApplicationUsers.FirstOrDefault(u => u.Id == order.UserId);
                 if (user != null)
                 {
@@ -191,18 +203,18 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                             string productUrl = $"{Request.Scheme}://{Request.Host}/Product/Display/{prodInfo.Id}";
                             string requestEmailSubject = $"[MobiStore] Mời bạn đánh giá sản phẩm {prodInfo.Name}";
                             string requestEmailBody = $@"
-                                <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;'>
-                                    <h2 style='color: #059669; text-align: center;'>Cảm ơn bạn đã tin tưởng mua sắm tại MobiStore!</h2>
-                                    <p>Xin chào <strong>{user.FullName}</strong>,</p>
-                                    <p>Đơn hàng <strong>#{order.Id}</strong> của bạn đã giao dịch thành công. Ý kiến của bạn là điều vô cùng quý giá để chúng tôi nâng cao chất lượng dịch vụ.</p>
-                                    <p>MobiStore trân trọng mời bạn chia sẻ cảm nhận thực tế về thiết bị <strong>{prodInfo.Name}</strong> mà bạn vừa sở hữu.</p>
-                                    <div style='text-align: center; margin: 30px 0;'>
-                                        <a href='{productUrl}#review-section' style='background-color: #059669; color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>✍️ Viết Đánh Giá Để Lấy Tích Xanh Ngay</a>
-                                    </div>
-                                    <p style='font-size: 13px; color: #666; font-style: italic; text-align: center;'>Bình luận của bạn sẽ được hiển thị kèm Huy hiệu xác minh đã mua hàng độc lập.</p>
-                                    <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;' />
-                                    <p style='font-size: 11px; color: #777; text-align: center;'>MobiStore - Uy tín kiến tạo niềm tin.</p>
-                                </div>";
+                    <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;'>
+                        <h2 style='color: #059669; text-align: center;'>Cảm ơn bạn đã tin tưởng mua sắm tại MobiStore!</h2>
+                        <p>Xin chào <strong>{user.FullName}</strong>,</p>
+                        <p>Đơn hàng <strong>#{order.Id}</strong> của bạn đã giao dịch thành công. Ý kiến của bạn là điều vô cùng quý giá để chúng tôi nâng cao chất lượng dịch vụ.</p>
+                        <p>MobiStore trân trọng mời bạn chia sẻ cảm nhận thực tế về thiết bị <strong>{prodInfo.Name}</strong> mà bạn vừa sở hữu.</p>
+                        <div style='text-align: center; margin: 30px 0;'>
+                            <a href='{productUrl}#review-section' style='background-color: #059669; color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>✍️ Viết Đánh Giá Để Lấy Tích Xanh Ngay</a>
+                        </div>
+                        <p style='font-size: 13px; color: #666; font-style: italic; text-align: center;'>Bình luận của bạn sẽ được hiển thị kèm Huy hiệu xác minh đã mua hàng độc lập.</p>
+                        <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;' />
+                        <p style='font-size: 11px; color: #777; text-align: center;'>MobiStore - Uy tín kiến tạo niềm tin.</p>
+                    </div>";
 
                             _emailSender.SendEmailAsync(user.Email, requestEmailSubject, requestEmailBody);
                         }
@@ -211,7 +223,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             }
 
             // =========================================================================
-            // ✨ CHỨC NĂNG 6: TỰ ĐỘNG PHÁT THÔNG BÁO ĐA KÊNH KHI CẬP NHẬT TRẠNG THÁI
+            // ✨ THÔNG BÁO ĐA KÊNH KHI CẬP NHẬT TRẠNG THÁI
             // =========================================================================
             try
             {
@@ -220,16 +232,16 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 {
                     string orderUrl = $"{Request.Scheme}://{Request.Host}/Order/Details/{order.Id}";
 
-                    // 📬 1. GỬI TIN NHẮN SMS GIẢ LẬP (LOG RA CONSOLE)
+                    // 📬 1. GỬI TIN NHẮN SMS GIẢ LẬP
                     string smsMessage = $"MobiStore: Don hang #{order.Id} cua ban da chuyen sang trang thai: {description}. Xem tai {orderUrl}";
                     await _notifService.SendSmsAsync(customer.PhoneNumber, smsMessage);
 
-                    // 📲 2. GỬI PUSH NOTIFICATION APP GIẢ LẬP (LOG RA CONSOLE)
+                    // 📲 2. GỬI PUSH NOTIFICATION APP GIẢ LẬP
                     string pushTitle = $"Cập nhật đơn hàng #{order.Id}";
                     string pushBody = $"Đơn hàng của bạn hiện tại: {description}. Bấm để theo dõi hành trình di chuyển bưu kiện.";
                     await _notifService.SendPushNotificationAsync(customer.Id, pushTitle, pushBody);
 
-                    // 📧 3. GỬI EMAIL THÔNG BÁO THỰC TẾ QUA DỊCH VỤ CỦA BẠN
+                    // 📧 3. GỬI EMAIL THÔNG BÁO THỰC TẾ
                     if (!string.IsNullOrEmpty(customer.Email))
                     {
                         string emailSubject = $"[MobiStore] Cập nhật trạng thái đơn hàng #{order.Id}";
@@ -257,7 +269,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             {
                 System.Diagnostics.Debug.WriteLine($"Lỗi gửi thông báo đa kênh: {ex.Message}");
             }
-            // =========================================================================
 
             _db.SaveChanges();
             TempData["SuccessMessage"] = "Trạng thái đơn hàng và nhật ký hành trình đã được cập nhật!";

@@ -50,7 +50,12 @@ namespace WebBanDienThoai.Models
 
         public string? TrackingNumber { get; set; } // Mã vận đơn điện tử thực tế từ API vận chuyển
         public List<OrderLog>? OrderLogs { get; set; } // Nhật ký hành trình real-time
+
         // =========================================================================
+        // 💸 CẬP NHẬT CHỨC NĂNG 6: LƯU VẾT GIẢM TRỪ THU CŨ ĐỔI MỚI (TRADE-IN)
+        // =========================================================================
+        public int? TradeInId { get; set; } // Khóa ngoại kết nối yêu cầu khảo sát máy cũ
+        public decimal TradeInDiscount { get; set; } = 0m; // Số tiền được trợ giá khấu trừ máy cũ
 
         [ForeignKey("UserId")]
         [ValidateNever]

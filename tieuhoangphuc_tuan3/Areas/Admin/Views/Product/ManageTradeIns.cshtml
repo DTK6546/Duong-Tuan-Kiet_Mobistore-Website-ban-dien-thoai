@@ -1,0 +1,57 @@
+﻿@model IEnumerable<WebBanDienThoai.Models.TradeIn>
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"; // Hoặc layout Admin của nhóm bạn
+    var products = ViewBag.ProductsDict as Dictionary<int, string>;
+}
+
+<div class="container-fluid px-4 mt-4">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-dark text-white py-3">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> QUẢN LÝ YÊU CẦU THU CŨ ĐỔI MỚI</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Mã số</th>
+                            <th>Tài khoản</th>
+                            <th>Thiết bị cũ</th>
+                            <th>Ngoại quan</th>
+                            <th>Tính năng</th>
+                            <th>Giá định giá</th>
+                            <th>Sản phẩm lên đời</th>
+                            <th>Ngày gửi</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>#@item.Id</td>
+                                <td><span class="badge bg-secondary">@item.UserId</span></td>
+                                <td class="fw-bold">@item.OldDeviceName</td>
+                                <td>Loại @item.CosmeticCondition</td>
+                                <td>@item.Functionality</td>
+                                <td class="text-danger fw-bold">@item.EstimatedValue.ToString("N0")₫</td>
+                                <td>@(products != null && products.ContainsKey(item.TargetProductId) ? products[item.TargetProductId] : "N/A")</td>
+                                <td>@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (item.IsApplied)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check2-circle"></i> Đã lên đời</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Chờ khách mua</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

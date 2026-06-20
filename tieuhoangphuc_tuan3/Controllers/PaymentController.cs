@@ -7,6 +7,7 @@ using WebBanDienThoai.Models;
 using WebBanDienThoai.Services;
 using WebBanDienThoai.Services.Momo;
 using WebBanDienThoai.Services.VNPay;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebBanDienThoai.Controllers
 {
@@ -36,7 +37,6 @@ namespace WebBanDienThoai.Controllers
         // 🛠️ SESSION HELPERS
         // ==================================================================================
 
-        // ✅ UPDATED: thêm shipMethod
         private void SaveSessionInfo(
             string? deliveryMethod,
             int? storeId,
@@ -54,16 +54,13 @@ namespace WebBanDienThoai.Controllers
             HttpContext.Session.SetString("ProvinceCode", provinceCode ?? "");
             HttpContext.Session.SetString("DistrictCode", districtCode ?? "");
 
-            // Lưu theo invariant để parse không dính dấu phẩy/chấm
             HttpContext.Session.SetString("ShippingFee",
                 (shippingFee ?? 0m).ToString(CultureInfo.InvariantCulture));
 
-            // shipMethod: standard/express
             HttpContext.Session.SetString("ShipMethod",
                 string.IsNullOrWhiteSpace(shipMethod) ? "standard" : shipMethod.Trim().ToLower());
         }
 
-        // ✅ UPDATED: trả thêm shipMethod
         private (decimal total, decimal ship, string prov, string dist, decimal subtotal, decimal vat, decimal afterDiscount, string shipMethod)
             GetCalculatedTotals(ShoppingCart cart)
         {
@@ -84,7 +81,12 @@ namespace WebBanDienThoai.Controllers
             string dist = HttpContext.Session.GetString("DistrictCode") ?? "";
             string shipMethod = HttpContext.Session.GetString("ShipMethod") ?? "standard";
 
-            decimal total = afterDiscount + vatAmount + ship;
+            // 🌟 ĐỒNG BỘ TRADE-IN: Đọc số tiền định giá máy cũ từ Session ra để bù trừ trực tiếp
+            var tradeInStr = HttpContext.Session.GetString("TradeInDiscount") ?? "0";
+            decimal.TryParse(tradeInStr, out decimal tradeInDiscount);
+
+            // Tổng hóa đơn = Tiền hàng + VAT + Phí giao hàng - Tiền thu mua máy cũ
+            decimal total = Math.Max(0m, afterDiscount + vatAmount + ship - tradeInDiscount);
             return (total, ship, prov, dist, subtotal, vatAmount, afterDiscount, shipMethod);
         }
 
@@ -99,7 +101,12 @@ namespace WebBanDienThoai.Controllers
 
             var deliveryMethodStr = HttpContext.Session.GetString("DeliveryMethod") ?? "ShipToHome";
             var storeId = HttpContext.Session.GetInt32("StoreId");
-            var shipMethod = totals.shipMethod; // standard/express
+            var shipMethod = totals.shipMethod;
+
+            // 🌟 ĐỒNG BỘ TRADE-IN: Đọc mã khảo sát máy cũ từ Session để gán vào hóa đơn lưu vết
+            var tradeInId = HttpContext.Session.GetInt32("TradeInId");
+            var tradeInStr = HttpContext.Session.GetString("TradeInDiscount") ?? "0";
+            decimal.TryParse(tradeInStr, out decimal tradeInDiscountAmount);
 
             var order = new Order
             {
@@ -113,19 +120,24 @@ namespace WebBanDienThoai.Controllers
                 ShippingFee = totals.ship,
                 ProvinceCode = totals.prov,
                 DistrictCode = totals.dist,
-                TotalPrice = totals.total,
+                TotalPrice = totals.total, // Giá sau cùng đã bù trừ khoản thu mua máy cũ
 
                 ShippingAddress = user?.Address ?? "N/A",
-                Notes = $"Khách hàng: {user?.FullName ?? "Khách vãng lai"}. Thanh toán qua {paymentMethodName}. ShipMethod: {shipMethod}",
+                Notes = $"Khách hàng: {user?.FullName ?? "Khách vãng lai"}. Thanh toán qua {paymentMethodName}. ShipMethod: {shipMethod}" +
+                        (tradeInId.HasValue ? $" [THU CỦ_TRỢ GIÁ LÊN ĐỜI: -{tradeInDiscountAmount:N0}₫]" : ""),
                 DeliveryMethod = deliveryMethodStr == "PickupAtStore" ? DeliveryMethod.PickupAtStore : DeliveryMethod.ShipToHome,
                 StoreId = storeId,
-                CouponCode = cart.CouponCode
+                CouponCode = cart.CouponCode,
+
+                // Gán thông số Trade-In vào dữ liệu bảng đơn hàng
+                TradeInId = tradeInId,
+                TradeInDiscount = tradeInDiscountAmount
             };
 
             _dbContext.Orders.Add(order);
-            await _dbContext.SaveChangesAsync(); // có order.Id
+            await _dbContext.SaveChangesAsync(); // sinh ra order.Id
 
-            // 1) add all order details
+            // 1) Thêm tất cả chi tiết sản phẩm
             var details = new List<OrderDetail>();
             foreach (var item in cart.Items)
             {
@@ -141,9 +153,9 @@ namespace WebBanDienThoai.Controllers
             }
 
             _dbContext.OrderDetails.AddRange(details);
-            await _dbContext.SaveChangesAsync(); // có detail.Id
+            await _dbContext.SaveChangesAsync(); // sinh ra detail.Id
 
-            // 2) add warranties (need detail.Id)
+            // 2) Thêm gói bảo hành đi kèm
             var warranties = new List<OrderDetailWarranty>();
             for (int i = 0; i < cart.Items.Count; i++)
             {
@@ -171,6 +183,22 @@ namespace WebBanDienThoai.Controllers
                 await _dbContext.SaveChangesAsync();
             }
 
+            // 🌟 ĐỒNG BỘ TRADE-IN: Đóng băng cập nhật trạng thái yêu cầu Trade-in sang "Đã lên đời thành công"
+            if (tradeInId.HasValue)
+            {
+                var tradeInReq = await _dbContext.TradeIns.FindAsync(tradeInId.Value);
+                if (tradeInReq != null)
+                {
+                    tradeInReq.IsApplied = true;
+                    _dbContext.TradeIns.Update(tradeInReq);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+
+            // Xóa sạch thông tin Trade-in trong Session để chuẩn bị cho chu kỳ mua sắm tiếp theo
+            HttpContext.Session.Remove("TradeInId");
+            HttpContext.Session.Remove("TradeInDiscount");
+
             UpdateCouponUsageAfterOnlinePayment(cart, order.UserId);
             return order;
         }
@@ -188,14 +216,13 @@ namespace WebBanDienThoai.Controllers
             string? provinceCode,
             string? districtCode,
             decimal? shippingFee,
-            string? shipMethod) // ✅ added
+            string? shipMethod)
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart");
             if (cart == null) return RedirectToAction("Index", "ShoppingCart");
 
             SaveSessionInfo(deliveryMethod, storeId, provinceCode, districtCode, shippingFee, shipMethod);
 
-            // ✅ Tính lại total từ server, bỏ amount từ client
             var totals = GetCalculatedTotals(cart);
             var safeAmount = totals.total;
 
@@ -258,7 +285,7 @@ namespace WebBanDienThoai.Controllers
             string? provinceCode,
             string? districtCode,
             decimal? shippingFee,
-            string? shipMethod) // ✅ added
+            string? shipMethod)
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart");
             if (cart == null) return RedirectToAction("Index", "ShoppingCart");
@@ -266,7 +293,7 @@ namespace WebBanDienThoai.Controllers
             SaveSessionInfo(deliveryMethod, storeId, provinceCode, districtCode, shippingFee, shipMethod);
 
             var totals = GetCalculatedTotals(cart);
-            decimal totalVND = totals.total; // ✅ server-calculated
+            decimal totalVND = totals.total;
             decimal totalUSD = Math.Round(totalVND / 24000m, 2);
 
             ViewBag.TotalAmount = totalUSD.ToString("0.00", CultureInfo.InvariantCulture);
@@ -315,14 +342,13 @@ namespace WebBanDienThoai.Controllers
             string? provinceCode,
             string? districtCode,
             decimal? shippingFee,
-            string? shipMethod) // ✅ added
+            string? shipMethod)
         {
             var cart = HttpContext.Session.GetObjectFromJson<ShoppingCart>("Cart");
             if (cart == null) return RedirectToAction("Index", "ShoppingCart");
 
             SaveSessionInfo(deliveryMethod, storeId, provinceCode, districtCode, shippingFee, shipMethod);
 
-            // ✅ set amount theo server
             var totals = GetCalculatedTotals(cart);
             model.Amount = (long)Math.Round(totals.total, 0);
 
@@ -362,7 +388,7 @@ namespace WebBanDienThoai.Controllers
         }
 
         // ==================================================================================
-        // 🛠️ COUPON USAGE
+        // 🛠 crime COUPON USAGE
         // ==================================================================================
 
         private void UpdateCouponUsageAfterOnlinePayment(ShoppingCart cart, string userId)

@@ -51,6 +51,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<BlogCategory> BlogCategories { get; set; }
     public DbSet<BlogPost> BlogPosts { get; set; }
     public DbSet<BlogComment> BlogComments { get; set; }
+    public DbSet<TradeIn> TradeIns { get; set; } 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

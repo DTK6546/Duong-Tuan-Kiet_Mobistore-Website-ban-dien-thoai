@@ -618,6 +618,8 @@ namespace WebBanDienThoai.Controllers
                 currentUserId = u?.Id;
             }
 
+            ViewBag.CurrentUserId = currentUserId;
+
             IQueryable<ProductQuestion> qQas = _context.ProductQuestions
                 .AsNoTracking()
                 .Include(q => q.User)

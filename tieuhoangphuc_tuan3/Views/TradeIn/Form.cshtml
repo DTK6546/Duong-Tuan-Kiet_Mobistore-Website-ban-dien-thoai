@@ -1,0 +1,100 @@
+﻿@{
+    Layout = "_Layout";
+    var product = ViewBag.TargetProduct as WebBanDienThoai.Models.Product;
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header bg-info text-white text-center py-3">
+                    <h4 class="mb-0"><i class="bi bi-arrow-left-right"></i> KHẢO SÁT THU CŨ ĐỔI MỚI</h4>
+                    <small>Lên đời sản phẩm: <strong>@product?.Name</strong></small>
+                </div>
+                <div class="card-body p-4">
+                    <form id="tradeInForm">
+                        <input type="hidden" id="targetProductId" value="@product?.Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">1. Thiết bị cũ của bạn là máy gì?</label>
+                            <input type="text" id="oldDeviceName" class="form-control" placeholder="Ví dụ: iPhone 12 Pro Max 128GB, Samsung S21 Ultra..." required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">2. Tình trạng thẩm mỹ bên ngoài (Ngoại quan)</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="cosmetic" id="cosA" value="A" checked>
+                                <label class="form-check-label" for="cosA">Loại A: Máy đẹp như mới, không trầy xước cấn móp</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="cosmetic" id="cosB" value="B">
+                                <label class="form-check-label" for="cosB">Loại B: Máy trầy xước nhẹ vỏ hoặc viền màn hình</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="cosmetic" id="cosC" value="C">
+                                <label class="form-check-label" for="cosC">Loại C: Máy bị cấn móp vỏ, bong tróc sơn nặng</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">3. Tình trạng hoạt động và màn hình</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="functionality" id="funcGood" value="Good" checked>
+                                <label class="form-check-label" for="funcGood">Hoạt động hoàn hảo: Màn hình sáng đẹp, không lỗi tính năng</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="functionality" id="funcMinor" value="MinorFault">
+                                <label class="form-check-label" for="funcMinor">Lỗi tính năng nhẹ: Chai pin nặng, hỏng nút bấm vật lý, hỏng loa ngoài</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="functionality" id="funcScreen" value="ScreenFault">
+                                <label class="form-check-label" for="funcScreen">Lỗi màn hình nặng: Màn hình bị sọc nhẹ, ám ố hiển thị, vỡ kính ngoài</label>
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="submitTradeInSurvey()" class="btn btn-info w-100 text-white fw-bold py-2 rounded-pill">
+                            <i class="bi bi-calculator"></i> ĐỊNH GIÁ THIẾT BỊ NGAY
+                        </button>
+                    </form>
+
+                    <div id="resultBox" class="mt-4 p-3 bg-light border rounded text-center d-none">
+                        <h5 class="text-success"><i class="bi bi-check-circle-fill"></i> Định giá thành công!</h5>
+                        <p class="mb-1">Số tiền hỗ trợ thu mua máy cũ dự kiến:</p>
+                        <h3 class="text-danger fw-bold mb-3" id="lblEstimatedPrice">0₫</h3>
+                        <p class="text-muted small">Mức giá trên đã được lưu vào hệ thống và sẽ tự động trừ thẳng vào đơn hàng lên đời máy mới của bạn.</p>
+                        <a href="/ShoppingCart" class="btn btn-success rounded-pill px-4 fw-bold">Đến Giỏ hàng Tiến hành lên đời</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function submitTradeInSurvey() {
+        // ✅ ĐÃ XÓA DÒNG LỖI 'new Data()' Ở ĐÂY
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        $.ajax({
+            url: '/TradeIn/Calculate',
+            type: 'POST',
+            data: {
+                oldDeviceName: $('#oldDeviceName').val(), // 🌟 Mẹo nhỏ: dùng .val() thay vì .value của jQuery nhé bạn
+                cosmetic: $('input[name="cosmetic"]:checked').val(),
+                functionality: $('input[name="functionality"]:checked').val(),
+                targetProductId: $('#targetProductId').val(),
+                __RequestVerificationToken: token
+            },
+            success: function(res) {
+                if (res.success) {
+                    $('#lblEstimatedPrice').text(res.estimatedValue.toLocaleString('vi-VN') + '₫');
+                    $('#resultBox').removeClass('d-none');
+                    $('#tradeInForm').slideUp();
+                }
+            },
+            error: function(err) {
+                console.error("Lỗi hệ thống:", err);
+            }
+        });
+    }
+</script>

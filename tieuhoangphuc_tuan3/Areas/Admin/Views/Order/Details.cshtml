@@ -44,6 +44,13 @@
         subTotal = Model.OrderDetails.Sum(od => (od.Price + (od.Warranties?.Sum(w => w.Price) ?? 0)) * od.Quantity);
     }
     var discount = Model.DiscountAmount;
+    
+    // =========================================================================
+    // 💸 CẬP NHẬT: BỐC THUỘC TÍNH TRỢ GIÁ THU CŨ ĐỔI MỚI (TRADE-IN VALUE) ĐỂ HIỂN THỊ
+    // =========================================================================
+    var tradeInDiscount = Model.TradeInDiscount;
+    var afterDiscountReal = Math.Max(0, subTotal - discount - tradeInDiscount);
+
     var shippers = ViewBag.Shippers as List<Shipper> ?? new List<Shipper>();
 }
 
@@ -112,7 +119,8 @@
                 <select id="status" name="status" class="form-select border-primary form-select-sm" style="min-width:200px">
                     @foreach (var s in Enum.GetValues(typeof(WebBanDienThoai.Models.OrderStatus)))
                     {
-                        <option value="@((int)s)" selected="@(Model.Status == (OrderStatus)s ? "selected" : null)">
+                        var value = (int)s;
+                        <option value="@value" selected="@(Model.Status == (OrderStatus)s ? "selected" : null)">
                             @(((OrderStatus)s).ToVietnameseStatus())
                         </option>
                     }
@@ -255,6 +263,22 @@
                         <td class="text-end fw-semibold text-danger">-@discount.ToString("N0") đ</td>
                     </tr>
                 }
+
+                @* =========================================================================
+                // 💸 CẬP NHẬT GIAO DIỆN ADMIN: RENDER DÒNG KHẤU TRỪ MÁY CŨ TRÊN HÓA ĐƠN CHI TIẾT
+                // ========================================================================= *@
+                @if (tradeInDiscount > 0)
+                {
+                    <tr style="background-color: #fff5f5;">
+                        <td colspan="3" class="text-end text-danger fw-bold"><i class="bi bi-arrow-left-right"></i> Trợ giá thu cũ đổi mới:</td>
+                        <td class="text-end fw-bold text-danger">-@tradeInDiscount.ToString("N0") đ</td>
+                    </tr>
+                }
+
+                <tr>
+                    <td colspan="3" class="text-end">Thành tiền (chưa VAT):</td>
+                    <td class="text-end fw-semibold">@afterDiscountReal.ToString("N0") đ</td>
+                </tr>
                 <tr>
                     <td colspan="3" class="text-end">VAT (10%):</td>
                     <td class="text-end fw-semibold">@Model.VatAmount.ToString("N0") đ</td>

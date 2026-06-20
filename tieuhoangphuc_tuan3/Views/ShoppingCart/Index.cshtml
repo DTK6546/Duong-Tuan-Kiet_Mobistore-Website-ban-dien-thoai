@@ -35,7 +35,7 @@
 }
 
 @{
-    ViewData["Title"] = "Giỏ hàng của bạn";
+    TempData["Title"] = "Giỏ hàng của bạn";
 
     decimal subtotal = Model.Items.Sum(i =>
     {
@@ -46,7 +46,11 @@
     decimal discount = Model.DiscountAmount;
     if (discount < 0) { discount = 0; }
 
-    decimal priceAfterDiscount = subtotal - discount;
+    // Bốc giá trị Trade-In định giá tự động từ Server
+    decimal tradeInDiscount = ViewBag.TradeInDiscount ?? 0m;
+    string tradeInDeviceName = ViewBag.TradeInDeviceName ?? "Thiết bị cũ";
+
+    decimal priceAfterDiscount = subtotal - discount - tradeInDiscount;
     if (priceAfterDiscount < 0) { priceAfterDiscount = 0; }
 
     decimal vatRate = 0.10m;
@@ -212,7 +216,7 @@
                                             <button class="btn btn-outline-secondary quantity-btn" type="button">+</button>
                                         </div>
                                     </td>
-                                    <td><strong class="line-total">@lineTotal.ToString("N0", vi) đ</strong></td>
+                                    <td><img src="" style="display:none;" onerror="this.src='';"><strong class="line-total">@lineTotal.ToString("N0", vi) đ</strong></td>
                                     <td>
                                         <div class="d-flex flex-column gap-1 align-items-center">
                                             <a asp-action="SaveForLater" asp-route-productId="@item.ProductId" asp-route-variantId="@item.VariantId" class="btn btn-sm btn-outline-warning text-dark px-2" title="Lưu mua sau">
@@ -375,6 +379,14 @@
                         <strong id="pointsDiscountText">0 đ</strong>
                     </div>
 
+                    @if (tradeInDiscount > 0)
+                    {
+                        <div class="d-flex justify-content-between small text-danger fw-bold border border-dashed border-danger p-1 rounded my-1" style="background-color: #fff5f5;">
+                            <span><i class="bi bi-arrow-left-right"></i> Trợ giá thu cũ (@tradeInDeviceName):</span>
+                            <strong id="tradeInDiscountText">-@tradeInDiscount.ToString("N0", vi) đ</strong>
+                        </div>
+                    }
+
                     <div class="d-flex justify-content-between small"><span>Thành tiền:</span><strong class="before-tax-amount">@priceAfterDiscount.ToString("N0", vi) đ</strong></div>
                     <div class="d-flex justify-content-between small"><span>VAT (10%):</span><strong class="vat-amount">@vatAmount.ToString("N0", vi) đ</strong></div>
                     <div class="d-flex justify-content-between small"><span>Phí ship:</span><strong class="ship-fee-amount">0 đ</strong></div>
@@ -408,7 +420,10 @@
         let currentShipMethod = "standard";
 
         let userPoints = @(currentUser?.CurrentPoints ?? 0);
-        let tierRate = @((currentUser?.TierDiscountRate ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture)); // ✅ Đã sửa dứt điểm lỗi 645
+        let tierRate = @((currentUser?.TierDiscountRate ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture)); 
+
+        // 🌟 BẮC CẦU TRADE-IN TỪ RAZOR BACKEND VÀO JAVASCRIPT FRONTEND
+        let tradeInDiscount = parseFloat("@tradeInDiscount") || 0;
 
         function computeSubtotal() {
             let subtotal = 0;
@@ -473,7 +488,7 @@
 
         async function quoteShipping(provinceCode, districtCode) {
             if (!provinceCode) { currentShippingFee = 0; setShipUI(null, "—"); updateTotal(); return; }
-            const orderValueAfterDiscount = Math.max(0, computeSubtotal() - (discountFromServer || 0));
+            const orderValueAfterDiscount = Math.max(0, computeSubtotal() - (discountFromServer || 0) - tradeInDiscount);
             const data = await fetchJson(`/Shipping/Quote?provinceCode=${provinceCode}&districtCode=${districtCode}&method=${currentShipMethod}&orderValue=${orderValueAfterDiscount}`);
             if (data && data.ok === false) { currentShippingFee = 0; setShipUI(0, data.message || "—"); updateTotal(); return; }
             currentShippingFee = Number(data.fee || 0);
@@ -501,36 +516,52 @@
                 const quantity = parseInt(input.value, 10) || 0;
                 const unitPrice = parseFloat(input.getAttribute("data-unit-price")) || 0;
                 const warrantyPrice = parseFloat(input.getAttribute("data-warranty-price")) || 0;
-                const row = input.closest("tr"); const lineTotalEl = row ? row.querySelector(".line-total") : null;
-                if (lineTotalEl) lineTotalEl.textContent = (quantity * (unitPrice + warrantyPrice)).toLocaleString('vi-VN') + " đ";
+                const row = input.closest("tr"); 
+                const lineTotalEl = row ? row.querySelector(".line-total") : null;
+                if (lineTotalEl) {
+                    lineTotalEl.textContent = (quantity * (unitPrice + warrantyPrice)).toLocaleString('vi-VN') + " đ";
+                }
             });
 
-            if (document.querySelector(".subtotal-amount")) document.querySelector(".subtotal-amount").textContent = subtotal.toLocaleString('vi-VN') + ' đ';
+            const subtotalEl = document.querySelector(".subtotal-amount");
+            if (subtotalEl) subtotalEl.textContent = subtotal.toLocaleString('vi-VN') + ' đ';
 
             let couponDiscount = discountFromServer || 0;
 
             let vipDiscount = Math.round((subtotal - couponDiscount) * tierRate);
             if(vipDiscount < 0) vipDiscount = 0;
-            document.getElementById("vipDiscountText").textContent = "-" + vipDiscount.toLocaleString('vi-VN') + " đ";
+            
+            const vipDiscountEl = document.getElementById("vipDiscountText");
+            if (vipDiscountEl) vipDiscountEl.textContent = "-" + vipDiscount.toLocaleString('vi-VN') + " đ";
 
             let pointsDiscount = 0;
             const pointsToggle = document.getElementById("pointsToggle");
             if (pointsToggle && pointsToggle.checked) {
                 pointsDiscount = userPoints * 1000;
             }
-            document.getElementById("pointsDiscountText").textContent = "-" + pointsDiscount.toLocaleString('vi-VN') + " đ";
+            
+            const pointsDiscountEl = document.getElementById("pointsDiscountText");
+            if (pointsDiscountEl) pointsDiscountEl.textContent = "-" + pointsDiscount.toLocaleString('vi-VN') + " đ";
 
-            let priceAfterDiscount = subtotal - couponDiscount - vipDiscount - pointsDiscount;
+            // 🌟 CẬP NHẬT LOGIC JAVASCRIPT: Khấu trừ thêm khoản tiền tradeInDiscount máy cũ vào hóa đơn
+            let priceAfterDiscount = subtotal - couponDiscount - vipDiscount - pointsDiscount - tradeInDiscount;
             if (priceAfterDiscount < 0) priceAfterDiscount = 0;
 
             let vatAmount = Math.round(priceAfterDiscount * 0.10);
             const method = document.querySelector("input[name='DeliveryMethod']:checked")?.value || "ShipToHome";
             const shipFee = (method === "ShipToHome") ? (currentShippingFee || 0) : 0;
 
-            if (document.querySelector(".before-tax-amount")) document.querySelector(".before-tax-amount").textContent = priceAfterDiscount.toLocaleString('vi-VN') + ' đ';
-            if (document.querySelector(".vat-amount")) document.querySelector(".vat-amount").textContent = vatAmount.toLocaleString('vi-VN') + ' đ';
-            if (document.querySelector(".ship-fee-amount")) document.querySelector(".ship-fee-amount").textContent = shipFee.toLocaleString('vi-VN') + ' đ';
-            if (document.querySelector(".final-total")) document.querySelector(".final-total").textContent = (priceAfterDiscount + vatAmount + shipFee).toLocaleString('vi-VN') + ' đ';
+            const beforeTaxEl = document.querySelector(".before-tax-amount");
+            if (beforeTaxEl) beforeTaxEl.textContent = priceAfterDiscount.toLocaleString('vi-VN') + ' đ';
+
+            const vatEl = document.querySelector(".vat-amount");
+            if (vatEl) vatEl.textContent = vatAmount.toLocaleString('vi-VN') + ' đ';
+
+            const shipFeeEl = document.querySelector(".ship-fee-amount");
+            if (shipFeeEl) shipFeeEl.textContent = shipFee.toLocaleString('vi-VN') + ' đ';
+
+            const finalTotalEl = document.querySelector(".final-total");
+            if (finalTotalEl) finalTotalEl.textContent = (priceAfterDiscount + vatAmount + shipFee).toLocaleString('vi-VN') + ' đ';
         }
 
         function showCartMsg(type, text) {
@@ -577,6 +608,7 @@
                     const maxQty = parseInt(input.getAttribute("data-max-qty"), 10) || 9999;
                     if (this.innerText.trim() === "+" && value < maxQty) input.value = value + 1;
                     else if (this.innerText.trim() === "-" && value > 1) input.value = value - 1;
+                    input.dispatchEvent(new Event('change')); // kích hoạt sự kiện change
                     updateTotal();
                 });
             });

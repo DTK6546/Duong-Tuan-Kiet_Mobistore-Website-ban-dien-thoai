@@ -93,7 +93,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
 
                 await _productRepository.AddAsync(product);
 
-                // ✨ ĐỒNG BỘ: Khởi tạo mốc lịch sử giá đầu tiên khi tạo mới sản phẩm
                 var initialHistory = new ProductPriceHistory
                 {
                     ProductId = product.Id,
@@ -205,17 +204,13 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 else
                     product.ImageUrl = existingProduct.ImageUrl;
 
-                // Tính toán giá mới từ dữ liệu Form gửi lên
                 decimal newDiscountedPrice = product.Price;
                 if (product.Price > 0 && product.DiscountPercent > 0)
                     newDiscountedPrice = product.Price - (product.Price * product.DiscountPercent / 100);
                 else
                     newDiscountedPrice = product.Price;
 
-                // =========================================================================
-                // 📉 KIỂM TRA BIẾN ĐỘNG GIÁ & GHI LOG LỊCH SỬ GIÁ
-                // =========================================================================
-                bool isPriceDropped = newDiscountedPrice < existingProduct.DiscountedPrice; // Cờ kiểm tra thực sự hạ giá
+                bool isPriceDropped = newDiscountedPrice < existingProduct.DiscountedPrice;
 
                 if (existingProduct.DiscountedPrice != newDiscountedPrice)
                 {
@@ -277,17 +272,24 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     }
                 }
 
-                // 💾 BƯỚC 1: Lưu thay đổi của sản phẩm chính và log lịch sử giá xuống Database trước
                 _context.Products.Update(existingProduct);
                 await _context.SaveChangesAsync();
 
-                // 🔔 BƯỚC 2: Nếu giá thực tế được hạ xuống, kích hoạt bẫy quét Alert săn deal ngay sau đó
+                var url = Url.Action("Display", "Product", new { area = "", id = existingProduct.Id }, Request.Scheme);
+
                 if (isPriceDropped)
                 {
                     await TriggerPriceDropAlertsAsync(existingProduct.Id, newDiscountedPrice, existingProduct.Name);
+
+                    await _chatHub.Clients.All.SendAsync(
+                        "ReceivePriceDropNotification",
+                        existingProduct.Id.ToString(),
+                        "🔥 GIÁ GIẢM KỊCH SÀN!",
+                        $"Sản phẩm '{existingProduct.Name}' vừa hạ giá mạnh xuống còn {newDiscountedPrice:N0}₫! Mau vào săn deal ngay!",
+                        url
+                    );
                 }
 
-                var url = Url.Action("Display", "Product", new { area = "", id = existingProduct.Id }, Request.Scheme);
                 var summary = $"Giá: {existingProduct.DiscountedPrice:N0}₫" +
                               (existingProduct.DiscountPercent > 0 ? $" (Giảm {existingProduct.DiscountPercent}%)" : "");
 
@@ -346,7 +348,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            // Xóa lịch sử giá và alert liên quan trước khi xóa sản phẩm chính để tránh lỗi Khóa ngoại
             var relatedHistory = await _context.ProductPriceHistories.Where(h => h.ProductId == id).ToListAsync();
             _context.ProductPriceHistories.RemoveRange(relatedHistory);
             var relatedAlerts = await _context.PriceAlerts.Where(a => a.ProductId == id).ToListAsync();
@@ -405,9 +406,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             return Json(subcats);
         }
 
-        // =========================================================================
-        // 📧 HÀM PHỤ: PHÁT HIỆN HẠ GIÁ VÀ TỰ ĐỘNG GỬI EMAIL CẢNH BÁO CHO KHÁCH HÀNG
-        // =========================================================================
         private async Task TriggerPriceDropAlertsAsync(int productId, decimal newPrice, string productName)
         {
             var triggeredAlerts = await _context.PriceAlerts
@@ -418,14 +416,29 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             {
                 try
                 {
-                    // Trình giả lập gửi Email Notification thông báo săn deal thành công
-                    // Trong thực tế, Kiệt có thể nhúng SmtpClient hoặc _emailSender.SendEmailAsync tại đây
                     alert.IsTriggered = true;
                     _context.PriceAlerts.Update(alert);
                 }
-                catch { /* Bẫy lỗi bảo vệ vòng lặp background */ }
+                catch { }
             }
             await _context.SaveChangesAsync();
+        }
+
+        // =========================================================================
+        // 💸 CẬP NHẬT CHỨC NĂNG 6: TRANG QUẢN LÝ DANH SÁCH KHẢO SÁT TRADE-IN DÀNH CHO ADMIN
+        // =========================================================================
+        [HttpGet]
+        [Authorize(Roles = SD.Role_Admin)]
+        public async Task<IActionResult> ManageTradeIns()
+        {
+            var tradeIns = await _context.TradeIns
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            var products = await _context.Products.ToDictionaryAsync(p => p.Id, p => p.Name);
+            ViewBag.ProductsDict = products;
+
+            return View(tradeIns);
         }
     }
 }

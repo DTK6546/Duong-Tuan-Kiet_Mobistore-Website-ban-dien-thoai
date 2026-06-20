@@ -47,6 +47,18 @@ namespace WebBanDienThoai.Controllers
                 .OrderBy(s => s.Province).ThenBy(s => s.District).ThenBy(s => s.Name)
                 .ToListAsync();
 
+            // =========================================================================
+            // 💸 CẬP NHẬT CHỨC NĂNG 6: ĐỒNG BỘ ĐỌC KHẢO SÁT TRADE-IN SANG TRANG CHECKOUT
+            // =========================================================================
+            var tradeInDiscountStr = HttpContext.Session.GetString("TradeInDiscount");
+            var tradeInDeviceName = HttpContext.Session.GetString("TradeInDeviceName");
+
+            decimal tradeInDiscount = 0m;
+            decimal.TryParse(tradeInDiscountStr, out tradeInDiscount);
+
+            ViewBag.TradeInDiscount = tradeInDiscount;
+            ViewBag.TradeInDeviceName = tradeInDeviceName ?? "Thiết bị cũ";
+
             return View(new Order { ShippingAddress = user.Address ?? "" });
         }
 
@@ -64,13 +76,10 @@ namespace WebBanDienThoai.Controllers
             // nhận từ form
             var deliveryMethod = Request.Form["DeliveryMethod"].ToString();
             var storeIdStr = Request.Form["StoreId"].ToString();
-
             var provinceCode = Request.Form["ProvinceCode"].ToString();
             var districtCode = Request.Form["DistrictCode"].ToString();
-
-            var shipMethod = Request.Form["ShipMethod"].ToString(); // ✅ standard/express
-
-            var paymentMethod = Request.Form["PaymentMethod"].ToString(); // "COD" hoặc "Installment"
+            var shipMethod = Request.Form["ShipMethod"].ToString();
+            var paymentMethod = Request.Form["PaymentMethod"].ToString();
 
             order.DeliveryMethod = deliveryMethod == "PickupAtStore"
                 ? DeliveryMethod.PickupAtStore
@@ -84,8 +93,6 @@ namespace WebBanDienThoai.Controllers
                     return RedirectToAction("Checkout");
                 }
                 order.StoreId = storeId;
-
-                // pickup => ship = 0, clear province/district
                 provinceCode = "";
                 districtCode = "";
             }
@@ -101,17 +108,27 @@ namespace WebBanDienThoai.Controllers
                 return (i.Price + warrantyPerItem) * i.Quantity;
             });
 
+            // =========================================================================
+            // 💸 ĐỌC KHOẢN TIỀN TRỢ GIÁ THU CŨ ĐỔI MỚI TỪ SESSION ĐỂ KHẤU TRỪ
+            // =========================================================================
+            var tradeInDiscountStr = HttpContext.Session.GetString("TradeInDiscount");
+            decimal tradeInDiscount = 0m;
+            decimal.TryParse(tradeInDiscountStr, out tradeInDiscount);
+
             decimal discount = cart.DiscountAmount < 0 ? 0 : cart.DiscountAmount;
-            decimal afterDiscount = Math.Max(0, subtotal - discount);
+
+            // Giá trị chịu thuế = Tiền hàng - Mã giảm giá - Trợ giá máy cũ
+            decimal afterDiscount = Math.Max(0, subtotal - discount - tradeInDiscount);
             decimal vatAmount = Math.Round(afterDiscount * 0.10m, 0);
 
-            // ✅ shippingFee tính lại từ DB (KHÔNG tin hidden input)
+            // shippingFee tính lại từ DB
             decimal shippingFee = 0m;
             if (order.DeliveryMethod == DeliveryMethod.ShipToHome)
             {
                 shippingFee = await CalculateShippingFeeFromDbAsync(provinceCode, districtCode, shipMethod, afterDiscount);
             }
 
+            // Tổng hóa đơn cuối cùng đã khấu trừ sạch sẽ các khoản
             decimal finalTotal = afterDiscount + vatAmount + shippingFee;
 
             order.UserId = user.Id;
@@ -119,24 +136,21 @@ namespace WebBanDienThoai.Controllers
 
             order.Subtotal = subtotal;
             order.DiscountAmount = discount;
-            order.VatAmount = vatAmount;
 
+            // Gán khoản trợ giá máy cũ vào thực thể Order
+            order.TradeInDiscount = tradeInDiscount;
+
+            order.VatAmount = vatAmount;
             order.ShippingFee = shippingFee;
             order.ProvinceCode = provinceCode ?? "";
             order.DistrictCode = districtCode ?? "";
-
             order.CouponCode = cart.CouponCode;
             order.TotalPrice = finalTotal;
 
-            // =========================================================================
-            // ✨ CHỨC NĂNG 2 & 3: XỬ LÝ THANH TOÁN COD & TRẢ GÓP 0% KÈM TRỪ TỒN KHO THỰC TẾ
-            // =========================================================================
             if (paymentMethod == "Installment")
             {
-                order.PaymentMethod = "Installment"; // Gán phương thức trả góp
-                order.PaymentStatus = PaymentStatus.ChuaThanhToan; // Hoặc Chờ đối soát tùy hệ thống của bạn
-
-                // Đón nhận kỳ hạn và ngân hàng trả góp từ Form
+                order.PaymentMethod = "Installment";
+                order.PaymentStatus = PaymentStatus.ChuaThanhToan;
                 order.InstallmentBank = Request.Form["InstallmentBank"].ToString();
                 if (int.TryParse(Request.Form["InstallmentMonths"], out var months))
                 {
@@ -145,77 +159,96 @@ namespace WebBanDienThoai.Controllers
             }
             else
             {
-                // Mặc định hoặc chọn COD
-                order.PaymentMethod = "COD";
-                order.PaymentStatus = PaymentStatus.ChuaThanhToan; // COD nhận hàng mới trả tiền
+                order.PaymentMethod = string.IsNullOrWhiteSpace(paymentMethod) ? "COD" : paymentMethod;
+                order.PaymentStatus = PaymentStatus.ChuaThanhToan;
             }
 
-            // Set trạng thái đơn hàng khởi tạo ban đầu là Chờ xác nhận
             order.Status = OrderStatus.ChoXacNhan;
+
             // =========================================================================
-
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-
-            foreach (var item in cart.Items)
+            // 🛡️ SỬ DỤNG TRANSACTION: Đảm bảo toàn vẹn dữ liệu hệ thống
+            // =========================================================================
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                var orderDetail = new OrderDetail
-                {
-                    OrderId = order.Id,
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    Price = item.Price,
-                    VariantId = item.VariantId,
-                    ProductName = item.Name
-                };
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync(); // Lưu trước để phát sinh và lấy order.Id
 
-                _context.OrderDetails.Add(orderDetail);
-                await _context.SaveChangesAsync();
+                foreach (var item in cart.Items)
+                {
+                    var orderDetail = new OrderDetail
+                    {
+                        OrderId = order.Id,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        Price = item.Price,
+                        VariantId = item.VariantId,
+                        ProductName = item.Name
+                    };
 
-                // 🧭 TIẾN HÀNH TRỪ KHO THỰC TẾ KHI ĐẶT HÀNG THÀNH CÔNG
-                if (item.VariantId.HasValue)
-                {
-                    // Trừ kho của bảng biến thể (Dung lượng / Màu sắc)
-                    var variant = await _context.ProductVariants.FindAsync(item.VariantId.Value);
-                    if (variant != null)
-                    {
-                        variant.Stock = Math.Max(0, variant.Stock - item.Quantity);
-                        _context.ProductVariants.Update(variant);
-                    }
-                }
-                else
-                {
-                    // Trừ kho tổng của bảng Product chính
-                    var dbProduct = await _context.Products.FindAsync(item.ProductId);
-                    if (dbProduct != null)
-                    {
-                        dbProduct.Quantity = Math.Max(0, dbProduct.Quantity - item.Quantity);
-                        _context.Products.Update(dbProduct);
-                    }
-                }
-                await _context.SaveChangesAsync();
+                    _context.OrderDetails.Add(orderDetail);
+                    await _context.SaveChangesAsync();
 
-                if (item.Warranties != null)
-                {
-                    foreach (var w in item.Warranties)
+                    // 🧭 TIẾN HÀNH TRỪ KHO THỰC TẾ
+                    if (item.VariantId.HasValue)
                     {
-                        _context.OrderDetailWarranties.Add(new OrderDetailWarranty
+                        var variant = await _context.ProductVariants.FindAsync(item.VariantId.Value);
+                        if (variant != null)
                         {
-                            OrderDetailId = orderDetail.Id,
-                            WarrantyOptionId = w.WarrantyOptionId,
-                            Name = w.Name,
-                            Price = w.Price,
-                            Months = w.Months
-                        });
+                            variant.Stock = Math.Max(0, variant.Stock - item.Quantity);
+                            _context.ProductVariants.Update(variant);
+                        }
+                    }
+                    else
+                    {
+                        var dbProduct = await _context.Products.FindAsync(item.ProductId);
+                        if (dbProduct != null)
+                        {
+                            dbProduct.Quantity = Math.Max(0, dbProduct.Quantity - item.Quantity);
+                            _context.Products.Update(dbProduct);
+                        }
                     }
                     await _context.SaveChangesAsync();
+
+                    if (item.Warranties != null)
+                    {
+                        foreach (var w in item.Warranties)
+                        {
+                            _context.OrderDetailWarranties.Add(new OrderDetailWarranty
+                            {
+                                OrderDetailId = orderDetail.Id,
+                                WarrantyOptionId = w.WarrantyOptionId,
+                                Name = w.Name,
+                                Price = w.Price,
+                                Months = w.Months
+                            });
+                        }
+                        await _context.SaveChangesAsync();
+                    }
                 }
+
+                // Cập nhật trạng thái và lịch sử sử dụng Mã giảm giá công khai
+                if (!string.IsNullOrEmpty(cart.CouponCode))
+                {
+                    UpdateCouponUsageAfterOrder(cart.CouponCode, user.Id);
+                }
+
+                // 🏁 HOÀN TẤT TRANSACTION: Đồng bộ ghi vĩnh viễn dữ liệu xuống DB
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                // 🔄 HOÀN TÁC (ROLLBACK): Nếu gãy ở bất cứ bước nào, xóa dữ liệu rác tạm thời ngay lập tức
+                await transaction.RollbackAsync();
+                TempData["PaymentError"] = "Đã xảy ra sự cố trong quá trình ghi nhận đơn hàng: " + ex.Message;
+                return RedirectToAction("Checkout");
             }
 
-            if (!string.IsNullOrEmpty(cart.CouponCode))
-                UpdateCouponUsageAfterOrder(cart.CouponCode, user.Id);
-
+            // 💾 DỌN SẠCH DỮ LIỆU TRONG SESSION
+            HttpContext.Session.Remove("TradeInDiscount");
+            HttpContext.Session.Remove("TradeInDeviceName");
             HttpContext.Session.Remove("Cart");
+
             return RedirectToAction("OrderCompleted", new { id = order.Id });
         }
 
@@ -593,6 +626,18 @@ namespace WebBanDienThoai.Controllers
                 currentUser = await _userManager.GetUserAsync(User);
             }
             ViewBag.CurrentUser = currentUser;
+
+            // =========================================================================
+            // 💸 CẬP NHẬT CHỨC NĂNG 6: BỐC DỮ LIỆU TRADE-IN TỪ SESSION RA VIEW
+            // =========================================================================
+            var tradeInDiscountStr = HttpContext.Session.GetString("TradeInDiscount");
+            var tradeInDeviceName = HttpContext.Session.GetString("TradeInDeviceName");
+
+            decimal tradeInDiscount = 0m;
+            decimal.TryParse(tradeInDiscountStr, out tradeInDiscount);
+
+            ViewBag.TradeInDiscount = tradeInDiscount;
+            ViewBag.TradeInDeviceName = tradeInDeviceName ?? "Thiết bị cũ";
 
             // ==============================
             // ⭐ DANH SÁCH MÃ GIẢM GIÁ ĐÃ NHẬN (Level 2)

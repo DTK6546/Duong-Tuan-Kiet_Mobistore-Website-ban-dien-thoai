@@ -297,7 +297,11 @@
         fetch('/ShoppingCart/GetCartCount')
         .then(response => response.json())
         .then(data => {
-        document.getElementById('cartCount').innerText = data.count;
+        // Thêm kiểm tra điều kiện an toàn trước khi gán dữ liệu
+        let cartCountElement = document.getElementById('cartCount');
+        if (cartCountElement) {
+        cartCountElement.innerText = data.count;
+        }
         });
         }
         updateCartCount();
@@ -414,11 +418,66 @@
         });
 
         connection.start().catch(err => console.error("ChatHub connect error:", err));
+
+        // === LẮNG NGHE TÍN HIỆU GIẢM GIÁ REAL-TIME TỪ CHATHUB ===
+        connection.on("ReceivePriceDropNotification", function (productId, title, message, url) {
+
+        // 1. 🔔 PHÁT BẮN WEB PUSH NOTIFICATION: Hiện thông báo trên màn hình máy tính (Desktop/Windows)
+        if (Notification.permission === "granted") {
+        var push = new Notification(title, {
+        body: message,
+        icon: "/images/mobistore-logo.png" // Hoặc đường dẫn logo của nhóm bạn
+        });
+        push.onclick = function() {
+        window.open(url, '_blank');
+        };
+        } else if (Notification.permission !== "denied") {
+        Notification.requestPermission();
+        }
+
+        // 2. 🎨 HIỂN THỊ POPUP TOAST BOOTSTRAP GIAO DIỆN (Màu vàng rực rỡ thu hút khách mua)
+        const container = document.createElement('div');
+        container.className = "toast align-items-center text-bg-warning border-0 position-fixed bottom-0 end-0 m-3";
+        container.setAttribute("role", "alert");
+        container.setAttribute("aria-live", "assertive");
+        container.setAttribute("aria-atomic", "true");
+        container.style.zIndex = 9999;
+
+        container.innerHTML = `
+        <div class="d-flex">
+        <div class="toast-body text-dark">
+        <div class="fw-bold mb-1">
+        <i class="bi bi-lightning-fill text-danger"></i> ${title}
+        </div>
+        <div>${message}</div>
+        ${url ? `
+        <div class="mt-2">
+        <a href="${url}" class="btn btn-sm btn-danger text-white text-decoration-none rounded-pill px-3">
+        SĂN DEAL NGAY
+        </a>
+        </div>` : ""}
+        </div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+        `;
+
+        document.body.appendChild(container);
+        const toast = new bootstrap.Toast(container, { delay: 10000 }); // Hiển thị giữ nguyên trong 10 giây
+        toast.show();
+        container.addEventListener('hidden.bs.toast', () => container.remove());
+        });
+
+        // 🔥 XIN QUYỀN THÔNG BÁO ĐẨY KHI USER VỪA VÀO TRANG WEB
+        document.addEventListener("DOMContentLoaded", function() {
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+        }
+        });
     </script>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
     <partial name="_ChatBox" />

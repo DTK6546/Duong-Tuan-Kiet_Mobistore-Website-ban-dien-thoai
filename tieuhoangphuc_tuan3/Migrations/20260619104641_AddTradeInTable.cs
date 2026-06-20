@@ -1,0 +1,65 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace WebBanDienThoai.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddTradeInTable : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<decimal>(
+                name: "TradeInDiscount",
+                table: "Orders",
+                type: "decimal(18,2)",
+                precision: 18,
+                scale: 2,
+                nullable: false,
+                defaultValue: 0m);
+
+            migrationBuilder.AddColumn<int>(
+                name: "TradeInId",
+                table: "Orders",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.CreateTable(
+                name: "TradeIns",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OldDeviceName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CosmeticCondition = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Functionality = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EstimatedValue = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    TargetProductId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsApplied = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TradeIns", x => x.Id);
+                });
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "TradeIns");
+
+            migrationBuilder.DropColumn(
+                name: "TradeInDiscount",
+                table: "Orders");
+
+            migrationBuilder.DropColumn(
+                name: "TradeInId",
+                table: "Orders");
+        }
+    }
+}

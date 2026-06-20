@@ -16,7 +16,15 @@
     });
 
     decimal discount = cart.DiscountAmount < 0 ? 0 : cart.DiscountAmount;
-    decimal afterDiscount = Math.Max(0, subtotal - discount);
+
+    // =========================================================================
+    // 💸 CẬP NHẬT CHỨC NĂNG 6: BỐC BIẾN TRỢ GIÁ THU CŨ ĐỔI MỚI TỪ CONTROLLER
+    // =========================================================================
+    decimal tradeInDiscount = ViewBag.TradeInDiscount ?? 0m;
+    string tradeInDeviceName = ViewBag.TradeInDeviceName ?? "Thiết bị cũ";
+
+    // Cập nhật công thức tính toán Razor trừ thêm khoản trợ giá máy cũ
+    decimal afterDiscount = Math.Max(0, subtotal - discount - tradeInDiscount);
     decimal vat = Math.Round(afterDiscount * 0.10m, 0);
 }
 
@@ -159,13 +167,13 @@
                         </div>
 
                         <div class="mt-3">
-                            <label asp-for="ShippingAddress" class="form-label">Địa chỉ nhận hàng</label>
+                            <label class="form-label">Địa chỉ nhận hàng</label>
                             <textarea asp-for="ShippingAddress" class="form-control" rows="2" placeholder="Nhập địa chỉ giao hàng..."></textarea>
                             <span asp-validation-for="ShippingAddress" class="text-danger"></span>
                         </div>
 
                         <div class="mt-3">
-                            <label asp-for="Notes" class="form-label">Ghi chú</label>
+                            <label class="form-label">Ghi chú</label>
                             <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Ví dụ: gọi trước khi giao..."></textarea>
                         </div>
 
@@ -308,7 +316,19 @@
                         }
                         <div class="pt-3">
                             <div class="d-flex justify-content-between"><span>Tạm tính</span><span id="sumSubtotal">@subtotal.ToString("N0") đ</span></div>
-                            <div class="d-flex justify-content-between"><span>Giảm giá</span><span id="sumDiscount">-@discount.ToString("N0") đ</span></div>
+                            <div class="d-flex justify-content-between"><span>Giảm giá Voucher</span><span id="sumDiscount">-@discount.ToString("N0") đ</span></div>
+                            
+                            @* =========================================================================
+                            // 💸 CẬP NHẬT GIAO DIỆN HTML: DÒNG HIỂN THỊ TRỢ GIÁ THU CŨ ĐỔI MỚI (TRADE-IN)
+                            // ========================================================================= *@
+                            @if (tradeInDiscount > 0)
+                            {
+                                <div class="d-flex justify-content-between text-danger fw-bold border border-dashed border-danger p-1 rounded my-1" style="background-color: #fff5f5;">
+                                    <span><i class="bi bi-arrow-left-right"></i> Trợ giá thu cũ (@tradeInDeviceName):</span>
+                                    <span id="sumTradeIn">-@tradeInDiscount.ToString("N0") đ</span>
+                                </div>
+                            }
+
                             <div class="d-flex justify-content-between"><span>VAT (10%)</span><span id="sumVat">@vat.ToString("N0") đ</span></div>
                             <div class="d-flex justify-content-between"><span>Phí ship</span><span id="sumShip">0 đ</span></div>
                             <hr /><div class="d-flex justify-content-between fs-5 fw-bold"><span>Tổng cộng</span><span id="sumTotal">0 đ</span></div>
@@ -327,11 +347,17 @@
             // ✅ SỬA LỖI DẤU PHẨY CHÍ MẠNG: Ép Razor C# xuất số dạng dấu chấm chuẩn JavaScript bằng InvariantCulture
             const subtotal = @subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture);
             const discount = @discount.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            const vat = @vat.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            const orderValueAfterDiscount = Math.max(0, subtotal - discount);
 
-            // ⚠️ MÈO HOANG NHẮC NHỞ: Nếu dự án của bạn có biến let tierRate ở file khác hoặc đoạn dưới,
-            // bạn nhớ cũng phải thêm đuôi .ToString(System.Globalization.CultureInfo.InvariantCulture) tương tự nhé!
+            // 🌟 ĐỒNG BỘ JAVASCRIPT: Nạp dữ liệu tiền thu cũ đổi mới từ ViewBag vào làm biến tính toán ngầm
+            const tradeInDiscount = @tradeInDiscount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            // Công thức tính số tiền sau giảm giá (đã bao gồm khấu trừ máy cũ) để đồng bộ cho hàm tính phí ship API
+            const orderValueAfterDiscount = Math.max(0, subtotal - discount - tradeInDiscount);
+            const vat = Math.round(orderValueAfterDiscount * 0.10); // Tính lại VAT 10% theo số tiền chuẩn thực tế
+
+            // Cập nhật lại số tiền VAT render ra giao diện cho đồng nhất
+            const sumVatEl = document.getElementById('sumVat');
+            if (sumVatEl) sumVatEl.textContent = vat.toLocaleString('vi-VN') + ' đ';
 
             const shipFeeText = document.getElementById('shipFeeText');
             const shipEtaText = document.getElementById('shipEtaText');
@@ -374,7 +400,9 @@
 
             function recalcTotal() {
                 const ship = Number(ShippingFeeHidden.value || 0);
-                const total = Math.max(0, subtotal - discount) + vat + ship;
+                
+                // 🌟 CẬP NHẬT CÔNG THỨC: Tổng hóa đơn cuối = Tiền hàng - Voucher - Trợ giá thu cũ + VAT + Phí ship
+                const total = Math.max(0, subtotal - discount - tradeInDiscount) + vat + ship;
 
                 if (sumShip) sumShip.textContent = money(ship);
                 if (sumTotal) sumTotal.textContent = money(total);
@@ -399,13 +427,12 @@
                         PaymentMethodHidden.value = "Installment";
                     } else {
                         installmentBox.style.display = 'none';
-                        PaymentMethodHidden.value = this.value; // Gán chuẩn: COD, VNPAY, MOMO, PAYPAL
+                        PaymentMethodHidden.value = this.value; 
                     }
                     recalcTotal();
                 });
             });
 
-            // Gán giá trị mặc định lúc ban đầu cho ô ẩn trùng với radio đang check
             const initialPayMode = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
             PaymentMethodHidden.value = initialPayMode;
 
@@ -450,6 +477,19 @@
 
             const provSel = document.getElementById('shipProvince');
             const distSel = document.getElementById('shipDistrict');
+
+            document.querySelectorAll('input[name="PayMethod"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === "Installment") {
+                        installmentBox.style.display = 'block';
+                        PaymentMethodHidden.value = "Installment";
+                    } else {
+                        installmentBox.style.display = 'none';
+                        PaymentMethodHidden.value = this.value; 
+                    }
+                    recalcTotal();
+                });
+            });
 
             async function loadProvinces() {
                 const res = await fetch('/Shipping/Provinces'); const data = await res.json();
@@ -509,7 +549,6 @@
                 });
             } else { recalcTotal(); }
 
-            // 🚀 BỘ ĐỊNH TUYẾN SUBMIT FORM
             const form = document.getElementById('checkoutForm');
             if (form) {
                 form.addEventListener('submit', function (e) {
@@ -532,7 +571,6 @@
 
                     recalcTotal();
 
-                    // Lấy chính xác giá trị radio đang được chọn
                     const pay = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
 
                     if (pay === "COD" || pay === "Installment") {

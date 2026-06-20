@@ -678,6 +678,18 @@
     <a href="javascript:void(0)" id="btnCompare" class="btn btn-outline-primary px-4 py-2 shadow">
         So sánh
     </a>
+    @if (User.IsInRole("Admin") || User.IsInRole("Employer"))
+    {
+        <button class="btn btn-secondary px-4 py-2 shadow" disabled>
+            <i class="bi bi-arrow-left-right"></i> Thu Cũ Đổi Mới - Trợ Giá Lên Đời
+        </button>
+    }
+    else
+    {
+        <a href="/TradeIn/Form?productId=@Model.Id" class="btn btn-warning px-4 py-2 shadow fw-bold text-dark border-warning">
+            <i class="bi bi-arrow-left-right"></i> Thu Cũ Đổi Mới - Trợ Giá Lên Đời
+        </a>
+    }
 </div>
 
 <div class="mt-4">
@@ -1391,9 +1403,14 @@
             }
             else
             {
+                @* =========================================================================
+            // 🌟 KHỐI CẬP NHẬT CHÍ MẠNG: THAY THẾ TOÀN BỘ VÒNG LẶP FOREACH RATINGS CỦA BẠN
+            // ========================================================================= *@
                 @foreach (var r in ratings)
                 {
-                    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    // Đồng bộ lấy CurrentUserId bốc từ ViewBag truyền từ Controller sang để check chính chủ
+                    var currentUserId = ViewBag.CurrentUserId as string;
+
                     if (r.IsApproved || (User.Identity.IsAuthenticated && r.UserId == currentUserId))
                     {
                         var displayName = r.User?.FullName ?? r.User?.UserName ?? "Người dùng";
@@ -1408,6 +1425,7 @@
                                     <div class="d-flex align-items-center flex-wrap gap-2">
                                         <span class="fw-bold text-dark fs-6">@displayName</span>
 
+                                        @* 🚀 HIỂN THỊ BADGE TÍCH XANH CHUẨN XÁC KHI ĐÃ ĐƯỢC XÁC MINH MUA HÀNG *@
                                         @if (r.IsVerifiedPurchase)
                                         {
                                             <span class="badge bg-success-subtle text-success border border-success border-opacity-50 px-2.5 py-1.5 small d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 11px; font-weight: 600; border-radius: 20px;">
@@ -1504,10 +1522,10 @@
                                     @if (User.IsInRole("Admin") || User.IsInRole("Employer"))
                                     {
                                         <form asp-action="ReplyRating" method="post" class="mt-2 ms-3">
+                                            @Html.AntiForgeryToken()
                                             <input type="hidden" name="productRatingId" value="@r.Id" />
                                             <div class="input-group input-group-sm">
-                                                <textarea name="content" class="form-control" rows="2"
-                                                          placeholder="Phản hồi đánh giá này..." required></textarea>
+                                                <textarea name="content" class="form-control" rows="2" placeholder="Phản hồi đánh giá này..." required></textarea>
                                                 <button class="btn btn-outline-secondary" type="submit">Phản hồi</button>
                                             </div>
                                         </form>
@@ -1564,7 +1582,8 @@
     const price = document.getElementById("targetPriceInput").value;
     if(!price || price <= 0) { alert("Vui lòng nhập giá mong muốn hợp lệ!"); return; }
 
-    fetch('/Product/CreatePriceAlert', {
+    // Sửa đường dẫn bọc đúng chuẩn sang PriceAlert/RegisterAlert
+    fetch('/PriceAlert/RegisterAlert', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `productId=${productId}&targetPrice=${price}`
