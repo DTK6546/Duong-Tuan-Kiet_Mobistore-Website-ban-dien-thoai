@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebBanDienThoai.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace WebBanDienThoai.Controllers
 {
@@ -30,6 +33,74 @@ namespace WebBanDienThoai.Controllers
             ViewBag.SuggestedProducts = suggestedProducts;
 
             return View(wishlistItems); // Trả về danh sách sản phẩm yêu thích
+        }
+
+        // =========================================================================
+        // 🔗 ACTION BỔ SUNG: TẠO LINK CHIA SẺ DANH SÁCH YÊU THÍCH TỪ USER ID
+        // =========================================================================
+        [HttpPost]
+        public async Task<IActionResult> GenerateShareLink()
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập để thực hiện tính năng này." });
+            }
+
+            var userId = User.Identity.Name;
+
+            // Kiểm tra xem danh sách có sản phẩm nào không trước khi tạo link
+            var hasItems = await _context.Wishlists.AnyAsync(w => w.UserId == userId);
+            if (!hasItems)
+            {
+                return Json(new { success = false, message = "Danh sách yêu thích của bạn đang trống, hãy thêm sản phẩm trước nhé!" });
+            }
+
+            // Mã hóa User.Identity.Name thành chuỗi Base64 an toàn làm Token chia sẻ công khai
+            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(userId);
+            string sharingToken = Convert.ToBase64String(plainTextBytes);
+
+            // Xây dựng đường dẫn URL tuyệt đối đến trang công khai
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var shareLink = $"{baseUrl}/Wishlist/Shared?token={sharingToken}";
+
+            return Json(new { success = true, shareLink = shareLink });
+        }
+
+        // =========================================================================
+        // 🌐 ACTION BỔ SUNG: TRANG XEM WISHLIST CHUNG (CÔNG KHAI CHO NGƯỜI ĐƯỢC CHIA SẺ)
+        // =========================================================================
+        [HttpGet]
+        public async Task<IActionResult> Shared(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            try
+            {
+                // Giải mã token ngược lại để lấy UserId gốc
+                var base64EncodedBytes = Convert.FromBase64String(token);
+                string targetUserId = System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+
+                // Quét toàn bộ danh sách sản phẩm yêu thích của người dùng đó
+                var sharedItems = await _context.Wishlists
+                    .Where(w => w.UserId == targetUserId)
+                    .Include(w => w.Product)
+                    .Include(w => w.Variant)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                // Gửi tên người chia sẻ ra giao diện (cắt chuỗi lấy phần trước @ nếu là email)
+                string ownerName = targetUserId.Contains("@") ? targetUserId.Split('@')[0] : targetUserId;
+                ViewData["OwnerName"] = ownerName;
+
+                return View(sharedItems);
+            }
+            catch
+            {
+                return RedirectToAction("Index", "Home");
+            }
         }
 
         // Action để thêm sản phẩm vào wishlist
@@ -101,6 +172,5 @@ namespace WebBanDienThoai.Controllers
 
             return RedirectToAction("Index", "Wishlist");
         }
-
     }
 }

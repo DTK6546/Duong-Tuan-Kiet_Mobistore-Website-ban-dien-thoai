@@ -60,6 +60,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<GeminiService>();
 
 builder.Services.AddScoped<IProductRepository, EFProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, EFCategoryRepository>();

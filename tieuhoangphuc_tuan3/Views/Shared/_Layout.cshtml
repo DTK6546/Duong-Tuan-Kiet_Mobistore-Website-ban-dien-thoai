@@ -54,7 +54,6 @@
         background: #f0f0f0;
         }
 
-
         /* Đảm bảo dropdown menu nổi lên */
         .dropdown-menu {
         z-index: 3000 !important;
@@ -147,7 +146,6 @@
                 </div>
             </div>
         </nav>
-
 
         <nav class="navbar navbar-expand navbar-light bg-white border-bottom shadow-sm header-bottom" style="min-height:45px">
             <div class="container">
@@ -292,12 +290,223 @@
 
     </div>
 
+    @* ========================================================================= *@
+    @* 🧠 KHỐI CHATBOT AI — ĐÃ ĐƯỢC TÍCH HỢP NÚT ĐIỀU HƯỚNG QUAY LẠI CHẾ ĐỘ AI *@
+    @* ========================================================================= *@
+    <div id="chatbot-ui" style="position: fixed; bottom: 85px; right: 20px; z-index: 9999; display: none; width: 340px; height: 430px; background: white; border-radius: 14px; box-shadow: 0 5px 25px rgba(0,0,0,0.15); flex-direction: column; border: 1px solid #e2e8f0;">
+        <!-- Header thông thoáng, không lo bị rớt chữ -->
+        <div style="background: #0ea5e9; color: white; padding: 14px; border-top-left-radius: 12px; border-top-right-radius: 12px;" class="fw-bold d-flex justify-content-between align-items-center shadow-sm">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-cpu-fill"></i>
+                <span id="chatbot-header-title">Trợ lý thông minh MobiStore</span>
+            </div>
+            <button class="btn btn-sm text-white border-0 p-0" onclick="toggleChatbox()" style="font-size: 16px;">✖</button>
+        </div>
+
+        <div id="chat-logs" style="flex-grow: 1; padding: 14px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 10px; background: #f8fafc;">
+            <div style="background: white; padding: 10px 14px; border-radius: 12px; align-self: flex-start; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">
+                👋 Xin chào! Mình là trợ lý ảo tự động của MobiStore. Mình có thể hỗ trợ bạn kiểm tra tồn kho, mốc bảo hành, chính sách lên đời hoặc mã ưu đãi ngay tức thì!
+            </div>
+        </div>
+
+        <!-- Khu vực nhập liệu & Nút chuyển đổi tinh tế phía dưới -->
+        <div class="p-2 bg-white border-top d-flex flex-column gap-1" style="border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+
+            @if (!(User.IsInRole("Admin") || User.IsInRole("Employer")))
+            {
+                <div id="ai-switch-container" style="display: none; padding: 2px 4px; text-align: center;">
+                    <button onclick="endHumanSupport()" class="btn btn-sm w-100" style="background: #fff7ed; color: #c2410c; border: 1px dashed #ea580c; font-size: 11px; font-weight: bold; padding: 4px; border-radius: 6px;">
+                        <i class="bi bi-arrow-left-right"></i> Quay lại trò chuyện với Chatbot AI tự động
+                    </button>
+                </div>
+            }
+
+            <div class="d-flex gap-1 w-100">
+                <input type="text" id="chat-input" class="form-control form-control-sm border-secondary-subtle" placeholder="Nhập câu hỏi tại đây..." onkeypress="if(event.key==='Enter') sendChat()" />
+                <button class="btn btn-sm btn-primary px-3 fw-bold" onclick="sendChat()">Gửi</button>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="toggleChatbox()" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; width: 52px; height: 50px; border-radius: 50%; background: #0ea5e9; color: white; border: none; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);" class="d-flex align-items-center justify-content-center btn-chatbot-trigger">
+        <i class="bi bi-chat-dots-fill" style="font-size: 22px;"></i>
+    </button>
+
+    <script>
+        function toggleChatbox() {
+        const chat = document.getElementById('chatbot-ui');
+        chat.style.display = (chat.style.display === 'none' || chat.style.display === '') ? 'flex' : 'none';
+        }
+
+        // Kiểm tra Role kết hợp quét URL thanh địa chỉ để tránh lỗi nhận diện sai
+        const isAdmin = @(User.IsInRole("Admin") || User.IsInRole("Employer") ? "true" : "false")
+        || window.location.pathname.toLowerCase().includes('/admin');
+
+        if (isAdmin) {
+        // Cập nhật tiêu đề khung chat khi phát hiện giao diện quản trị Admin
+        const headerTitle = document.getElementById("chatbot-header-title");
+        if (headerTitle) {
+        headerTitle.innerText = "Kênh hỗ trợ Khách hàng (Admin)";
+        }
+        }
+
+        // === ĐỊNH NGHĨA HÀM SEND CHAT CHUẨN CÚ PHÁP ===
+        function sendChat() {
+        const input = document.getElementById('chat-input');
+        const logs = document.getElementById('chat-logs');
+        const text = input.value.trim();
+        if (!text) return;
+
+        // Render tin nhắn của người gửi hiện tại (Khách hoặc Admin) lên màn hình của chính họ
+        logs.innerHTML += `<div style="background: #0ea5e9; color: white; padding: 10px 14px; border-radius: 12px; align-self: flex-end; max-width: 85%; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${text}</div>`;
+        input.value = '';
+        logs.scrollTop = logs.scrollHeight;
+
+        // 🚀 ĐOẠN CHẶN ĐỨNG LUỒNG: Nếu là ADMIN gửi -> Chỉ bắn qua SignalR, KHÔNG gọi AI
+        if (isAdmin) {
+        console.log("Hệ thống xác nhận Admin gửi tin nhắn. Luân chuyển qua SignalR Hub...");
+
+        if (typeof connection !== 'undefined' && connection.state === signalR.HubConnectionState.Connected) {
+        connection.invoke("SendAdminReply", connection.connectionId, text)
+        .then(() => {
+        console.log("Đã gửi tin nhắn từ Admin thành công!");
+        })
+        .catch(err => {
+        console.error("Lỗi gửi tin nhắn Admin qua Hub:", err);
+        });
+        } else {
+        console.error("Kết nối SignalR Hub của Admin chưa sẵn sàng.");
+        }
+        return; // Khóa chặt luồng tại đây để ngăn không cho chạy xuống đoạn gọi fetch sang Gemini AI
+        }
+
+        // === LUỒNG XỬ LÝ DÀNH CHO KHÁCH HÀNG (MỚI ĐƯỢC PHÉP GỌI GEMINI AI CHATBOT) ===
+        const typingId = "ai-typing-" + Date.now();
+        logs.innerHTML += `<div id="${typingId}" style="background: white; padding: 10px 14px; border-radius: 12px; align-self: flex-start; max-width: 85%; color: #64748b; font-style: italic; border: 1px solid #f1f5f9;"><i class="bi bi-three-dots"></i> Trợ lý ảo đang suy nghĩ...</div>`;
+        logs.scrollTop = logs.scrollHeight;
+
+        const params = new URLSearchParams();
+        params.append('message', text);
+
+        fetch('/Chatbot/SendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params
+        })
+        .then(res => {
+        if (!res.ok) throw new Error("Mất kết nối server");
+        return res.json();
+        })
+        .then(data => {
+        // 1. Xóa hiệu ứng ba dấu chấm Loading của AI ngay lập tức
+        document.getElementById(typingId)?.remove();
+
+        // 🚀 2. KIỂM TRA ĐIỀU KIỆN CHẶN: Nếu AI trả về trống (Do cờ IsHumanActive đang bật ở Controller)
+        if (data.reply === null || data.reply === undefined || data.reply.trim() === "") {
+        console.log("AI nhường quyền. Tiến hành đẩy tin nhắn của Khách sang Admin qua SignalR...");
+
+        // 🔄 HIỆN NÚT QUAY LẠI AI: Đảm bảo thanh bấm chuyển đổi lộ ra khi người thật trực
+        const switchBtn = document.getElementById('ai-switch-container');
+        if (switchBtn) switchBtn.style.display = 'block';
+
+        // KÍCH HOẠT: Gọi hàm SendMessage trên ChatHub để bắn tin nhắn sang Admin thời gian thực
+        if (typeof connection !== 'undefined' && connection.state === signalR.HubConnectionState.Connected) {
+        connection.invoke("SendMessage", text)
+        .then(() => console.log("Đã đồng bộ tin nhắn khách lên Hub!"))
+        .catch(err => console.error("Lỗi đồng bộ tin khách lên Hub:", err));
+        }
+        return; // Kết thúc hàm tại đây, hoàn toàn không hiển thị hộp thoại AI
+        }
+
+        // 3. Nếu vẫn đang trong luồng AI tự động giải đáp FAQ thì render bình thường
+        logs.innerHTML += `<div style="background: white; padding: 10px 14px; border-radius: 12px; align-self: flex-start; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">${data.reply}</div>`;
+        logs.scrollTop = logs.scrollHeight;
+
+        if (data.redirectToHuman || data.RedirectToHuman) {
+        console.log("Kích hoạt chuyển hướng tới SignalR Hub cho nhân viên...");
+
+        // 🔄 HIỆN NÚT QUAY LẠI AI: Bấm gặp nhân viên phát là hiện nút dưới ô chat liền
+        const switchBtn = document.getElementById('ai-switch-container');
+        if (switchBtn) switchBtn.style.display = 'block';
+
+        if (typeof connection !== 'undefined' && connection.state === signalR.HubConnectionState.Connected) {
+        connection.invoke("RequestHumanSupport", "Khách hàng MobiStore").catch(err => console.error(err));
+        }
+        }
+        })
+        .catch((err) => {
+        console.error("Lỗi Chatbot:", err);
+        document.getElementById(typingId)?.remove();
+        logs.innerHTML += `<div style="background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 12px; align-self: flex-start; max-width: 85%;">⚠️ Không thể kết nối tới trợ lý AI, vui lòng thử lại sau.</div>`;
+        logs.scrollTop = logs.scrollHeight;
+        });
+        }
+
+        // 🚀 BỔ SUNG: Hàm gọi API giải phóng cờ Session để đưa Khách quay lại với Chatbot AI
+        function endHumanSupport() {
+        if (confirm("Bạn có chắc chắn muốn kết thúc trò chuyện với nhân viên và quay lại với Trợ lý AI tự động không?")) {
+        fetch('/Chatbot/EndHumanSupport', {
+        method: 'POST'
+        })
+        .then(res => {
+        if (!res.ok) throw new Error("Không thể kết nối server");
+        return res.json();
+        })
+        .then(data => {
+        if (data.success) {
+        // 🔄 ẨN NÚT QUAY LẠI AI: Trả lại sân khấu cho AI thì ẩn thanh thông báo này đi
+        const switchBtn = document.getElementById('ai-switch-container');
+        if (switchBtn) switchBtn.style.display = 'none';
+
+        const logs = document.getElementById('chat-logs');
+        if (logs) {
+        logs.innerHTML += `<div style="background: #f0fdf4; color: #166534; padding: 10px 14px; border-radius: 12px; align-self: flex-start; max-width: 85%; border: 1px solid #bbf7d0; font-size: 13px; font-weight: 500; margin: 4px 0;"><i class="bi bi-arrow-left-right"></i> 🔄 Phiên hỗ trợ trực tiếp đã kết thúc. Trợ lý ảo MobiStore đã quay trở lại để phục vụ bạn!</div>`;
+        logs.scrollTop = logs.scrollHeight;
+        }
+        }
+        })
+        .catch(err => {
+        console.error("Lỗi khi kết thúc hỗ trợ:", err);
+        alert("Có lỗi xảy ra khi chuyển đổi chế độ.");
+        });
+        }
+        }
+
+        // === LẮNG NGHE CÁC SỰ KIỆN ĐƯỜNG TRUYỀN SIGNALR REAL-TIME ===
+        document.addEventListener("DOMContentLoaded", function () {
+        if (typeof connection !== 'undefined') {
+
+        // 📡 1. LẮNG NGHE SỰ KIỆN ADMIN PHẢN HỒI (DÀNH CHO KHÁCH HÀNG NHẬN)
+        connection.on("ReceiveAdminMessage", function (message) {
+        if (isAdmin) return; // Nếu là Admin thì bỏ qua sự kiện này
+        const logs = document.getElementById('chat-logs');
+        if (logs) {
+        logs.innerHTML += `    <div style="background: #f1f5f9; color: #1e293b; padding: 10px 14px; border-radius: 12px; align-self: flex-start; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; font-weight: 500;">    <span style="color: #0284c7; font-weight: bold;"><i class="bi bi-person-badge-fill me-1"></i> Nhân viên:</span> ${message}    </div>`;
+        logs.scrollTop = logs.scrollHeight;
+        }
+        });
+
+        // 📡 2. BỔ SUNG: LẮNG NGHE SỰ KIỆN KHÁCH NHẮN TIN (DÀNH CHO ADMIN NHẬN)
+        connection.on("ReceiveMessage", function (userName, message, timestamp, role) {
+        // Chỉ xử lý hiển thị nếu là tài khoản Admin và gói tin này thuộc về một Customer gửi lên
+        if (isAdmin && role === "Customer") {
+        const logs = document.getElementById('chat-logs');
+        if (logs) {
+        logs.innerHTML += `    <div style="background: #f1f5f9; color: #1e293b; padding: 10px 14px; border-radius: 12px; align-self: flex-start; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">    <span style="color: #ea580c; font-weight: bold;"><i class="bi bi-person-fill me-1"></i> Khách (${userName}):</span> ${message}    </div>`;
+        logs.scrollTop = logs.scrollHeight;
+        }
+        }
+        });
+
+        }
+        });
+    </script>
+
     <script>
         function updateCartCount() {
         fetch('/ShoppingCart/GetCartCount')
         .then(response => response.json())
         .then(data => {
-        // Thêm kiểm tra điều kiện an toàn trước khi gán dữ liệu
         let cartCountElement = document.getElementById('cartCount');
         if (cartCountElement) {
         cartCountElement.innerText = data.count;
@@ -341,6 +550,7 @@
         recognition.start();
         }
     </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -422,11 +632,10 @@
         // === LẮNG NGHE TÍN HIỆU GIẢM GIÁ REAL-TIME TỪ CHATHUB ===
         connection.on("ReceivePriceDropNotification", function (productId, title, message, url) {
 
-        // 1. 🔔 PHÁT BẮN WEB PUSH NOTIFICATION: Hiện thông báo trên màn hình máy tính (Desktop/Windows)
         if (Notification.permission === "granted") {
         var push = new Notification(title, {
         body: message,
-        icon: "/images/mobistore-logo.png" // Hoặc đường dẫn logo của nhóm bạn
+        icon: "/images/mobistore-logo.png"
         });
         push.onclick = function() {
         window.open(url, '_blank');
@@ -435,7 +644,6 @@
         Notification.requestPermission();
         }
 
-        // 2. 🎨 HIỂN THỊ POPUP TOAST BOOTSTRAP GIAO DIỆN (Màu vàng rực rỡ thu hút khách mua)
         const container = document.createElement('div');
         container.className = "toast align-items-center text-bg-warning border-0 position-fixed bottom-0 end-0 m-3";
         container.setAttribute("role", "alert");
@@ -462,12 +670,11 @@
         `;
 
         document.body.appendChild(container);
-        const toast = new bootstrap.Toast(container, { delay: 10000 }); // Hiển thị giữ nguyên trong 10 giây
+        const toast = new bootstrap.Toast(container, { delay: 10000 });
         toast.show();
         container.addEventListener('hidden.bs.toast', () => container.remove());
         });
 
-        // 🔥 XIN QUYỀN THÔNG BÁO ĐẨY KHI USER VỪA VÀO TRANG WEB
         document.addEventListener("DOMContentLoaded", function() {
         if (Notification.permission !== "granted" && Notification.permission !== "denied") {
         Notification.requestPermission();
@@ -480,6 +687,5 @@
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
-    <partial name="_ChatBox" />
 </body>
 </html>

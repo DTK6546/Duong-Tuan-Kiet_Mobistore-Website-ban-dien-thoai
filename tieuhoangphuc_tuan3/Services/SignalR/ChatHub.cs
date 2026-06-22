@@ -7,6 +7,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebBanDienThoai.Models;
+using System;
 
 namespace WebBanDienThoai.Services.SignalR
 {
@@ -45,6 +46,44 @@ namespace WebBanDienThoai.Services.SignalR
             }
         }
 
+        // =========================================================================
+        // 🚀 HÀM 1: Nhận tín hiệu yêu cầu gặp nhân viên từ phía Khách hàng
+        // =========================================================================
+        public async Task RequestHumanSupport(string customerName)
+        {
+            // Phát tín hiệu cho phía Admin biết để chuẩn bị tiếp quản chat
+            await Clients.Others.SendAsync("OnCustomerWaiting", Context.ConnectionId, customerName);
+        }
+
+        // =========================================================================
+        // 🚀 HÀM 2: Nhận tin nhắn phản hồi từ Admin và chuyển tiếp đến Khách hàng
+        // =========================================================================
+        public async Task SendAdminReply(string adminConnectionId, string message)
+        {
+            var user = await _userManager.FindByIdAsync(Context.UserIdentifier);
+            if (user != null)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                var role = roles.Contains("Admin") ? "Admin" : (roles.Contains("Employer") ? "Employer" : "Admin");
+
+                // Lưu lịch sử chat của Admin vào Database
+                var chatMessage = new ChatMessage
+                {
+                    UserId = user.Id,
+                    UserName = "Nhân viên MobiStore",
+                    Message = message,
+                    Timestamp = DateTime.UtcNow,
+                    Role = role
+                };
+
+                _context.ChatMessages.Add(chatMessage);
+                await _context.SaveChangesAsync();
+
+                // Gửi tin nhắn đến màn hình của Khách (loại trừ chính Admin để không lặp tin)
+                await Clients.Others.SendAsync("ReceiveAdminMessage", message);
+            }
+        }
+
         public async Task LoadMessages()
         {
             var user = await _userManager.FindByIdAsync(Context.UserIdentifier);
@@ -65,9 +104,6 @@ namespace WebBanDienThoai.Services.SignalR
                     bool isFromEmployer = message.Role == "Employer";
                     bool isToEmployer = isEmployer && message.Role == "Customer";
 
-                    // Nếu là admin: xem hết
-                    // Nếu là nhân viên: thấy khách + của mình
-                    // Nếu là khách: thấy tin nhắn của mình + nhân viên
                     if (isAdmin || isOwn || isFromEmployer || isToEmployer)
                     {
                         await Clients.Caller.SendAsync("ReceiveMessage", message.UserName, message.Message, message.Timestamp, message.Role);
@@ -75,6 +111,5 @@ namespace WebBanDienThoai.Services.SignalR
                 }
             }
         }
-
     }
 }
