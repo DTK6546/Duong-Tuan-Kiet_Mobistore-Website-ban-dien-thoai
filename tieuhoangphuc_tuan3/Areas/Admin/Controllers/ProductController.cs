@@ -3,6 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using WebBanDienThoai.Models;
 using WebBanDienThoai.Repositories;
 using WebBanDienThoai.Services.SignalR;
@@ -38,7 +43,7 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 products = products.Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                                               p.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+                                               (p.Description != null && p.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))).ToList();
             }
 
             switch (sortOrder)
@@ -77,6 +82,10 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         [Authorize(Roles = SD.Role_Admin)]
         public async Task<IActionResult> Add(Product product, IFormFile imageUrl, IFormFile[] additionalImages)
         {
+            // Loại bỏ kiểm tra tự động trường VideoUrl và ImageUrl nếu ModelState quá chặt chẽ
+            ModelState.Remove("ImageUrl");
+            ModelState.Remove("VideoUrl");
+
             if (ModelState.IsValid)
             {
                 if (imageUrl != null)
@@ -90,6 +99,9 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                     product.DiscountedPrice = product.Price;
 
                 product.LastImportDate = DateTime.Now;
+
+                // 🚀 ĐỒNG BỘ: Chuẩn hóa lại chuỗi ID Video từ form nhập
+                product.VideoUrl = product.VideoUrl?.Trim();
 
                 await _productRepository.AddAsync(product);
 
@@ -190,6 +202,8 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
         public async Task<IActionResult> Update(int id, Product product, IFormFile imageUrl, IFormFile[] additionalImages, int[] deleteImageIds)
         {
             ModelState.Remove("ImageUrl");
+            ModelState.Remove("VideoUrl");
+
             if (id != product.Id)
                 return NotFound();
 
@@ -233,6 +247,9 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
                 existingProduct.DiscountedPrice = newDiscountedPrice;
                 existingProduct.ServiceCommitment = product.ServiceCommitment;
                 existingProduct.IsHot = product.IsHot;
+
+                // 🚀 ĐỒNG BỘ: Cập nhật mã ID Video mới từ trang sửa Admin vào DB
+                existingProduct.VideoUrl = product.VideoUrl?.Trim();
 
                 if (product.Quantity > existingProduct.Quantity)
                     existingProduct.LastImportDate = DateTime.Now;
@@ -424,9 +441,6 @@ namespace WebBanDienThoai.Areas.Admin.Controllers
             await _context.SaveChangesAsync();
         }
 
-        // =========================================================================
-        // 💸 CẬP NHẬT CHỨC NĂNG 6: TRANG QUẢN LÝ DANH SÁCH KHẢO SÁT TRADE-IN DÀNH CHO ADMIN
-        // =========================================================================
         [HttpGet]
         [Authorize(Roles = SD.Role_Admin)]
         public async Task<IActionResult> ManageTradeIns()

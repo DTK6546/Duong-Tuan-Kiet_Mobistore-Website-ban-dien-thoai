@@ -60,28 +60,18 @@
 
 <div class="card product-detail-card shadow-sm">
     <div class="row g-0">
-
-        <!-- ================= ẢNH SẢN PHẨM ================= -->
         <div class="col-md-4 p-3 border-end text-center">
-
             @if (!string.IsNullOrEmpty(Model.ImageUrl) || (Model.Images != null && Model.Images.Any()))
             {
                 var carouselId = $"adminProductCarousel_{Model.Id}";
                 var thumbs = new List<string>();
 
-                if (!string.IsNullOrEmpty(Model.ImageUrl))
-                {
-                    thumbs.Add(Model.ImageUrl);
-                }
-
+                if (!string.IsNullOrEmpty(Model.ImageUrl)) { thumbs.Add(Model.ImageUrl); }
                 if (Model.Images != null)
                 {
                     foreach (var img in Model.Images)
                     {
-                        if (!string.IsNullOrEmpty(img.Url))
-                        {
-                            thumbs.Add(img.Url);
-                        }
+                        if (!string.IsNullOrEmpty(img.Url)) { thumbs.Add(img.Url); }
                     }
                 }
 
@@ -91,117 +81,86 @@
                             @for (int i = 0; i < thumbs.Count; i++)
                             {
                                 <div class="carousel-item @(i == 0 ? "active" : "")">
-                                    <img src="@thumbs[i]"
-                                         class="d-block w-100 img-fluid rounded border"
-                                         style="max-height:300px; object-fit:contain"
-                                         alt="Ảnh @i" />
+                                    <img src="@thumbs[i]" class="d-block w-100 img-fluid rounded border" style="max-height:300px; object-fit:contain" alt="Ảnh @i" />
                                 </div>
                             }
                         </div>
-
-                        <button class="carousel-control-prev" type="button"
-                                data-bs-target="#@carouselId" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon"></span>
-                        </button>
-                        <button class="carousel-control-next" type="button"
-                                data-bs-target="#@carouselId" data-bs-slide="next">
-                            <span class="carousel-control-next-icon"></span>
-                        </button>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#@carouselId" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#@carouselId" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
                     </div>
-
                     <div class="d-flex justify-content-center flex-wrap mt-2">
                         @for (int i = 0; i < thumbs.Count; i++)
                         {
-                            <img src="@thumbs[i]"
-                                 class="admin-product-thumb @(i == 0 ? "active" : "")"
-                                 data-bs-target="#@carouselId"
-                                 data-bs-slide-to="@i"
-                                 alt="Thumb @i" />
+                            <img src="@thumbs[i]" class="admin-product-thumb @(i == 0 ? "active" : "")" data-bs-target="#@carouselId" data-bs-slide-to="@i" alt="Thumb @i" />
                         }
                     </div>
                 </div>
             }
             else
             {
+
                 <div class="text-muted fst-italic">Không có ảnh</div>
             }
         </div>
 
-        <!-- ================= THÔNG TIN ================= -->
         <div class="col-md-8">
             <div class="card-body">
-
                 <h3 class="fw-bold text-primary mb-3">@Model.Name</h3>
 
-                <!-- GIÁ -->
                 <div class="mb-3">
                     <span class="info-label">Giá bán</span><br />
                     @if (Model.DiscountPercent > 0)
                     {
-                        <span class="price-old">@Model.Price.ToString("N0") VNĐ</span>
-                    
-                        <br />
+                        <span class="price-old">@Model.Price.ToString("N0") VNĐ</span><br />
                         <span class="price-new">@Model.DiscountedPrice.ToString("N0") VNĐ</span>
                     }
                     else
                     {
+
                         <span class="price-new">@Model.Price.ToString("N0") VNĐ</span>
                     }
                 </div>
 
                 <hr />
 
-                <!-- THÔNG TIN KHO -->
                 <div class="mb-3">
                     <div class="section-title">Thông tin kho</div>
-
                     <div class="info-row">
                         <span class="info-label">Tồn kho</span>
-                        @if (Model.Quantity <= Model.MinStockLevel)
-                        {
-                            <span class="badge bg-danger">@Model.Quantity</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-success">@Model.Quantity</span>
-                        }
+                        <span class="badge @(Model.Quantity <= Model.MinStockLevel ? "bg-danger" : "bg-success")">@Model.Quantity</span>
                     </div>
-
-                    <div class="info-row">
-                        <span class="info-label">Ngưỡng cảnh báo</span>
-                        <span>@Model.MinStockLevel</span>
-                    </div>
-
-                    <div class="info-row">
-                        <span class="info-label">Danh mục</span>
-                        <span>@Model.Category?.Name ?? "Chưa phân loại"</span>
-                    </div>
-
-                    <div class="info-row">
-                        <span class="info-label">Nhập gần nhất</span>
-                        <span>@Model.LastImportDate?.ToString("dd/MM/yyyy")</span>
-                    </div>
-
-                    <div class="info-row">
-                        <span class="info-label">Xuất gần nhất</span>
-                        <span>@Model.LastExportDate?.ToString("dd/MM/yyyy")</span>
-                    </div>
+                    <div class="info-row"><span class="info-label">Ngưỡng cảnh báo</span><span>@Model.MinStockLevel</span></div>
+                    <div class="info-row"><span class="info-label">Danh mục</span><span>@(Model.Category?.Name ?? "Chưa phân loại")</span></div>
+                    <div class="info-row"><span class="info-label">Nhập gần nhất</span><span>@Model.LastImportDate?.ToString("dd/MM/yyyy")</span></div>
+                    <div class="info-row"><span class="info-label">Xuất gần nhất</span><span>@Model.LastExportDate?.ToString("dd/MM/yyyy")</span></div>
                 </div>
 
-                <!-- MÔ TẢ -->
+                <div class="mb-3">
+                    <div class="section-title">Video Review cấu hình</div>
+                    @if (!string.IsNullOrEmpty(Model.VideoUrl))
+                    {
+                        <div class="border rounded p-2 bg-light text-center" style="max-width: 400px;">
+                            <div class="ratio ratio-16x9 rounded overflow-hidden">
+                                <iframe src="https://www.youtube.com/embed/@Model.VideoUrl" title="YouTube video player" frameborder="0" allowfullscreen></iframe>
+                            </div>
+                            <small class="text-muted d-block mt-1">Mã ID Video: <b>@Model.VideoUrl</b></small>
+                        </div>
+                    }
+                    else
+                    {
+
+                        <span class="text-muted fst-italic small">Chưa cấu hình video review cho máy này.</span>
+                    }
+                </div>
+
                 <div class="mb-3">
                     <div class="section-title">Mô tả sản phẩm</div>
-                    <div class="border rounded p-3 bg-light">
-                        @Html.Raw(Model.Description)
-                    </div>
+                    <div class="border rounded p-3 bg-light">@Html.Raw(Model.Description)</div>
                 </div>
 
-                <!-- CAM KẾT -->
                 @if (!string.IsNullOrWhiteSpace(Model.ServiceCommitment))
                 {
-                    var lines = Model.ServiceCommitment
-                    .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-
+                    var lines = Model.ServiceCommitment.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
                     <div class="mb-3">
                         <div class="section-title">Cam kết dịch vụ</div>
                         <ul class="list-unstyled mb-0">
@@ -213,20 +172,10 @@
                     </div>
                 }
 
-                <!-- BUTTON -->
                 <div class="mt-4 d-flex gap-2">
-                    <a asp-action="Index" asp-controller="Product" asp-area="Admin"
-                       class="btn btn-outline-secondary">
-                        ⬅️ Quay lại
-                    </a>
-
-                    <a asp-action="Update" asp-route-id="@Model.Id"
-                       asp-controller="Product" asp-area="Admin"
-                       class="btn btn-warning">
-                        ✏️ Sửa sản phẩm
-                    </a>
+                    <a asp-action="Index" asp-controller="Product" asp-area="Admin" class="btn btn-outline-secondary">⬅️ Quay lại</a>
+                    <a asp-action="Update" asp-route-id="@Model.Id" asp-controller="Product" asp-area="Admin" class="btn btn-warning">✏️ Sửa sản phẩm</a>
                 </div>
-
             </div>
         </div>
     </div>
@@ -236,14 +185,11 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var carousels = document.querySelectorAll('[id^="adminProductCarousel_"]');
-
             carousels.forEach(function (carouselEl) {
                 var thumbs = carouselEl.parentElement.querySelectorAll('.admin-product-thumb');
-
                 carouselEl.addEventListener('slide.bs.carousel', function (e) {
                     thumbs.forEach((t, i) => t.classList.toggle('active', i === e.to));
                 });
-
                 thumbs.forEach(function (thumb) {
                     thumb.addEventListener('click', function () {
                         thumbs.forEach(t => t.classList.remove('active'));

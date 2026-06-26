@@ -62,5 +62,6 @@ namespace WebBanDienThoai.Models
         public virtual ICollection<ProductVariant>? Variants { get; set; }
 
         public string? ServiceCommitment { get; set; }
+        public string? VideoUrl { get; set; } // Thuộc tính lưu link nhúng YouTube
     }
 }

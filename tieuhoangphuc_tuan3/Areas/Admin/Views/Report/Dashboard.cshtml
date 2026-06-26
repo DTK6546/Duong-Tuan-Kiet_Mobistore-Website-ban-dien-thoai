@@ -15,6 +15,7 @@
         </div>
     </div>
 
+    <!-- 📊 KHỐI KPIs THẺ TÀI CHÍNH CAO CẤP -->
     <div class="row g-3 mb-4">
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 border-start border-4 border-success shadow-sm p-3 bg-white h-100">
@@ -67,6 +68,7 @@
         </div>
     </div>
 
+    <!-- 📈 KHỐI BIỂU ĐỒ TRỰC QUAN HÓA -->
     <div class="row g-4 mb-4">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm p-4 bg-white">
@@ -87,6 +89,7 @@
         </div>
     </div>
 
+    <!-- 🏆 BẢNG THÀNH TÍCH TOP SẢN PHẨM BÁN CHẠY -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-dark text-white fw-bold py-3">
             <i class="bi bi-star-fill text-warning me-1"></i> TOP 5 SẢN PHẨM BÁN CHẠY NHẤT
@@ -111,7 +114,11 @@
                             <tr>
                                 <td class="text-center fw-bold text-secondary">#@rank</td>
                                 <td class="fw-semibold text-primary">@p.ProductName</td>
-                                <td class="text-center badge bg-primary bg-opacity-10 text-primary rounded px-3 py-1 my-2 d-inline-block">@p.TotalSold sản phẩm</td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary rounded px-3 py-2">
+                                        @p.TotalSold sản phẩm
+                                    </span>
+                                </td>
                                 <td class="text-end fw-bold text-success">@p.TotalRevenue.ToString("N0") ₫</td>
                             </tr>
                             rank++;
@@ -126,7 +133,7 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // 1. Khởi tạo Biểu đồ xu hướng Doanh thu (Line Chart)
+        // 1. Khai báo tách biệt tường minh phần vẽ Biểu đồ xu hướng Doanh thu (Line Chart)
         const ctxLine = document.getElementById('mainRevenueChart').getContext('2d');
         new Chart(ctxLine, {
         type: 'line',
@@ -155,7 +162,7 @@
         }
         });
 
-        // 2. Khởi tạo Biểu đồ Tỷ trọng Danh mục (Doughnut Chart)
+        // 2. Khai báo tách biệt phần vẽ Biểu đồ Tỷ trọng Danh mục (Doughnut Chart)
         const ctxPie = document.getElementById('categoryPieChart').getContext('2d');
         new Chart(ctxPie, {
         type: 'doughnut',

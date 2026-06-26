@@ -25,7 +25,12 @@
     }
 }
 
-<h2 class="mb-4 fw-bold text-primary">📊 Thống kê doanh thu & Báo cáo kho</h2>
+<div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+    <h2 class="fw-bold text-primary m-0">📊 Thống kê doanh thu & Báo cáo kho</h2>
+    <a href="/Admin/Report/Dashboard" class="btn btn-dark fw-bold rounded-pill shadow-sm py-2 px-3">
+        <i class="bi bi-cpu-fill text-warning me-1"></i> Xem BI Analytics Dashboard
+    </a>
+</div>
 
 <form method="get" class="row g-3 mb-4 shadow-sm p-3 bg-light rounded">
     <div class="col-md-3">
@@ -45,47 +50,63 @@
         </select>
     </div>
     <div class="col-md-2 align-self-end">
-        <button class="btn btn-primary w-100">
-            <i class="bi bi-funnel"></i> Lọc
+        <button class="btn btn-primary w-100 fw-bold">
+            <i class="bi bi-funnel"></i> Lọc dữ liệu
         </button>
     </div>
 </form>
 
-<div class="alert alert-info shadow-sm">
-    <strong>Tổng doanh thu:</strong> @ViewBag.TotalRevenue.ToString("N0") ₫ <br />
-    <strong>Số đơn hàng:</strong> @ViewBag.TotalOrders
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="alert alert-info shadow-sm h-100 m-0 d-flex align-items-center justify-content-between">
+            <div>
+                <strong class="text-uppercase small d-block opacity-75">Tổng doanh thu thực tế</strong>
+                <h3 class="fw-bold text-dark mt-1 mb-0">@ViewBag.TotalRevenue.ToString("N0") ₫</h3>
+            </div>
+            <span class="fs-1 opacity-25"><i class="bi bi-cash-stack"></i></span>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="alert alert-success shadow-sm h-100 m-0 d-flex align-items-center justify-content-between">
+            <div>
+                <strong class="text-uppercase small d-block opacity-75">Số lượng đơn hàng thành công</strong>
+                <h3 class="fw-bold text-dark mt-1 mb-0">@ViewBag.TotalOrders đơn</h3>
+            </div>
+            <span class="fs-1 opacity-25"><i class="bi bi-bag-check"></i></span>
+        </div>
+    </div>
 </div>
 
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
-        <h5 class="card-title fw-semibold">📈 Biểu đồ doanh thu</h5>
+        <h5 class="card-title fw-semibold text-dark"><i class="bi bi-bar-chart-line-fill text-primary"></i> Biểu đồ phân bổ doanh thu</h5>
         <canvas id="revenueChart" height="100"></canvas>
     </div>
 </div>
 
 <div class="card shadow-sm mb-5">
-    <div class="card-header bg-secondary text-white fw-semibold d-flex justify-content-between align-items-center">
-        <span>📋 Danh sách đơn hàng hoàn tất</span>
-        <a href="@Url.Action("ExportRevenueToCsv", "Report", new { area = "Admin", fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })" class="btn btn-success btn-sm fw-bold">
+    <div class="card-header bg-secondary text-white fw-semibold d-flex justify-content-between align-items-center py-3">
+        <span><i class="bi bi-list-task"></i> Danh sách đơn hàng hoàn tất hệ thống</span>
+        <a href="@Url.Action("ExportRevenueToCsv", "Report", new { area = "Admin", fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })" class="btn btn-success btn-sm fw-bold shadow-sm">
             <i class="bi bi-file-earmark-excel"></i> Xuất Excel Doanh Thu
         </a>
     </div>
     <div class="card-body p-0">
-        <table class="table table-bordered table-hover mb-0">
+        <table class="table table-bordered table-hover mb-0 text-center small">
             <thead class="table-light">
-                <tr class="text-center">
+                <tr>
                     <th>Ngày đặt</th>
-                    <th>Khách hàng</th>
-                    <th>Tổng tiền</th>
+                    <th class="text-start">Khách hàng đặt mua</th>
+                    <th class="text-end">Tổng số tiền hóa đơn</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var o in Model)
                 {
                     <tr>
-                        <td class="text-center">@o.OrderDate.ToString("dd/MM/yyyy")</td>
-                        <td>@o.ApplicationUser?.FullName</td>
-                        <td class="text-end">@o.TotalPrice.ToString("N0") ₫</td>
+                        <td>@o.OrderDate.ToString("dd/MM/yyyy")</td>
+                        <td class="text-start fw-semibold">@(o.ApplicationUser?.FullName ?? "Khách vãng lai")</td>
+                        <td class="text-end fw-bold text-success">@o.TotalPrice.ToString("N0") ₫</td>
                     </tr>
                 }
             </tbody>
@@ -94,24 +115,26 @@
 </div>
 
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-primary text-white fw-semibold d-flex justify-content-between align-items-center">
-        <span>📦 Báo cáo tồn kho sản phẩm</span>
-        <a href="/Admin/Report/InventoryLogs" class="btn btn-info btn-sm fw-bold text-white">
-            <i class="bi bi-clock-history"></i> Xem Nhật Ký Kho
-        </a>
-        <a href="@Url.Action("ExportInventoryToCsv", "Report", new { area = "Admin" })" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm">
-            <i class="bi bi-download"></i> Xuất Excel Tồn Kho
-        </a>
+    <div class="card-header bg-primary text-white fw-semibold d-flex justify-content-between align-items-center py-3">
+        <span><i class="bi bi-box-seam"></i> Báo cáo kiểm kho tồn kho sản phẩm nâng cao</span>
+        <div>
+            <a href="/Admin/Report/InventoryLogs" class="btn btn-info btn-sm fw-bold text-white shadow-sm me-1">
+                <i class="bi bi-clock-history"></i> Xem Nhật Ký Kho
+            </a>
+            <a href="@Url.Action("ExportInventoryToCsv", "Report", new { area = "Admin" })" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm">
+                <i class="bi bi-download"></i> Xuất Excel Tồn Kho
+            </a>
+        </div>
     </div>
     <div class="card-body p-0">
-        <table class="table table-bordered table-hover mb-0">
+        <table class="table table-bordered table-hover mb-0 text-center small">
             <thead class="table-light">
-                <tr class="text-center">
-                    <th>Tên sản phẩm</th>
+                <tr>
+                    <th class="text-start">Tên sản phẩm thiết bị</th>
                     <th>Tồn kho</th>
                     <th>Ngưỡng cảnh báo</th>
-                    <th>Giá</th>
-                    <th>Giá trị tồn (VNĐ)</th>
+                    <th class="text-end">Giá bán</th>
+                    <th class="text-end">Giá trị tổng hàng tồn</th>
                     <th>Ngày nhập gần nhất</th>
                     <th>Ngày xuất gần nhất</th>
                 </tr>
@@ -122,24 +145,24 @@
                     foreach (var p in (IEnumerable<dynamic>)ViewBag.Inventory)
                     {
                         <tr class="@(p.Quantity <= p.MinStockLevel ? "table-warning" : "")">
-                            <td>@p.Name</td>
-                            <td class="text-center">
-                                <span class="badge @(p.Quantity <= p.MinStockLevel ? "bg-danger" : "bg-success")">
+                            <td class="text-start fw-bold">@p.Name</td>
+                            <td>
+                                <span class="badge @(p.Quantity <= p.MinStockLevel ? "bg-danger" : "bg-success") px-2 py-1">
                                     @p.Quantity
                                 </span>
                             </td>
-                            <td class="text-center">@p.MinStockLevel</td>
+                            <td class="fw-semibold text-secondary">@p.MinStockLevel</td>
                             <td class="text-end">@p.Price.ToString("N0") ₫</td>
-                            <td class="text-end fw-semibold">@p.TotalValue.ToString("N0") ₫</td>
-                            <td class="text-center">@p.LastImportDate?.ToString("dd/MM/yyyy")</td>
-                            <td class="text-center">@p.LastExportDate?.ToString("dd/MM/yyyy")</td>
+                            <td class="text-end fw-bold text-danger">@p.TotalValue.ToString("N0") ₫</td>
+                            <td>@p.LastImportDate?.ToString("dd/MM/yyyy")</td>
+                            <td>@p.LastExportDate?.ToString("dd/MM/yyyy")</td>
                         </tr>
                     }
                 }
             </tbody>
-            <tfoot class="table-light">
-                <tr class="fw-bold">
-                    <td colspan="4" class="text-end">Tổng giá trị tồn kho:</td>
+            <tfoot class="table-light fw-bold fs-6">
+                <tr>
+                    <td colspan="4" class="text-end">Tổng giá trị tài sản hàng tồn kho:</td>
                     <td class="text-end text-danger">@ViewBag.TotalInventoryValue.ToString("N0") ₫</td>
                     <td colspan="2"></td>
                 </tr>
@@ -152,7 +175,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const ctx = document.getElementById('revenueChart').getContext('2d');
-        const revenueChart = new Chart(ctx, {
+        new Chart(ctx, {
         type: 'bar',
         data: {
         labels: [@Html.Raw(chartLabels)],
@@ -162,30 +185,13 @@
         backgroundColor: '#4e73df',
         borderColor: '#4e73df',
         borderWidth: 1,
-        barThickness: 60
+        barThickness: 45
         }]
         },
         options: {
         responsive: true,
         scales: {
-        x: {
-        title: {
-        display: true,
-        text: 'Thời gian'
-        }
-        },
-        y: {
-        beginAtZero: true,
-        title: {
-        display: true,
-        text: 'Doanh thu (VNĐ)'
-        },
-        ticks: {
-        callback: function (value) {
-        return value.toLocaleString("vi-VN") + " ₫";
-        }
-        }
-        }
+        y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString("vi-VN") + " ₫" } }
         }
         }
         });

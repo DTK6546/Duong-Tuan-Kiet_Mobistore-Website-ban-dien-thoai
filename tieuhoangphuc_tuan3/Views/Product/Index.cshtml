@@ -235,21 +235,21 @@
                     @if (ViewBag.PageNumber > 1)
                     {
                         <li class="page-item">
-                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = ViewBag.PageNumber - 1, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color, rating = ViewBag.Rating })">«</a>
+                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = ViewBag.PageNumber - 1, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color, rating = ViewBag.Rating, cpu = ViewBag.Cpu })">«</a>
                         </li>
                     }
 
                     @for (int i = 1; i <= ViewBag.TotalPages; i++)
                     {
                         <li class="page-item @(i == ViewBag.PageNumber ? "active" : "")">
-                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = i, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color, rating = ViewBag.Rating })">@i</a>
+                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = i, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color, rating = ViewBag.Rating, cpu = ViewBag.Cpu })">@i</a>
                         </li>
                     }
 
                     @if (ViewBag.PageNumber < ViewBag.TotalPages)
                     {
                         <li class="page-item">
-                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = ViewBag.PageNumber + 1, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color, rating = ViewBag.Rating })">»</a>
+                            <a class="page-link" href="@Url.Action("Index", "Product", new { pageNumber = ViewBag.PageNumber + 1, categoryId = ViewBag.CategoryId, subCategoryId = ViewBag.SubCategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, query = ViewBag.Query, sortBy = ViewBag.SortBy, ram = ViewBag.Ram, rom = ViewBag.Rom, color = ViewBag.Color, rating = ViewBag.Rating, cpu = ViewBag.Cpu })">»</a>
                         </li>
                     }
                 </ul>

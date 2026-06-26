@@ -16,14 +16,9 @@
     });
 
     decimal discount = cart.DiscountAmount < 0 ? 0 : cart.DiscountAmount;
-
-    // =========================================================================
-    // 💸 CẬP NHẬT CHỨC NĂNG 6: BỐC BIẾN TRỢ GIÁ THU CŨ ĐỔI MỚI TỪ CONTROLLER
-    // =========================================================================
     decimal tradeInDiscount = ViewBag.TradeInDiscount ?? 0m;
     string tradeInDeviceName = ViewBag.TradeInDeviceName ?? "Thiết bị cũ";
 
-    // Cập nhật công thức tính toán Razor trừ thêm khoản trợ giá máy cũ
     decimal afterDiscount = Math.Max(0, subtotal - discount - tradeInDiscount);
     decimal vat = Math.Round(afterDiscount * 0.10m, 0);
 }
@@ -94,7 +89,7 @@
             margin-top: -18px;
         }
 
-    @Html.Raw("@media") (max-width: 576px) {
+    @@media (max-width: 576px) {
         .checkout-steps .line {
             width: 34px;
         }
@@ -166,48 +161,55 @@
                             </div>
                         </div>
 
-                        <div class="mt-3">
-                            <label class="form-label">Địa chỉ nhận hàng</label>
-                            <textarea asp-for="ShippingAddress" class="form-control" rows="2" placeholder="Nhập địa chỉ giao hàng..."></textarea>
-                            <span asp-validation-for="ShippingAddress" class="text-danger"></span>
-                        </div>
-
-                        <div class="mt-3">
-                            <label class="form-label">Ghi chú</label>
-                            <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Ví dụ: gọi trước khi giao..."></textarea>
-                        </div>
-
                         <hr />
                         <div class="fw-semibold mb-2">Phương thức nhận hàng</div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="DeliveryMethodRadio" id="ShipToHomeRadio" value="ShipToHome" checked>
-                            <label class="form-check-label" for="ShipToHomeRadio">Giao tận nhà</label>
+                            <label class="form-check-label" for="ShipToHomeRadio">Giao hàng tận nhà</label>
                         </div>
                         <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="DeliveryMethodRadio" id="PickupAtStoreRadio" value="PickupAtStore">
-                            <label class="form-check-label" for="PickupAtStoreRadio">Nhận tại cửa hàng</label>
+                            <label class="form-check-label" for="PickupAtStoreRadio">Nhận tại cửa hàng siêu thị</label>
                         </div>
 
-                        <div id="shipBox" class="mt-3 border rounded p-3 bg-light">
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <label class="form-label">Tỉnh/TP</label>
-                                    <select id="shipProvince" class="form-select"><option value="">-- Chọn Tỉnh/TP --</option></select>
+                        <div id="shipBox" class="mt-3 border rounded p-3 bg-light shadow-sm">
+                            <div class="fw-semibold text-secondary small text-uppercase mb-2"><i class="bi bi-map"></i> Chọn Địa Chỉ Giao Hàng Động</div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small">Tỉnh / Thành phố</label>
+                                    <select id="shipProvince" class="form-select form-select-sm"><option value="">-- Chọn Tỉnh/TP --</option></select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Quận/Huyện</label>
-                                    <select id="shipDistrict" class="form-select" disabled><option value="">-- Toàn tỉnh --</option></select>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Quận / Huyện</label>
+                                    <select id="shipDistrict" class="form-select form-select-sm" disabled><option value="">-- Chọn Quận/Huyện --</option></select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Phường / Xã</label>
+                                    <select id="shipWard" class="form-select form-select-sm" disabled><option value="">-- Chọn Phường/Xã --</option></select>
                                 </div>
                             </div>
-                            <div class="mt-2">
-                                <label class="form-label">Phương thức giao</label>
-                                <select id="shipMethodSelect" class="form-select">
-                                    <option value="standard" selected>Tiêu chuẩn</option>
-                                    <option value="express">Nhanh</option>
+                            <div class="mb-2">
+                                <label class="form-label small">Số nhà, tên đường cụ thể</label>
+                                <input id="shipStreet" type="text" class="form-control form-control-sm" placeholder="Ví dụ: 475 Điện Biên Phủ" />
+                            </div>
+
+                            <div style="height: 1px; background: #ddd; margin: 12px 0;"></div>
+
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-dark"><i class="bi bi-truck"></i> Phương thức vận chuyển Logistics</label>
+                                <select id="shipMethodSelect" class="form-select form-select-sm">
+                                    <option value="standard" selected>Giao hàng tiêu chuẩn (Tiết kiệm chi phí)</option>
+                                    <option value="express">Giao hàng hỏa tốc (Nhận siêu tốc trong ngày)</option>
                                 </select>
                             </div>
-                            <div class="d-flex justify-content-between mt-2"><div>Phí ship:</div><div class="fw-semibold" id="shipFeeText">—</div></div>
-                            <div class="d-flex justify-content-between"><div>Dự kiến:</div><div class="text-muted" id="shipEtaText">—</div></div>
+                            <div class="d-flex justify-content-between mt-2 small"><div>Phí ship vận chuyển:</div><div class="fw-bold text-success" id="shipFeeText">0 đ</div></div>
+                            <div class="d-flex justify-content-between small"><div>Thời gian dự kiến nhận:</div><div class="text-muted" id="shipEtaText">—</div></div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label fw-semibold">Địa chỉ giao hàng hoàn chỉnh</label>
+                            <textarea asp-for="ShippingAddress" id="ShippingAddress" class="form-control bg-white" rows="2" placeholder="Vui lòng chọn địa chỉ ở trên hệ thống sẽ tự động điền cụ thể..." readonly></textarea>
+                            <span asp-validation-for="ShippingAddress" class="text-danger"></span>
                         </div>
 
                         <div id="pickupBox" class="mt-3 border rounded p-3 bg-light" style="display:none;">
@@ -221,18 +223,23 @@
                             </select>
                         </div>
 
+                        <div class="mt-3">
+                            <label class="form-label">Ghi chú từ đơn hàng</label>
+                            <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Ví dụ: Gọi điện trước khi giao hàng, giao giờ hành chính..."></textarea>
+                        </div>
+
                         <hr />
-                        <div class="fw-semibold mb-2">Phương thức thanh toán</div>
+                        <div class="fw-semibold mb-2">Phương thức thanh toán tích hợp</div>
 
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payCOD" value="COD" checked>
-                            <label class="form-check-label" for="payCOD">COD (Thanh toán khi nhận hàng)</label>
+                            <label class="form-check-label" for="payCOD"><i class="bi bi-cash-coin text-success"></i> COD (Thanh toán bằng tiền mặt khi nhận hàng)</label>
                         </div>
 
                         <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payInstallment" value="Installment">
                             <label class="form-check-label text-danger fw-semibold" for="payInstallment">
-                                <span class="badge bg-danger me-1">HOT</span> Trả góp 0% lãi suất (Qua thẻ tín dụng)
+                                <span class="badge bg-danger edit-badge me-1">HOT</span> Trả góp 0% lãi suất kì hạn linh hoạt
                             </label>
                         </div>
 
@@ -265,21 +272,21 @@
 
                         <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payVNPAY" value="VNPAY">
-                            <label class="form-check-label" for="payVNPAY">Thanh toán qua VNPAY</label>
+                            <label class="form-check-label" for="payVNPAY"><span class="badge bg-primary me-1">VNPAY</span> Cổng thanh toán quét mã VNPAY-QR</label>
                         </div>
 
                         <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payMOMO" value="MOMO">
-                            <label class="form-check-label" for="payMOMO">Thanh toán qua MoMo</label>
+                            <label class="form-check-label" for="payMOMO">Thanh toán ví điện tử điện tử MoMo</label>
                         </div>
 
                         <div class="form-check mt-1">
                             <input class="form-check-input" type="radio" name="PayMethod" id="payPAYPAL" value="PAYPAL">
-                            <label class="form-check-label" for="payPAYPAL">Thanh toán qua PayPal</label>
+                            <label class="form-check-label" for="payPAYPAL">Thanh toán bảo mật quốc tế PayPal</label>
                         </div>
 
-                        <button type="submit" class="btn btn-danger w-100 py-2 mt-3">
-                            <i class="bi bi-shield-lock"></i> Đặt hàng an toàn
+                        <button type="submit" class="btn btn-danger w-100 py-2 mt-3 fw-bold">
+                            <i class="bi bi-shield-lock"></i> XÁC NHẬN ĐẶT HÀNG AN TOÀN
                         </button>
                     </form>
                 </div>
@@ -315,12 +322,9 @@
                             </div>
                         }
                         <div class="pt-3">
-                            <div class="d-flex justify-content-between"><span>Tạm tính</span><span id="sumSubtotal">@subtotal.ToString("N0") đ</span></div>
+                            <div class="d-flex justify-content-between"><span>Tạm tính tiền hàng</span><span id="sumSubtotal">@subtotal.ToString("N0") đ</span></div>
                             <div class="d-flex justify-content-between"><span>Giảm giá Voucher</span><span id="sumDiscount">-@discount.ToString("N0") đ</span></div>
-                            
-                            @* =========================================================================
-                            // 💸 CẬP NHẬT GIAO DIỆN HTML: DÒNG HIỂN THỊ TRỢ GIÁ THU CŨ ĐỔI MỚI (TRADE-IN)
-                            // ========================================================================= *@
+
                             @if (tradeInDiscount > 0)
                             {
                                 <div class="d-flex justify-content-between text-danger fw-bold border border-dashed border-danger p-1 rounded my-1" style="background-color: #fff5f5;">
@@ -329,9 +333,9 @@
                                 </div>
                             }
 
-                            <div class="d-flex justify-content-between"><span>VAT (10%)</span><span id="sumVat">@vat.ToString("N0") đ</span></div>
-                            <div class="d-flex justify-content-between"><span>Phí ship</span><span id="sumShip">0 đ</span></div>
-                            <hr /><div class="d-flex justify-content-between fs-5 fw-bold"><span>Tổng cộng</span><span id="sumTotal">0 đ</span></div>
+                            <div class="d-flex justify-content-between"><span>Thuế VAT (10%)</span><span id="sumVat">@vat.ToString("N0") đ</span></div>
+                            <div class="d-flex justify-content-between"><span>Phí vận chuyển Logistics</span><span id="sumShip">0 đ</span></div>
+                            <hr /><div class="d-flex justify-content-between fs-5 fw-bold text-danger"><span>Tổng thanh toán</span><span id="sumTotal">0 đ</span></div>
                         </div>
                     }
                 </div>
@@ -344,18 +348,13 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // ✅ SỬA LỖI DẤU PHẨY CHÍ MẠNG: Ép Razor C# xuất số dạng dấu chấm chuẩn JavaScript bằng InvariantCulture
             const subtotal = @subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture);
             const discount = @discount.ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-            // 🌟 ĐỒNG BỘ JAVASCRIPT: Nạp dữ liệu tiền thu cũ đổi mới từ ViewBag vào làm biến tính toán ngầm
             const tradeInDiscount = @tradeInDiscount.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-            // Công thức tính số tiền sau giảm giá (đã bao gồm khấu trừ máy cũ) để đồng bộ cho hàm tính phí ship API
             const orderValueAfterDiscount = Math.max(0, subtotal - discount - tradeInDiscount);
-            const vat = Math.round(orderValueAfterDiscount * 0.10); // Tính lại VAT 10% theo số tiền chuẩn thực tế
+            const vat = Math.round(orderValueAfterDiscount * 0.10);
 
-            // Cập nhật lại số tiền VAT render ra giao diện cho đồng nhất
             const sumVatEl = document.getElementById('sumVat');
             if (sumVatEl) sumVatEl.textContent = vat.toLocaleString('vi-VN') + ' đ';
 
@@ -364,7 +363,6 @@
             const sumShip = document.getElementById('sumShip');
             const sumTotal = document.getElementById('sumTotal');
 
-            // Khai báo chuẩn nhóm PascalCase
             const DeliveryMethodHidden = document.getElementById('DeliveryMethod');
             const StoreIdHidden = document.getElementById('StoreIdHidden');
             const ProvinceCodeHidden = document.getElementById('ProvinceCodeHidden');
@@ -374,7 +372,6 @@
             const AmountHidden = document.getElementById('AmountHidden');
             const PaymentMethodHidden = document.getElementById('PaymentMethodHidden');
 
-            // Khai báo chuẩn nhóm camelCase
             const deliveryMethod2 = document.getElementById('deliveryMethodCamel');
             const storeId2 = document.getElementById('storeIdCamel');
             const province2 = document.getElementById('provinceCodeCamel');
@@ -400,8 +397,6 @@
 
             function recalcTotal() {
                 const ship = Number(ShippingFeeHidden.value || 0);
-                
-                // 🌟 CẬP NHẬT CÔNG THỨC: Tổng hóa đơn cuối = Tiền hàng - Voucher - Trợ giá thu cũ + VAT + Phí ship
                 const total = Math.max(0, subtotal - discount - tradeInDiscount) + vat + ship;
 
                 if (sumShip) sumShip.textContent = money(ship);
@@ -419,7 +414,130 @@
                 syncForPayment();
             }
 
-            // Đồng bộ sự kiện đổi phương thức thanh toán sang Input ẩn
+            // 🚀 SCRIPT ĐỘNG 1: AUTOCOMPLETE ĐỊA CHÍ 3 CẤP QUA API QUỐC GIA MIỄN PHÍ
+            const provSel = document.getElementById('shipProvince');
+            const distSel = document.getElementById('shipDistrict');
+            const wardSel = document.getElementById('shipWard');
+            const streetInp = document.getElementById('shipStreet');
+            const fullAddrTxt = document.getElementById('ShippingAddress');
+
+            async function loadProvinces() {
+                try {
+                    const res = await fetch('https://provinces.open-api.vn/api/p/');
+                    const data = await res.json();
+                    provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
+                    data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.code;
+                        opt.textContent = p.name;
+                        provSel.appendChild(opt);
+                    });
+                } catch (err) { console.error("Lỗi tải Tỉnh thành từ API: ", err); }
+            }
+
+            async function loadDistricts(provCode) {
+                distSel.disabled = true;
+                distSel.innerHTML = `<option value="">-- Chọn Quận/Huyện --</option>`;
+                wardSel.innerHTML = `<option value="">-- Chọn Phường/Xã --</option>`;
+                wardSel.disabled = true;
+                if (!provCode) return;
+
+                try {
+                    const res = await fetch(`https://provinces.open-api.vn/api/p/${provCode}?depth=2`);
+                    const data = await res.json();
+                    data.districts.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.code;
+                        opt.textContent = d.name;
+                        distSel.appendChild(opt);
+                    });
+                    distSel.disabled = false;
+                } catch (err) { console.error(err); }
+            }
+
+            async function loadWards(distCode) {
+                wardSel.disabled = true;
+                wardSel.innerHTML = `<option value="">-- Chọn Phường/Xã --</option>`;
+                if (!distCode) return;
+
+                try {
+                    const res = await fetch(`https://provinces.open-api.vn/api/d/${distCode}?depth=2`);
+                    const data = await res.json();
+                    data.wards.forEach(w => {
+                        const opt = document.createElement('option');
+                        opt.value = w.code;
+                        opt.textContent = w.name;
+                        wardSel.appendChild(opt);
+                    });
+                    wardSel.disabled = false;
+                } catch (err) { console.error(err); }
+            }
+
+            function syncFullAddressText() {
+                const provText = provSel.value ? provSel.options[provSel.selectedIndex].text : "";
+                const distText = distSel.value ? distSel.options[distSel.selectedIndex].text : "";
+                const wardText = wardSel.value ? wardSel.options[wardSel.selectedIndex].text : "";
+                const streetText = streetInp.value.trim();
+
+                if (provText && distText && wardText && streetText) {
+                    fullAddrTxt.value = `${streetText}, ${wardText}, ${distText}, ${provText}`;
+                } else {
+                    fullAddrTxt.value = "";
+                }
+            }
+
+            async function quote(provinceCode, districtCode) {
+                ProvinceCodeHidden.value = provinceCode || "";
+                DistrictCodeHidden.value = districtCode || "";
+
+                if (!provinceCode) {
+                    ShippingFeeHidden.value = 0;
+                    if (shipFeeText) shipFeeText.textContent = "0 đ";
+                    if (shipEtaText) shipEtaText.textContent = "—";
+                    recalcTotal(); return;
+                }
+                const method = ShipMethodHidden.value || "standard";
+                const res = await fetch(`/Shipping/Quote?provinceCode=${provinceCode}&districtCode=${districtCode || ''}&method=${method}&orderValue=${orderValueAfterDiscount}`);
+                const data = await res.json();
+
+                if (data && data.ok === false) {
+                    ShippingFeeHidden.value = 0; if (shipFeeText) shipFeeText.textContent = "0 đ"; recalcTotal(); return;
+                }
+
+                ShippingFeeHidden.value = data.fee || 0;
+                if (shipFeeText) shipFeeText.textContent = money(data.fee || 0);
+                let eta = "—"; if (data.etaFrom && data.etaTo) eta = data.etaFrom + " - " + data.etaTo;
+                if (shipEtaText) shipEtaText.textContent = eta;
+                recalcTotal();
+            }
+
+            if (provSel && distSel && wardSel) {
+                loadProvinces().then(() => recalcTotal());
+
+                provSel.addEventListener('change', async () => {
+                    ProvinceCodeHidden.value = provSel.value || "";
+                    await loadDistricts(provSel.value);
+                    DistrictCodeHidden.value = "";
+                    syncFullAddressText();
+                    await quote(provSel.value, "");
+                });
+
+                distSel.addEventListener('change', async () => {
+                    DistrictCodeHidden.value = distSel.value || "";
+                    await loadWards(distSel.value);
+                    syncFullAddressText();
+                    await quote(provSel.value, distSel.value);
+                });
+
+                wardSel.addEventListener('change', () => {
+                    syncFullAddressText();
+                });
+
+                streetInp.addEventListener('input', () => {
+                    syncFullAddressText();
+                });
+            }
+
             document.querySelectorAll('input[name="PayMethod"]').forEach(radio => {
                 radio.addEventListener('change', function() {
                     if (this.value === "Installment") {
@@ -427,7 +545,7 @@
                         PaymentMethodHidden.value = "Installment";
                     } else {
                         installmentBox.style.display = 'none';
-                        PaymentMethodHidden.value = this.value; 
+                        PaymentMethodHidden.value = this.value;
                     }
                     recalcTotal();
                 });
@@ -435,7 +553,6 @@
 
             const initialPayMode = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
             PaymentMethodHidden.value = initialPayMode;
-
             installmentMonthsSelect?.addEventListener('change', recalcTotal);
 
             const shipRadio = document.getElementById('ShipToHomeRadio');
@@ -452,10 +569,14 @@
                     if (shipFeeText) shipFeeText.textContent = "0 đ";
                     if (shipEtaText) shipEtaText.textContent = "—";
                     StoreIdHidden.value = storeSelect.value || "";
+                    fullAddrTxt.readOnly = false;
+                    fullAddrTxt.value = "";
                 } else {
                     DeliveryMethodHidden.value = "ShipToHome";
                     shipBox.style.display = 'block'; pickupBox.style.display = 'none';
                     StoreIdHidden.value = "";
+                    fullAddrTxt.readOnly = true;
+                    syncFullAddressText();
                 }
                 recalcTotal();
             }
@@ -475,80 +596,6 @@
                 } else { recalcTotal(); }
             });
 
-            const provSel = document.getElementById('shipProvince');
-            const distSel = document.getElementById('shipDistrict');
-
-            document.querySelectorAll('input[name="PayMethod"]').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    if (this.value === "Installment") {
-                        installmentBox.style.display = 'block';
-                        PaymentMethodHidden.value = "Installment";
-                    } else {
-                        installmentBox.style.display = 'none';
-                        PaymentMethodHidden.value = this.value; 
-                    }
-                    recalcTotal();
-                });
-            });
-
-            async function loadProvinces() {
-                const res = await fetch('/Shipping/Provinces'); const data = await res.json();
-                provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
-                data.forEach(p => {
-                    const opt = document.createElement('option'); opt.value = p.code; opt.textContent = p.name;
-                    provSel.appendChild(opt);
-                });
-            }
-
-            async function loadDistricts(provinceCode) {
-                distSel.disabled = true; distSel.innerHTML = `<option value="">-- Toàn tỉnh --</option>`;
-                if (!provinceCode) return;
-                const res = await fetch('/Shipping/Districts?provinceCode=' + provinceCode); const data = await res.json();
-                data.forEach(d => {
-                    const opt = document.createElement('option'); opt.value = d.code; opt.textContent = d.name;
-                    distSel.appendChild(opt);
-                });
-                distSel.disabled = false;
-            }
-
-            async function quote(provinceCode, districtCode) {
-                ProvinceCodeHidden.value = provinceCode || "";
-                DistrictCodeHidden.value = districtCode || "";
-
-                if (!provinceCode) {
-                    ShippingFeeHidden.value = 0;
-                    if (shipFeeText) shipFeeText.textContent = "—";
-                    if (shipEtaText) shipEtaText.textContent = "—";
-                    recalcTotal(); return;
-                }
-                const method = ShipMethodHidden.value || "standard";
-                const res = await fetch(`/Shipping/Quote?provinceCode=${provinceCode}&districtCode=${districtCode || ''}&method=${method}&orderValue=${orderValueAfterDiscount}`);
-                const data = await res.json();
-                if (data && data.ok === false) {
-                    ShippingFeeHidden.value = 0; if (shipFeeText) shipFeeText.textContent = "0 đ"; recalcTotal(); return;
-                }
-
-                ShippingFeeHidden.value = data.fee || 0;
-                if (shipFeeText) shipFeeText.textContent = money(data.fee || 0);
-                let eta = "—"; if (data.etaFrom && data.etaTo) eta = data.etaFrom + " - " + data.etaTo;
-                if (shipEtaText) shipEtaText.textContent = eta;
-                recalcTotal();
-            }
-
-            if (provSel && distSel) {
-                loadProvinces().then(() => recalcTotal());
-                provSel.addEventListener('change', async () => {
-                    ProvinceCodeHidden.value = provSel.value || "";
-                    await loadDistricts(provSel.value); distSel.value = "";
-                    DistrictCodeHidden.value = "";
-                    await quote(provSel.value, "");
-                });
-                distSel.addEventListener('change', async () => {
-                    DistrictCodeHidden.value = distSel.value || "";
-                    await quote(provSel.value, distSel.value);
-                });
-            } else { recalcTotal(); }
-
             const form = document.getElementById('checkoutForm');
             if (form) {
                 form.addEventListener('submit', function (e) {
@@ -560,17 +607,13 @@
                     }
 
                     if (DeliveryMethodHidden.value === "ShipToHome") {
-                        ProvinceCodeHidden.value = provSel.value || "";
-                        DistrictCodeHidden.value = distSel.value || "";
-
-                        if (!ProvinceCodeHidden.value) {
-                            alert('Vui lòng chọn Tỉnh/TP để tính phí ship.');
+                        if (!provSel.value || !distSel.value || !wardSel.value || !streetInp.value.trim()) {
+                            alert('Vui lòng hoàn thành chọn địa chỉ 3 cấp và số nhà để hệ thống giao hàng xác nhận.');
                             return;
                         }
                     }
 
                     recalcTotal();
-
                     const pay = document.querySelector('input[name="PayMethod"]:checked')?.value || "COD";
 
                     if (pay === "COD" || pay === "Installment") {

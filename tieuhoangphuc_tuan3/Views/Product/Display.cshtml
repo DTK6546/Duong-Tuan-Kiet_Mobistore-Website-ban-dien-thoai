@@ -17,7 +17,6 @@
     int fullStars = (int)Math.Floor(avg);
     bool hasHalf = avg - fullStars >= 0.5;
 
-    // 🔹 Biến thể (màu / dung lượng)
     var variants = ViewBag.Variants as List<ProductVariant> ?? new List<ProductVariant>();
     bool hasVariants = variants.Any();
 
@@ -38,7 +37,6 @@
         ? variants.First().DiscountedPrice
         : Model.DiscountedPrice;
 
-    // 🔹 Gallery: gom ảnh chính + ảnh phụ
     var galleryId = $"productGallery_{Model.Id}";
     var media = new List<string>();
 
@@ -60,7 +58,6 @@
 
     var promoCoupons = ViewBag.PromoCoupons as List<Coupon> ?? new List<Coupon>();
 
-    // Review paging
     int ratingPage = ViewBag.RatingPage ?? 1;
     int ratingTotalPages = ViewBag.RatingTotalPages ?? 1;
 
@@ -154,7 +151,7 @@
         min-width: 300px;
     }
 
-    @@keyframes popscale {
+    @Html.Raw("@keyframes") popscale {
         0% {
             transform: scale(0.7);
         }
@@ -316,16 +313,22 @@
     </form>
 
     <nav aria-label="breadcrumb">
-        <ol class="breadcrumb small bg-light rounded px-3 py-2 mb-3">
+        <ol class="breadcrumb bg-light p-3 rounded-3 shadow-sm mb-4">
             <li class="breadcrumb-item">
-                <a href="/" class="text-primary text-decoration-none">
-                    <i class="bi bi-house"></i> Trang chủ
+                <a href="/" class="text-primary text-decoration-none fw-semibold">
+                    <i class="bi bi-house-door-fill"></i> Trang chủ
                 </a>
             </li>
             <li class="breadcrumb-item">
-                <a href="/Product" class="text-info text-decoration-none">Sản phẩm</a>
+                <a href="/Product" class="text-primary text-decoration-none fw-semibold">Sản phẩm thiết bị</a>
             </li>
-            <li class="breadcrumb-item active text-secondary" aria-current="page">@Model.Name</li>
+            @if (Model.Category != null)
+            {
+                <li class="breadcrumb-item">
+                    <a href="/Product?category=@Model.Category.Id" class="text-primary text-decoration-none fw-semibold">@Model.Category.Name</a>
+                </li>
+            }
+            <li class="breadcrumb-item active text-secondary fw-bold" aria-current="page">@Model.Name</li>
         </ol>
     </nav>
 
@@ -540,7 +543,7 @@
                         </div>
 
                         <div class="small text-muted">
-                            Đơn tối thiểu: @c.MinOrderValue.ToString("N0", vi) VNĐ •
+                            Don tối thiểu: @c.MinOrderValue.ToString("N0", vi) VNĐ •
                             Còn: @(remain > 0 ? remain.ToString() : "0") lượt •
                             @c.StartDate.ToString("dd/MM") - @c.EndDate.ToString("dd/MM")
                         </div>
@@ -692,6 +695,42 @@
     }
 </div>
 
+<div class="social-share-section my-3 p-3 bg-white rounded-4 shadow-sm border border-dashed">
+    <span class="fw-bold small text-secondary d-block mb-2"><i class="bi bi-share-fill"></i> CHIA SẺ SẢN PHẨM NÀY LÊN MẠNG XÃ HỘI:</span>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm text-white px-3 rounded-pill shadow-sm" style="background-color: #1877f2;" onclick="shareOnFacebook()">
+            <i class="bi bi-facebook me-1"></i> Facebook
+        </button>
+        <button type="button" class="btn btn-sm text-white px-3 rounded-pill shadow-sm" style="background-color: #1da1f2;" onclick="shareOnTwitter()">
+            <i class="bi bi-twitter-x me-1"></i> Twitter
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary px-3 rounded-pill shadow-sm" onclick="copyProductLink()">
+            <i class="bi bi-link-45deg me-1"></i> Copy Link liên kết
+        </button>
+    </div>
+</div>
+
+<script>
+                function shareOnFacebook() {
+                    const url = encodeURIComponent(window.location.href);
+                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+                }
+
+                function shareOnTwitter() {
+                    const url = encodeURIComponent(window.location.href);
+                    const text = encodeURIComponent("Khám phá ngay siêu phẩm công nghệ cực hot tại MobiStore: @Model.Name");
+                    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+                }
+
+                function copyProductLink() {
+                    navigator.clipboard.writeText(window.location.href).then(() => {
+                        alert("Đã sao chép đường dẫn sản phẩm vào bộ nhớ tạm thành công!");
+                    }).catch(err => {
+                        console.error('Lỗi khi copy link: ', err);
+                    });
+                }
+</script>
+
 <div class="mt-4">
     <h5 class="mb-3">Thông tin sản phẩm:</h5>
     <ul class="list-unstyled">
@@ -706,7 +745,7 @@
 </div>
 </div>
 
-    @if (!string.IsNullOrEmpty(Model.Description))
+@if (!string.IsNullOrEmpty(Model.Description))
 {
     <div class="row mt-4">
         <div class="col-12">
@@ -740,6 +779,88 @@
         </div>
     </div>
 }
+
+<div class="card p-4 border-0 shadow-sm rounded-4 my-4 overflow-hidden">
+    <div class="card-header bg-dark text-white py-3 fw-bold fs-5" style="border-radius: 12px 12px 0 0;">
+        <i class="bi bi-play-btn-fill text-danger me-1"></i> Video Đánh Giá Thực Tế & Trải Nghiệm Công Nghệ
+    </div>
+    <div class="card-body p-4 bg-white">
+        <div class="row g-4 align-items-center">
+            <div class="col-md-7">
+                <div class="ratio ratio-16x9 rounded-3 overflow-hidden border shadow-sm">
+                    @if (!string.IsNullOrEmpty(Model.VideoUrl))
+                    {
+                        <iframe src="https://www.youtube.com/embed/@Model.VideoUrl" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    }
+                    else
+                    {
+                        <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    }
+                </div>
+                <div class="mt-2 small text-muted text-center fst-italic">
+                    <i class="bi bi-youtube text-danger"></i> Video đánh giá chi tiết hiệu năng phần cứng và camera trải nghiệm thực tế.
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-journal-text text-primary"></i> Đánh giá tóm tắt từ các chuyên gia</h5>
+                <ul class="list-unstyled small text-secondary mb-0">
+                    @if (!string.IsNullOrWhiteSpace(Model.ServiceCommitment))
+                    {
+                        // Tách nội dung nhập vào thành từng dòng dựa trên dấu xuống dòng
+                        var reviewLines = Model.ServiceCommitment.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+                        foreach (var line in reviewLines)
+                        {
+                            var cleanLine = line.Trim();
+
+                            if (cleanLine.StartsWith("+"))
+                            {
+                                // Nếu dòng bắt đầu bằng dấu +, hiển thị dạng Ưu điểm (Icon xanh)
+                                <li class="mb-2 d-flex gap-2">
+                                    <i class="bi bi-plus-circle-fill text-success mt-1"></i>
+                                    <span>@cleanLine.Substring(1).Trim()</span>
+                                </li>
+                            }
+                            else if (cleanLine.StartsWith("-"))
+                            {
+                                // Nếu dòng bắt đầu bằng dấu -, hiển thị dạng Hạn chế (Icon đỏ)
+                                <li class="mb-2 d-flex gap-2">
+                                    <i class="bi bi-dash-circle-fill text-danger mt-1"></i>
+                                    <span>@cleanLine.Substring(1).Trim()</span>
+                                </li>
+                            }
+                            else
+                            {
+                                // Dự phòng nếu dòng không nhập dấu + hoặc -
+                                <li class="mb-2 d-flex gap-2">
+                                    <i class="bi bi-check-circle-fill text-primary mt-1"></i>
+                                    <span>@cleanLine</span>
+                                </li>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Hiển thị nội dung mặc định nếu Admin bỏ trống ô này
+                        <li class="mb-2 d-flex gap-2">
+                            <i class="bi bi-plus-circle-fill text-success mt-1"></i>
+                            <span><b>Ngoại hình:</b> Thiết kế bo góc mềm mại, độ hoàn thiện cao, màu sắc thời thượng hợp gu giới trẻ.</span>
+                        </li>
+                        <li class="mb-2 d-flex gap-2">
+                            <i class="bi bi-plus-circle-fill text-success mt-1"></i>
+                            <span><b>Hiệu năng:</b> Đóng mở ứng dụng mượt mà, tối ưu pin tốt, đáp ứng hoàn hảo các tựa game cấu hình phổ thông.</span>
+                        </li>
+                        <li class="mb-0 d-flex gap-2">
+                            <i class="bi bi-dash-circle-fill text-danger mt-1"></i>
+                            <span><b>Hạn chế:</b> Phụ kiện đi kèm hộp tối giản, thời gian sạc đầy pin ở mức trung bình.</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
 
 @if (Model.Specs != null)
 {
@@ -1025,7 +1146,7 @@
 
 <div class="container mt-4">
     <div class="mt-5">
-        <h4 class="mb-3">Hỏi & Đạp / FAQ</h4>
+        <h4 class="mb-3">Hỏi & Đáp / FAQ</h4>
 
         @if (faqs.Any())
         {
@@ -1320,7 +1441,6 @@
                             <div id="star-group" class="d-flex gap-1" style="font-size: 2rem; direction: ltr;">
                                 @for (int i = 1; i <= 5; i++)
                                 {
-                                    var myRating = ViewBag.MyRating as WebBanDienThoai.Models.ProductRating;
                                     bool isChecked = myRating != null && myRating.Stars == i;
 
                                     <input type="radio" name="stars" id="star-@i" value="@i"
@@ -1403,12 +1523,8 @@
             }
             else
             {
-                @* =========================================================================
-            // 🌟 KHỐI CẬP NHẬT CHÍ MẠNG: THAY THẾ TOÀN BỘ VÒNG LẶP FOREACH RATINGS CỦA BẠN
-            // ========================================================================= *@
                 @foreach (var r in ratings)
                 {
-                    // Đồng bộ lấy CurrentUserId bốc từ ViewBag truyền từ Controller sang để check chính chủ
                     var currentUserId = ViewBag.CurrentUserId as string;
 
                     if (r.IsApproved || (User.Identity.IsAuthenticated && r.UserId == currentUserId))
@@ -1425,7 +1541,6 @@
                                     <div class="d-flex align-items-center flex-wrap gap-2">
                                         <span class="fw-bold text-dark fs-6">@displayName</span>
 
-                                        @* 🚀 HIỂN THỊ BADGE TÍCH XANH CHUẨN XÁC KHI ĐÃ ĐƯỢC XÁC MINH MUA HÀNG *@
                                         @if (r.IsVerifiedPurchase)
                                         {
                                             <span class="badge bg-success-subtle text-success border border-success border-opacity-50 px-2.5 py-1.5 small d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 11px; font-weight: 600; border-radius: 20px;">
@@ -1575,14 +1690,10 @@
 
     const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value;
 
-    // =========================================================================
-    // 📉 ✨ SCRIPT 1: AJAX ĐĂNG KÝ MỐC ALERT KHẤU TRỪ THEO DÕI GIÁ GIẢM
-    // =========================================================================
     window.registerPriceAlert = function(productId) {
     const price = document.getElementById("targetPriceInput").value;
     if(!price || price <= 0) { alert("Vui lòng nhập giá mong muốn hợp lệ!"); return; }
 
-    // Sửa đường dẫn bọc đúng chuẩn sang PriceAlert/RegisterAlert
     fetch('/PriceAlert/RegisterAlert', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1595,9 +1706,6 @@
     });
     }
 
-    // =========================================================================
-    // 📊 ✨ SCRIPT 2: FETCH DATA VÀ RENDER BIỂU ĐỒ LỊCH SỬ GIÁ SẢN PHẨM
-    // =========================================================================
     fetch('/Product/GetPriceHistory?productId=' + @Model.Id)
     .then(res => res.json())
     .then(data => {
@@ -1733,8 +1841,6 @@
     if (specStorageEl) specStorageEl.textContent = storage || '';
     if (specStorageAvailEl) specStorageAvailEl.textContent = storageAvailable || '';
     }
-
-    /*  */
 
     function setSku(sku) {
     const el = document.getElementById('variantSku');
@@ -1926,7 +2032,6 @@
     provSel.innerHTML = `<option value="">-- Chọn Tỉnh/TP --</option>`;
     data.forEach(p => {
     const opt = document.createElement('option');
-    // SỬA CHỖ NÀY: Quét cả 2 kiểu chữ thường và chữ hoa để chấp hết mọi loại cấu hình JSON
     opt.value = p.code || p.Code;
     opt.textContent = p.name || p.Name;
     provSel.appendChild(opt);
@@ -1943,7 +2048,6 @@
     const data = await res.json();
     data.forEach(d => {
     const opt = document.createElement('option');
-    // SỬA CHỖ NÀY LUÔN: Đồng bộ bẫy lỗi mapping cho Quận/Huyện
     opt.value = d.code || d.Code;
     opt.textContent = d.name || d.Name;
     distSel.appendChild(opt);
@@ -1960,7 +2064,6 @@
     etaEl.textContent = etaText(data.minDays, data.maxDays);
     }
 
-    // Khởi chạy ngầm và lắng nghe sự kiện thay đổi trên UI
     if (provSel && distSel) {
     const savedProvince = localStorage.getItem('ship_province') || '';
     const savedDistrict = localStorage.getItem('ship_district') || '';
@@ -1970,7 +2073,7 @@
     provSel.value = savedProvince;
     await loadDistricts(provSel.value);
     if (savedDistrict) distSel.value = savedDistrict;
-    await quote(provSel.value, distSel.value);
+    await quote(provSel.value, savedDistrict);
     }
     });
 
@@ -1987,7 +2090,6 @@
     });
     }
 
-    // ===== Vote / Report =====
     window.voteRating = async function(id, isLike) {
     const res = await fetch('/Product/VoteRating', {
     method: 'POST',
@@ -2024,7 +2126,6 @@
 
     });
 
-    // === 🚀 KHỐI XỬ LÝ CLICK SÁNG ĐÈN NGÔI SAO ĐÁNH GIÁ ===
     const starLabels = document.querySelectorAll('.star-label-item');
     const starInputs = document.querySelectorAll('.star-radio-input');
 
@@ -2039,20 +2140,17 @@
     });
     }
 
-    // Kiểm tra xem nếu đã có đánh giá cũ thì làm sáng sẵn số sao tương ứng
     const checkedInput = document.querySelector('.star-radio-input:checked');
     if (checkedInput) {
     highlightStars(parseInt(checkedInput.value));
     }
 
     starLabels.forEach(label => {
-    // Khi click chọn sao
     label.addEventListener('click', function () {
     const value = parseInt(this.getAttribute('data-value'));
     highlightStars(value);
     });
 
-    // Khi di chuột vào (Hover)
     label.addEventListener('mouseenter', function () {
     const value = parseInt(this.getAttribute('data-value'));
     starLabels.forEach(l => {
@@ -2062,7 +2160,6 @@
     });
     });
 
-    // Khi rà chuột ra ngoài thì trả về trạng thái sao đã chọn ban đầu
     document.getElementById('star-group').addEventListener('mouseleave', function () {
     starLabels.forEach(l => l.classList.remove('hovered'));
     const currentChecked = document.querySelector('.star-radio-input:checked');

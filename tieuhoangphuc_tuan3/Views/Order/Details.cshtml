@@ -24,13 +24,10 @@
         _ => "badge bg-light text-dark",
     };
 
-    decimal subTotal = Model.Subtotal;
+    // ⚡ ĐỒNG BỘ: Sử dụng SubTotal tính toán động truyền từ Controller
+    decimal subTotal = ViewBag.SubTotal ?? Model.Subtotal;
     decimal discount = Model.DiscountAmount;
-
-    // =========================================================================
-    // 💸 CẬP NHẬT: BỐC THUỘC TÍNH TRỢ GIÁ THU CŨ ĐỔI MỚI (TRADE-IN VALUE) TỪ MODEL ORDER
-    // =========================================================================
-    decimal tradeInDiscount = Model.TradeInDiscount; 
+    decimal tradeInDiscount = Model.TradeInDiscount;
 
     if (subTotal == 0 && Model.OrderDetails != null && Model.OrderDetails.Any())
     {
@@ -41,10 +38,12 @@
         });
     }
 
-    // Tính toán lại giá trị thực tế sau khấu trừ để đồng bộ chính xác số tiền VAT
     decimal afterDiscountReal = Math.Max(0, subTotal - discount - tradeInDiscount);
     decimal vat = Model.VatAmount > 0 ? Model.VatAmount : Math.Round(afterDiscountReal * 0.10m, 0);
-    decimal shipFee = Model.ShippingFee;
+
+    // ⚡ ĐỒNG BỘ: Phí vận chuyển tự động tính từ Controller
+    decimal shipFee = ViewBag.ShippingFee ?? Model.ShippingFee;
+    bool isFreeShip = ViewBag.IsFreeShip ?? (shipFee == 0);
 
     bool isCancelled = Model.Status == OrderStatus.DaHuy;
     bool isReturn = Model.Status == OrderStatus.TraHang;
@@ -204,10 +203,18 @@
         animation: flickerAnimation 1.5s infinite;
     }
 
-    keyframes flickerAnimation {
-        0% { opacity: 1; }
-        50% { opacity: 0.3; }
-        100% { opacity: 1; }
+    @@keyframes flickerAnimation {
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.3;
+        }
+
+        100% {
+            opacity: 1;
+        }
     }
 </style>
 
@@ -470,9 +477,6 @@
                             </div>
                         }
 
-                        @* =========================================================================
-                        // 💸 CẬP NHẬT GIAO DIỆN HTML: DÒNG HIỂN THỊ KHẤU TRỪ TRỢ GIÁ THU CŨ (TRADE-IN VALUE)
-                        // ========================================================================= *@
                         @if (tradeInDiscount > 0)
                         {
                             <div class="od-summary-row text-danger fw-bold rounded p-1" style="background-color: #fff5f5; border: 1px dashed #f5c2c2;">
@@ -483,7 +487,21 @@
 
                         <div class="od-summary-row"><div class="od-muted">Thành tiền (chưa VAT)</div><div class="fw-semibold">@afterDiscountReal.ToString("N0") đ</div></div>
                         <div class="od-summary-row"><div class="nav-icon od-muted">VAT (10%)</div><div class="fw-semibold">@vat.ToString("N0") đ</div></div>
-                        <div class="od-summary-row"><div class="od-muted">Phí vận chuyển</div><div class="fw-semibold">@(shipFee > 0 ? shipFee.ToString("N0") + " đ" : "Miễn phí")</div></div>
+
+                        <div class="od-summary-row">
+                            <div class="od-muted">Phí vận chuyển</div>
+                            <div class="fw-semibold">
+                                @if (isFreeShip)
+                                {
+                                    <span class="text-decoration-line-through text-muted small me-1">30.000 đ</span>
+                                    <span class="badge bg-success text-uppercase">Miễn phí tự động</span>
+                                }
+                                else
+                                {
+                                    <span>@shipFee.ToString("N0") đ</span>
+                                }
+                            </div>
+                        </div>
                         <hr />
                         <div class="od-summary-row align-items-center"><div class="fw-bold">Tổng cộng</div><div class="fs-5 fw-bold text-danger">@Model.TotalPrice.ToString("N0") đ</div></div>
                     </div>
